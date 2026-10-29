@@ -40,6 +40,19 @@ const style = `@theme {
 .unrelated { color: red; }
 `;
 const boxy = "*, *::before, *::after { border-radius: 0 !important; }\n";
+const desktopHandler = `// The AppImage integration entry owns the window identity. This
+// hidden URL-only entry must not compete with it for StartupWMClass matching.
+export function renderUrlHandlerDesktopEntry() {
+  return [
+    "[Desktop Entry]",
+    "Type=Application",
+    "Name=T3 Code",
+    "NoDisplay=true",
+    "MimeType=x-scheme-handler/t3code;",
+    "",
+  ].join("\\n");
+}
+`;
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "luna-t3-prepare-"));
@@ -48,6 +61,7 @@ function fixture(t) {
     "packages/contracts/src/settings.ts": settings,
     "apps/web/src/appearanceFonts.ts": fonts,
     "apps/web/src/index.css": style,
+    "apps/desktop/src/app/DesktopLinuxUrlHandler.ts": desktopHandler,
     "defaults.json": JSON.stringify(defaults),
     "boxy.css": boxy,
     "userdata/client-settings.json":

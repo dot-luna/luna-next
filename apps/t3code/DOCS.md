@@ -11,6 +11,9 @@
 The recipe shallow-clones into `~/.local/src/t3code`, builds the selected release,
 and installs to `$XDG_DATA_HOME/luna-next/t3code` (default `~/.local/share`).
 The launcher is `~/.local/bin/t3code`. T3's existing data stays in place.
+The single app-menu and URL-handler entry is
+`$XDG_DATA_HOME/applications/com.t3tools.T3Code.desktop`. T3 keeps it visible on
+startup and installs its menu icon on first launch.
 
 Runtime libraries and fonts are in [the main package list](../../installs/packages.conf).
 Build-only Arch dependencies are installed temporarily through polkit (sudo

@@ -47,6 +47,13 @@ test("builds with JSON defaults, font fallbacks and square controls without chan
       assert.ok(css.includes('--font-mono:\n    "Iosevka Nerd Font", ui-monospace'));
       assert.ok(css.endsWith(boxy));
       assert.ok(css.includes(".unrelated { color: red; }"));
+      const handler = f.read("apps/desktop/src/app/DesktopLinuxUrlHandler.ts");
+      const entry = Function(
+        handler.replace("export function", "function") + "\nreturn renderUrlHandlerDesktopEntry();",
+      )();
+      assert.ok(entry.includes("NoDisplay=false\n"));
+      assert.ok(entry.includes("StartupWMClass=t3code\n"));
+      assert.ok(entry.includes("MimeType=x-scheme-handler/t3code;\n"));
       assert.equal(
         f.read("userdata/client-settings.json"),
         f.files["userdata/client-settings.json"],
@@ -57,6 +64,18 @@ test("builds with JSON defaults, font fallbacks and square controls without chan
     "built",
   );
   assertRestored(f);
+});
+
+test("rejects an upstream desktop entry contract change before modifying sources", (t) => {
+  const f = fixture(t);
+  const file = "apps/desktop/src/app/DesktopLinuxUrlHandler.ts";
+  const changed = f.read(file).replace('"NoDisplay=true"', '"Hidden=true"');
+  fs.writeFileSync(path.join(f.root, file), changed);
+  assert.throws(() => f.prepare(() => assert.fail("must not build")), /T3 source changed.*NoDisplay/);
+  assert.equal(f.read(file), changed);
+  assert.equal(f.read("packages/contracts/src/settings.ts"), settings);
+  assert.equal(f.read("apps/web/src/index.css"), style);
+  assert.equal(fs.existsSync(path.join(f.root, "packages/contracts/src/luna-defaults.json")), false);
 });
 
 test("restores original bytes and modes after a failed build and can run again", (t) => {

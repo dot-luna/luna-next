@@ -4,7 +4,7 @@ const path = require("node:path");
 const { spawn, spawnSync } = require("node:child_process");
 const { once } = require("node:events");
 const { test } = require("node:test");
-const { installFile } = require("../src/build.cjs");
+const { installFile, installDesktopEntry } = require("../src/build.cjs");
 const { fixture, assertRestored } = require("./fixtures.cjs");
 
 const buildScript = path.resolve(__dirname, "../src/build.cjs");
@@ -71,6 +71,7 @@ for (const name of names) fs.writeFileSync(path.join(output, name), artifact);
   );
   const installed = path.join(dataHome, "luna-next/t3code/T3-Code.AppImage");
   const launcher = path.join(home, ".local/bin/t3code");
+  const desktop = path.join(dataHome, "applications/com.t3tools.T3Code.desktop");
   const env = {
     ...process.env,
     PATH: `${bin}:${process.env.PATH}`,
@@ -85,6 +86,7 @@ for (const name of names) fs.writeFileSync(path.join(output, name), artifact);
     env,
     installed,
     launcher,
+    desktop,
     run: (mode = "success") =>
       spawnSync(process.execPath, ["-e", runBuild, buildScript], {
         cwd: f.root,
@@ -131,6 +133,13 @@ test("builds the selected release and launches the installed AppImage with manag
   for (const file of [f.installed, f.launcher]) {
     assert.equal(fs.statSync(file).mode & 0o777, 0o755);
   }
+  const desktop = fs.readFileSync(f.desktop, "utf8");
+  assert.ok(desktop.includes(`Exec="${f.launcher}" %U\n`));
+  assert.ok(desktop.includes("Name=T3 Code\n"));
+  assert.ok(desktop.includes("Categories=Development;IDE;\n"));
+  assert.doesNotMatch(desktop, /^(NoDisplay|Hidden)=true$/m);
+  assert.equal(fs.statSync(f.desktop).mode & 0o777, 0o644);
+  assert.deepEqual(fs.readdirSync(path.dirname(f.desktop)), ["com.t3tools.T3Code.desktop"]);
   const launch = spawnSync(f.launcher, ["--one", "a value", "literal;$text"], {
     env: {
       ...f.env,
@@ -158,6 +167,8 @@ for (const mode of ["fail-install", "fail-build", "none", "multiple"]) {
     fs.mkdirSync(path.dirname(f.launcher), { recursive: true });
     fs.writeFileSync(f.installed, "previous AppImage", { mode: 0o754 });
     fs.writeFileSync(f.launcher, "previous launcher", { mode: 0o750 });
+    fs.mkdirSync(path.dirname(f.desktop), { recursive: true });
+    fs.writeFileSync(f.desktop, "previous desktop entry");
     const result = f.run(mode);
     assert.equal(result.status, 1);
     assert.match(
@@ -166,6 +177,7 @@ for (const mode of ["fail-install", "fail-build", "none", "multiple"]) {
     );
     assert.equal(fs.readFileSync(f.installed, "utf8"), "previous AppImage");
     assert.equal(fs.readFileSync(f.launcher, "utf8"), "previous launcher");
+    assert.equal(fs.readFileSync(f.desktop, "utf8"), "previous desktop entry");
     assert.equal(fs.statSync(f.installed).mode & 0o777, 0o754);
     assert.equal(fs.statSync(f.launcher).mode & 0o777, 0o750);
     assertBuildCleanup(f);
@@ -228,6 +240,30 @@ test("installFile replaces a destination symlink without changing its target", (
   assert.equal(fs.readFileSync(target, "utf8"), "unrelated contents");
   assert.equal(fs.statSync(source).mode & 0o777, 0o640);
   assert.deepEqual(fs.readdirSync(path.dirname(destination)), ["t3code"]);
+});
+
+test("menu installation replaces the hidden URL handler without creating a duplicate", (t) => {
+  const f = fixture(t);
+  const home = path.join(f.root, "home with spaces");
+  const dataHome = path.join(f.root, "data");
+  const applications = path.join(dataHome, "applications");
+  fs.mkdirSync(applications, { recursive: true });
+  const handler = path.join(applications, "com.t3tools.T3Code.desktop");
+  const hidden = "[Desktop Entry]\nNoDisplay=true\nMimeType=x-scheme-handler/t3code;\n";
+  fs.writeFileSync(handler, hidden);
+  fs.writeFileSync(path.join(applications, "unrelated.desktop"), "unrelated");
+  installDesktopEntry(home, dataHome);
+  const content = fs.readFileSync(handler, "utf8");
+  assert.ok(content.includes(`Exec="${home}/.local/bin/t3code" %U\n`));
+  assert.doesNotMatch(content, /^NoDisplay=true$/m);
+  assert.ok(content.includes("MimeType=x-scheme-handler/t3code;\n"));
+  fs.writeFileSync(handler, hidden);
+  installDesktopEntry(home, dataHome);
+  assert.equal(fs.readFileSync(handler, "utf8"), content);
+  assert.equal(fs.readFileSync(path.join(applications, "unrelated.desktop"), "utf8"), "unrelated");
+  assert.deepEqual(fs.readdirSync(applications).sort(), [
+    "com.t3tools.T3Code.desktop", "unrelated.desktop",
+  ]);
 });
 
 test("entry point rejects a missing selected release before package transactions", (t) => {

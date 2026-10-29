@@ -101,8 +101,23 @@ function patchCss(source, defaults, css, file) {
   return `${source.trimEnd()}\n\n/* Luna's desktop shape is applied after upstream component styles. */\n${css.trim()}\n`;
 }
 
+function patchDesktopEntry(source, file) {
+  source = replaceOnce(
+    source,
+    '// The AppImage integration entry owns the window identity. This\n// hidden URL-only entry must not compete with it for StartupWMClass matching.',
+    '// The installed desktop entry serves both the app menu and URL handling.',
+    file,
+  );
+  return replaceOnce(
+    source,
+    '    "NoDisplay=true",',
+    '    "NoDisplay=false",\n    "Categories=Development;IDE;",\n    "StartupWMClass=t3code",',
+    file,
+  );
+}
+
 /**
- * Build with Luna defaults and CSS, then restore the checkout's original bytes and modes.
+ * Build with Luna defaults, CSS and menu integration, then restore original bytes and modes.
  * The callback must finish synchronously; an upstream contract mismatch fails before any write.
  * Existing client preferences and application data are never opened or replaced.
  */
@@ -121,6 +136,7 @@ function withPreparedSources(checkout, defaultsPath, cssPath, callback) {
     ["packages/contracts/src/settings.ts", patchSettings],
     ["apps/web/src/appearanceFonts.ts", patchFontStacks],
     ["apps/web/src/index.css", (source, file) => patchCss(source, defaults, css, file)],
+    ["apps/desktop/src/app/DesktopLinuxUrlHandler.ts", patchDesktopEntry],
   ].map(([relative, patch]) => {
     const file = path.join(checkout, relative);
     const stat = fs.lstatSync(file);

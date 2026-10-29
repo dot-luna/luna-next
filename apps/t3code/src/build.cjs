@@ -14,14 +14,53 @@ function run(program, args, cwd) {
 }
 
 /** Publish complete files by rename so a failed build keeps the installed app usable. */
-function installFile(source, destination) {
+function installFile(source, destination, mode = 0o755) {
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   const temporary = fs.mkdtempSync(path.join(path.dirname(destination), ".t3-install-"));
   try {
     const staged = path.join(temporary, "file");
     fs.copyFileSync(source, staged);
-    fs.chmodSync(staged, 0o755);
+    fs.chmodSync(staged, mode);
     fs.renameSync(staged, destination);
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
+/** Install T3's visible launcher using the same desktop ID its URL handler maintains. */
+function installDesktopEntry(home, dataHome) {
+  const launcher = path.join(home, ".local/bin/t3code");
+  // Desktop Exec values undergo string unescaping before argument unquoting.
+  const quoted = launcher
+    .replaceAll("\\", "\\\\")
+    .replaceAll('"', '\\"')
+    .replaceAll("`", "\\`")
+    .replaceAll("$", "\\$")
+    .replaceAll("%", "%%");
+  const escaped = quoted
+    .replaceAll("\\", "\\\\")
+    .replaceAll("\n", "\\n")
+    .replaceAll("\r", "\\r")
+    .replaceAll("\t", "\\t");
+  const content = [
+    "[Desktop Entry]",
+    "Type=Application",
+    "Name=T3 Code",
+    `Exec="${escaped}" %U`,
+    "Icon=com.t3tools.T3Code",
+    "Terminal=false",
+    "NoDisplay=false",
+    "Categories=Development;IDE;",
+    "StartupWMClass=t3code",
+    "StartupNotify=false",
+    "MimeType=x-scheme-handler/t3code;",
+    "",
+  ].join("\n");
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "luna-t3-desktop-"));
+  try {
+    const source = path.join(temporary, "com.t3tools.T3Code.desktop");
+    fs.writeFileSync(source, content);
+    installFile(source, path.join(dataHome, "applications/com.t3tools.T3Code.desktop"), 0o644);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
@@ -77,6 +116,7 @@ function build(checkout, version, dependencies = withBuildDependencies) {
         path.join(dataHome, "luna-next/t3code/T3-Code.AppImage"),
       );
       installFile(path.join(__dirname, "t3code"), path.join(home, ".local/bin/t3code"));
+      installDesktopEntry(home, dataHome);
     });
   } finally {
     fs.rmSync(output, { recursive: true, force: true });
@@ -105,4 +145,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { build, installFile, main };
+module.exports = { build, installFile, installDesktopEntry, main };
