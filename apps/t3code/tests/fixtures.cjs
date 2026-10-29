@@ -4,13 +4,6 @@ const os = require("node:os");
 const path = require("node:path");
 const { withPreparedSources } = require("../src/prepare.cjs");
 
-const defaults = {
-  fontFamilySans: "Outfit",
-  fontFamilyCode: "Iosevka Nerd Font",
-  fontFamilyComposer: "Outfit",
-  fontFamilyTerminal: "Iosevka Nerd Font",
-  mathRenderingEnabled: true,
-};
 // These excerpts retain upstream's decoding and font fallback contracts.
 const settings = `export const ClientSettingsSchema = Schema.Struct({
   confirmThreadDelete: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
@@ -62,7 +55,6 @@ function fixture(t) {
     "apps/web/src/appearanceFonts.ts": fonts,
     "apps/web/src/index.css": style,
     "apps/desktop/src/app/DesktopLinuxUrlHandler.ts": desktopHandler,
-    "defaults.json": JSON.stringify(defaults),
     "boxy.css": boxy,
     "userdata/client-settings.json":
       '{"onboardingCompletedAt":"already-complete","mathRenderingEnabled":false}',
@@ -81,7 +73,6 @@ function fixture(t) {
     prepare: (build) =>
       withPreparedSources(
         root,
-        path.join(root, "defaults.json"),
         path.join(root, "boxy.css"),
         build,
       ),
@@ -100,4 +91,4 @@ function assertRestored(fixture) {
   );
 }
 
-module.exports = { defaults, settings, fonts, style, boxy, fixture, assertRestored };
+module.exports = { settings, fonts, style, boxy, fixture, assertRestored };

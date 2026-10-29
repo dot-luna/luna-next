@@ -33,6 +33,19 @@ pub(crate) fn run(command: &ThemeCommand, json_output: bool) -> Result<Value, Bo
         ThemeCommand::Toggle => json!(themes.toggle()?),
         ThemeCommand::GetConfigFile => json!(themes.config_file()),
         ThemeCommand::Hyprland => themes.hyprland()?,
+        ThemeCommand::Apply { .. } => {
+            let base = std::env::var("T3CODE_HOME")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| std::path::PathBuf::from(value.trim()))
+                .or_else(|| {
+                    std::env::var_os("HOME")
+                        .filter(|value| !value.is_empty())
+                        .map(|home| std::path::PathBuf::from(home).join(".t3"))
+                })
+                .ok_or("T3CODE_HOME or HOME must be set")?;
+            themes.apply_t3code(&base.join("userdata"))?
+        }
         ThemeCommand::Remove {
             names,
             dry_run,
@@ -80,6 +93,7 @@ pub(crate) fn print(command: &ThemeCommand, value: &Value) {
             println!("Theme: {}", value["name"].as_str().unwrap_or_default())
         }
         ThemeCommand::Hyprland => println!("return {}", lua(value)),
+        ThemeCommand::Apply { .. } => println!("T3 Code theme and fonts updated."),
         ThemeCommand::Remove { .. } => {
             for path in value.as_array().into_iter().flatten() {
                 println!("{}", path.as_str().unwrap_or_default());

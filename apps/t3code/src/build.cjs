@@ -66,7 +66,7 @@ function installDesktopEntry(home, dataHome) {
   }
 }
 
-/** Build the selected checkout with Luna defaults, restoring patched sources on failure. */
+/** Build the selected checkout with square controls, restoring patched sources on failure. */
 function build(checkout, version, dependencies = withBuildDependencies) {
   if (process.platform !== "linux" || process.arch !== "x64") {
     throw new Error("The T3 source recipe currently supports x86_64 Linux");
@@ -89,7 +89,6 @@ function build(checkout, version, dependencies = withBuildDependencies) {
       run("pnpm", ["install", "--frozen-lockfile"], checkout);
       withPreparedSources(
         checkout,
-        path.join(app, "config/defaults.json"),
         path.join(app, "config/boxy.css"),
         () => {
           run(

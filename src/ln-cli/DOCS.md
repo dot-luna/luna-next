@@ -65,6 +65,7 @@ lnxt theme get appearance --json
 | `mode [dark/light/toggle]` / `toggle` | Read/change system preference, keeping theme colors. |
 | `get-config-file` | Locate selection configuration. |
 | `hyprland` | Output native appearance as a Lua table; `--json` returns a JSON object. |
+| `apply t3code` | Apply Luna's palette, UI/monospace fonts, and math rendering through T3's native JSON settings. |
 | `remove <names...> [--dry-run] [--yes]` | Preview or confirm deletion; the selected theme is protected. |
 
 Themes use HOCON `.conf` files, with semantic `colors`, `fonts`, `appearance`, and
@@ -77,6 +78,11 @@ System mode needs GSettings and a user desktop session; its dependencies are in
 `xdg-desktop-portal-gtk`. Fixed palettes and legacy GTK overrides may take precedence.
 Failed application attempts source and preference recovery without overwriting
 detected external edits.
+
+The managed T3 launcher applies Luna's theme on startup. Run
+`lnxt theme apply t3code` to refresh an open app's palette; restart T3 for fonts.
+It honors `T3CODE_HOME` (default `~/.t3`) and retains unrelated preferences.
+See [T3 setup and limitations](../../apps/t3code/DOCS.md).
 
 ## Wallpaper
 

@@ -5,6 +5,7 @@ mod defaults;
 mod mode;
 mod paths;
 mod store;
+mod t3code;
 mod values;
 
 pub use paths::Paths;

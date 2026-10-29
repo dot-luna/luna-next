@@ -77,6 +77,11 @@ pub(crate) enum ThemeCommand {
     GetConfigFile,
     /// Print native Hyprland appearance as a Lua table, or JSON with --json.
     Hyprland,
+    /// Apply the current palette and fonts using an app's native configuration.
+    Apply {
+        #[arg(value_parser = ["t3code"])]
+        app: String,
+    },
     /// Remove installed copies, protecting the selected theme.
     Remove {
         #[arg(required = true, num_args = 1..)]

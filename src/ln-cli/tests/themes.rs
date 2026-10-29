@@ -281,3 +281,25 @@ fn xdg_defaults_and_invalid_arguments_are_handled_consistently() {
     assert!(error(output).contains("invalid"));
     assert_eq!(s.success(&["theme", "list"]), json!([]));
 }
+
+#[test]
+fn t3_apply_honors_its_native_home_and_keeps_the_system_palette_and_fonts_out_of_build_patches() {
+    let s = Sandbox::new();
+    let t3 = s.root.path().join("custom T3 home");
+    let output = s
+        .command()
+        .env("T3CODE_HOME", &t3)
+        .args(["theme", "apply", "t3code", "--json"])
+        .output()
+        .unwrap();
+    let result = success(output);
+    assert_eq!(
+        result["theme"],
+        json!(t3.join("userdata/themes/luna-next.json"))
+    );
+    let preferences: Value =
+        serde_json::from_slice(&fs::read(t3.join("userdata/client-settings.json")).unwrap())
+            .unwrap();
+    assert_eq!(preferences["fontFamilySans"], "Outfit");
+    assert!(!s.root.path().join("home/.t3").exists());
+}

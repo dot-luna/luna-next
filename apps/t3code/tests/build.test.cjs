@@ -30,6 +30,8 @@ function buildFixture(t) {
   const log = path.join(f.root, "pnpm.jsonl");
   fs.mkdirSync(bin);
   fs.mkdirSync(home);
+  fs.mkdirSync(path.join(home, ".local/bin"), { recursive: true });
+  fs.writeFileSync(path.join(home, ".local/bin/lnxt"), '#!/bin/sh\ntest "$1 $2 $3" = "theme apply t3code" || exit 8\n', { mode: 0o755 });
   // pnpm is replaced and package transactions are bypassed; preparation and installation execute.
   fs.writeFileSync(
     path.join(bin, "pnpm"),
@@ -39,7 +41,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const args = process.argv.slice(2);
 const settings = fs.readFileSync("packages/contracts/src/settings.ts", "utf8");
-const patched = settings.includes("lunaDefaults.mathRenderingEnabled");
+const patched = fs.readFileSync("apps/web/src/index.css", "utf8").includes("border-radius: 0 !important");
+assert.equal(settings.includes("lunaDefaults"), false);
 fs.appendFileSync(process.env.LUNA_TEST_LOG, JSON.stringify({ args, cwd: process.cwd(), patched }) + "\\n");
 if (args[0] === "install") {
   assert.deepEqual(args, ["install", "--frozen-lockfile"]);
@@ -48,7 +51,7 @@ if (args[0] === "install") {
 }
 assert.equal(patched, true);
 assert.deepEqual(args.slice(0, 5), ["exec", "vp", "run", "dist:desktop:linux", "--build-version"]);
-assert.equal(fs.existsSync("packages/contracts/src/luna-defaults.json"), true);
+assert.equal(fs.existsSync("packages/contracts/src/luna-defaults.json"), false);
 assert.ok(fs.readFileSync("apps/web/src/index.css", "utf8").includes("border-radius: 0 !important"));
 const output = args[args.indexOf("--output-dir") + 1];
 if (process.env.LUNA_TEST_BUILD_MODE === "fail-build") process.exit(23);

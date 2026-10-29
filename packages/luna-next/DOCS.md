@@ -59,6 +59,7 @@ directory. Theme sources and supported roles are in [the theme reference](../../
 | `set(name)` | Save selection and apply its system mode. Does not reload apps or choose wallpaper. |
 | `mode()`, `set_mode(mode)`, `toggle()` | Read/change system preference while retaining theme colors. |
 | `hyprland()` | Translate semantic `appearance` and colors to native compositor settings, without applying them. |
+| `apply_t3code(state_dir)` | Publish palette and merge native font/math settings into an explicit T3 userdata directory. |
 | `removal_plan(names)`, `remove(names)` | Validate a batch, protect the selected theme, and remove installed copies without prompts. |
 
 Selection uses `$XDG_CONFIG_HOME/luna-next/theme.conf`; themes use
@@ -78,6 +79,13 @@ Selection and mode changes use GSettings (`glib2`, `gsettings-desktop-schemas`,
 previous preference and exact selection source, preserving detected external edits.
 Legacy GTK settings and fixed application palettes are not rewritten. Portal apps
 also need a Settings portal provider, such as `xdg-desktop-portal-gtk` on Hyprland.
+
+The [T3 adapter](../../apps/t3code/DOCS.md) uses supported environment-theme and
+client-settings JSON. Other preferences and existing symlinks/permissions are
+retained. All documents are parsed and staged before writes; each file publishes
+atomically, with optimistic checks for external edits. Late failures can leave a
+partial application. T3 fonts need a desktop restart; palette updates use T3's own
+environment-theme support. This method does not change Luna's selection or add watchers.
 
 ## Wallpaper
 
