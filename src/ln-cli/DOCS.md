@@ -84,6 +84,19 @@ The managed T3 launcher applies Luna's theme on startup. Run
 It honors `T3CODE_HOME` (default `~/.t3`) and retains unrelated preferences.
 See [T3 setup and limitations](../../apps/t3code/DOCS.md).
 
+## Polkit
+
+```sh
+lnxt install --local cli polkit
+lnxt polkit start
+lnxt polkit status
+```
+
+`start` validates the UI, enables session startup, and confirms native registration.
+`restart` validates before replacing the agent; `stop` stops it for this session.
+`serve` runs the foreground process used by systemd. Status is `running`,
+`unavailable`, or `stopped`. See [polkit setup and tests](../luna-polkit/DOCS.md).
+
 ## Wallpaper
 
 Use `lnxt wallpaper` (or `lnxt w`):

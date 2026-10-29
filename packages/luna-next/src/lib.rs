@@ -2,6 +2,7 @@
 
 mod config_io;
 pub mod install;
+pub mod polkit;
 pub mod theme;
 pub mod wallpaper;
 

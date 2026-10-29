@@ -1,0 +1,18 @@
+[Unit]
+Description=Luna Next desktop authentication agent
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart="%h/.local/bin/lnxt" polkit serve
+UnsetEnvironment=LUNA_NEXT_POLKIT_VALIDATE LUNA_NEXT_POLKIT_THEME
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=5
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target

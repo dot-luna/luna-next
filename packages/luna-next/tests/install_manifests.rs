@@ -84,10 +84,11 @@ fn repository_manifests_load_with_current_local_sources() {
         ("hocon-qml", "packages/hocon-qml"),
         ("wallpaper", "src/luna-wallpaper/src"),
         ("cli", "src/ln-cli"),
+        ("polkit", "src/luna-polkit/src"),
     ] {
         let package = packages
             .iter()
-            .find(|package| package.name == name)
+            .find(|package| package.name == name && package.source == Source::Local)
             .unwrap();
         assert_eq!(package.source, Source::Local);
         assert_eq!(

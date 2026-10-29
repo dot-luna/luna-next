@@ -59,6 +59,8 @@ With no theme selection file, the defaults above apply. Invalid themes are repor
 personal settings loaded after Luna Next can override its appearance.
 See [theme commands](../../src/ln-cli/DOCS.md#themes).
 
+Session startup also starts the installed [polkit agent](../../src/luna-polkit/README.md).
+
 ## Checks
 
 From the repository root; these do not reload the running desktop:

@@ -87,6 +87,19 @@ atomically, with optimistic checks for external edits. Late failures can leave a
 partial application. T3 fonts need a desktop restart; palette updates use T3's own
 environment-theme support. This method does not change Luna's selection or add watchers.
 
+## Polkit
+
+`polkit::Polkit::from_env()` controls the installed authentication agent.
+`start()`, `restart()`, `stop()`, and `status()` return `Result<Status>`:
+`Running`, `Unavailable`, or `Stopped`. `validate()` checks the UI/theme without
+registering; `serve()` replaces the process with the foreground Quickshell agent.
+
+Startup imports the desktop environment, enables the user service, and waits for
+native registration. Existing registered prompts survive repeated starts; restart
+validates first. Stop preserves login startup. Other agents are never replaced.
+Theme values come from `Themes::get`; passwords stay in the native conversation.
+See [installation and paths](../../src/luna-polkit/DOCS.md).
+
 ## Wallpaper
 
 Use `luna_next::wallpaper::Wallpaper::from_env()` or `Wallpaper::new(Paths { ... })`

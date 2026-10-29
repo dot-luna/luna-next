@@ -37,6 +37,11 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: WallpaperCommand,
     },
+    /// Manage desktop authentication prompts.
+    Polkit {
+        #[command(subcommand)]
+        command: PolkitCommand,
+    },
     /// Manage shared themes and system appearance.
     Theme {
         #[command(subcommand)]
@@ -123,6 +128,20 @@ pub(crate) struct InstallArgs {
     /// Use this Luna Next checkout.
     #[arg(long, value_name = "PATH")]
     pub(crate) repo: Option<PathBuf>,
+}
+
+#[derive(Subcommand)]
+pub(crate) enum PolkitCommand {
+    /// Validate, enable session autostart, and start the agent; preserve a healthy instance.
+    Start,
+    /// Stop the agent for this session.
+    Stop,
+    /// Validate the app, then restart the agent and enable session autostart.
+    Restart,
+    /// Print running, unavailable, or stopped.
+    Status,
+    /// Run the agent in the foreground; used by the user service.
+    Serve,
 }
 
 #[derive(Subcommand)]

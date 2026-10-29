@@ -88,16 +88,17 @@ assert(commands[1].options ==
     'flock -n "${XDG_RUNTIME_DIR:?}/luna-next-dropdown-${HYPRLAND_INSTANCE_SIGNATURE:?}.lock" kitty --class luna-next-dropdown')
 ''')
 
-    def test_only_startup_launches_wallpaper(self):
+    def test_only_startup_launches_wallpaper_and_polkit(self):
         self.lua('''
 dofile(arg[1])
 assert(#commands == 0)
 fire("config.reloaded")
-assert(#commands == 0, "configuration reload must not restart wallpaper")
+assert(#commands == 0, "configuration reload must not restart session apps")
 fire("hyprland.start")
-assert(#commands == 1 and commands[1].kind == "exec")
+assert(#commands == 2 and commands[1].kind == "exec" and commands[2].kind == "exec")
 assert(commands[1].options ==
     'QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}" "$HOME/.local/bin/lnxt" wallpaper start')
+assert(commands[2].options == '"$HOME/.local/bin/lnxt" polkit start')
 ''')
 
     def test_shared_theme_appearance_is_loaded_on_configuration_reload(self):

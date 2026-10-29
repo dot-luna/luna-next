@@ -1,6 +1,7 @@
 mod args;
 mod install;
 mod output;
+mod polkit;
 mod theme;
 mod wallpaper;
 
@@ -43,6 +44,7 @@ fn main() -> ExitCode {
         Command::Setup { repo } => install::setup(repo.as_deref()).map_err(Into::into),
         Command::Wallpaper { command } => wallpaper::run(command, cli.json),
         Command::Theme { command } => theme::run(command, cli.json),
+        Command::Polkit { command } => polkit::run(command, cli.json),
     };
     match result {
         Ok(value) => {
