@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import struct
+import subprocess
 import time
 import unittest
 import zlib
@@ -17,7 +18,7 @@ import zlib
 from _support import APP, HAS_CONFIG, Harness
 
 
-# Inserted into a disposable copy only: no test hooks or IPC in the application.
+# Inserted into a disposable copy only; application IPC exposes status alone.
 INSPECTOR = '''
     IpcHandler {
         target: "test"
@@ -137,6 +138,24 @@ Item {
         self.assertEqual(state["color"], "#000000")
         self.assertEqual(state["images"], [])
         self.assertEqual(state["videos"], [])
+
+    def renderer_status(self):
+        result = subprocess.run(["qs", "ipc", "-p", str(self.renderer), "call", "wallpaper", "status"],
+                                env=self.env, text=True, capture_output=True, timeout=3, check=True)
+        return result.stdout.strip()
+
+    def test_public_status_reports_ready_and_configuration_or_media_errors(self):
+        self.write_config()
+        self.assertEqual(self.start()["status"], "ready")
+        self.assertEqual(self.renderer_status(), "ready")
+
+        self.config.write_text("wallpaper.fit = \"banana\"\n")
+        self.assertEqual(self.start()["configStatus"], "error")
+        self.assertEqual(self.renderer_status(), "error")
+
+        self.write_config(source=self.root / "missing-image.png")
+        self.assertEqual(self.start()["status"], "error")
+        self.assertEqual(self.renderer_status(), "error")
 
     def test_hocon_includes_precedence_unknown_settings_and_original_files(self):
         self.defaults.write_text('wallpaper { source = "", fit = "center", background_color = "#ff0000" }\n'

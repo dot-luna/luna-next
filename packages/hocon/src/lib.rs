@@ -140,34 +140,66 @@ impl Config {
         Ok(serde_json::to_string_pretty(&self.resolved)?)
     }
 
+    /// Borrow the exact loaded source, including comments and includes.
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+
+    /// Set several dot-separated paths in a single atomic save.
+    /// No values are saved if any path or source edit fails.
+    pub fn set_many(&mut self, values: &serde_json::Map<String, Value>) -> Result<()> {
+        let changes: Vec<_> = values
+            .iter()
+            .map(|(path, value)| (path.as_str(), Some(value)))
+            .collect();
+        self.modify_many(&changes, |_| Ok(()))
+    }
+
+    /// Set several paths atomically, validating the final resolved configuration
+    /// against a JSON Schema before saving. Requires the `schema` feature.
+    #[cfg(feature = "schema")]
+    pub fn set_many_validated(
+        &mut self,
+        values: &serde_json::Map<String, Value>,
+        schema: &Value,
+    ) -> Result<()> {
+        let changes: Vec<_> = values
+            .iter()
+            .map(|(path, value)| (path.as_str(), Some(value)))
+            .collect();
+        self.modify_many(&changes, |value| validate_value(value, schema))
+    }
+
     /// Validate the loaded, resolved configuration against a JSON Schema.
     /// Requires the `schema` feature. Does not change values or files, apply
     /// schema defaults, or retrieve external schema references.
     /// Reports the first failure with its JSON Pointer (`""` means the root).
     #[cfg(feature = "schema")]
     pub fn validate(&self, schema: &Value) -> Result<()> {
-        let validator = jsonschema::options()
-            .offline()
-            .build(schema)
-            .map_err(|error| Error::InvalidSchema {
-                path: error.instance_path().to_string(),
-                message: error.to_string(),
-            })?;
-        validator
-            .validate(&self.resolved)
-            .map_err(|error| Error::Validation {
-                path: error.instance_path().to_string(),
-                message: error.to_string(),
-            })
+        validate_value(&self.resolved, schema)
     }
 
     fn modify(&mut self, path: &str, value: Option<&Value>) -> Result<()> {
-        let segments = segments(path)?;
+        self.modify_many(&[(path, value)], |_| Ok(()))
+    }
+
+    fn modify_many(
+        &mut self,
+        changes: &[(&str, Option<&Value>)],
+        validate: impl FnOnce(&Value) -> Result<()>,
+    ) -> Result<()> {
+        let operations = changes
+            .iter()
+            .map(|(path, value)| Ok((*path, segments(path)?, *value)))
+            .collect::<Result<Vec<_>>>()?;
         let exists = self.ensure_current()?;
         let source = if exists { &self.source } else { "" };
-        let candidate = edit::apply(source, &segments, value)?;
+        let mut candidate = source.to_owned();
+        for (_, segments, value) in &operations {
+            candidate = edit::apply(&candidate, segments, *value)?;
+        }
         if candidate == source {
-            return Ok(());
+            return validate(&self.resolved);
         }
 
         // A same-directory temporary .conf keeps relative includes working.
@@ -187,12 +219,16 @@ impl Config {
             .and_then(|()| staged.flush())
             .map_err(|source| io_error("write temporary file for", &self.path, source))?;
         let resolved = resolve(staged.path(), &self.path)?;
-        if let Some(expected) = value
-            && !lookup(&resolved, &segments).is_some_and(|actual| matches_value(actual, expected))
-        {
-            return Err(Error::Edit {
-                message: format!("'{path}' did not resolve to the requested value"),
-            });
+        validate(&resolved)?;
+        for (path, segments, value) in &operations {
+            if let Some(expected) = value
+                && !lookup(&resolved, segments)
+                    .is_some_and(|actual| matches_value(actual, expected))
+            {
+                return Err(Error::Edit {
+                    message: format!("'{path}' did not resolve to the requested value"),
+                });
+            }
         }
 
         // Catch stale snapshots before replacing the file; this is optimistic
@@ -257,6 +293,24 @@ impl Config {
         }
         Ok(true)
     }
+}
+
+/// Validate a JSON-compatible value without changing it or retrieving references.
+#[cfg(feature = "schema")]
+pub fn validate_value(value: &Value, schema: &Value) -> Result<()> {
+    let validator = jsonschema::options()
+        .offline()
+        .build(schema)
+        .map_err(|error| Error::InvalidSchema {
+            path: error.instance_path().to_string(),
+            message: error.to_string(),
+        })?;
+    validator
+        .validate(value)
+        .map_err(|error| Error::Validation {
+            path: error.instance_path().to_string(),
+            message: error.to_string(),
+        })
 }
 
 fn read_snapshot(path: &Path) -> Result<(String, Value)> {

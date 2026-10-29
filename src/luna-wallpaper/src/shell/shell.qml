@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import LunaNext.Config
 
 ShellRoot {
@@ -27,5 +28,15 @@ ShellRoot {
         id: surface
         screen: Quickshell.screens[0] || null
         settings: shell.config
+    }
+
+    IpcHandler {
+        target: "wallpaper"
+
+        function status(): string {
+            if (shell.configStatus !== "ready")
+                return shell.configStatus;
+            return surface.mediaStatus;
+        }
     }
 }

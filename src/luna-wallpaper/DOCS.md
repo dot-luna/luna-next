@@ -23,6 +23,9 @@ Copy [example.conf](example.conf) to your config path. It lists every setting,
 accepted value, and default. The app reads once at startup; restart it after
 changes. It does not copy the example automatically or rewrite existing files.
 
+The [lnxt CLI](../ln-cli/README.md) applies its config changes automatically by
+restarting wallpaper. Direct file edits still need a restart.
+
 Missing files and parent directories are created; empty files or omitted settings
 use defaults. [config.schema.json](src/config.schema.json) validates resolved
 settings once, without inserting defaults. Unknown settings are ignored. Invalid

@@ -9,3 +9,12 @@ run = [
 description = "Build and install the HOCON QML module into ~/.local"
 depends = ["build:hocon-qml"]
 run = 'cmake --install target/hocon-qml --prefix "$HOME/.local"'
+
+[tasks."build:ln-cli"]
+description = "Build the lnxt CLI"
+run = "cargo build --locked --release -p ln-cli"
+
+[tasks."install:ln-cli"]
+description = "Install lnxt into ~/.local/bin"
+depends = ["build:ln-cli"]
+run = 'install -Dm755 target/release/lnxt "$HOME/.local/bin/lnxt"'

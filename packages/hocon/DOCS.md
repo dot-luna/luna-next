@@ -8,9 +8,12 @@ All methods return `Result`. `Value` means `serde_json::Value`.
 | `Config::open(file)` | `Config` | Load and resolve HOCON; create missing files and parent directories. |
 | `get(path)` | `&Value` | Read a resolved value; missing keys return null. |
 | `set(path, value)` | `()` | Save a setting and update loaded values. |
+| `set_many(values)` | `()` | Save a map of dot-separated paths atomically. |
+| `set_many_validated(values, schema)` | `()` | Validate the final resolved batch before saving; requires `schema`. |
 | `unset(path)` | `()` | Remove its definitions from the opened file; inherited values become visible. Missing settings are a no-op. |
 | `resolved()` | `&Value` | Borrow the full effective configuration. |
 | `to_json()` | `String` | Return pretty JSON text without saving it. |
+| `source()` | `&str` | Borrow the loaded source, including comments and includes. |
 | `validate(schema)` | `()` | Check resolved values against a JSON Schema; requires the `schema` feature. |
 
 Paths use nonempty dot-separated object keys, such as `wallpaper.duration`.
@@ -33,6 +36,7 @@ defaults, or saving files. Missing and unknown settings follow the schema's rule
 Internal references work; external references are rejected without fetching them.
 `Error::InvalidSchema` and `Error::Validation` report the first error and a JSON
 Pointer (`""` means the root).
+`validate_value(&value, &schema)` validates a JSON value before editing.
 
 ## Files and includes
 
