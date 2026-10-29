@@ -24,8 +24,9 @@ accepted value, and default. The app reads once at startup; restart it after
 changes. It does not copy the example automatically or rewrite existing files.
 
 Missing files and parent directories are created; empty files or omitted settings
-use defaults. Unknown settings are ignored. Invalid known settings or config/media
-failures leave a black background and log an error.
+use defaults. [config.schema.json](src/config.schema.json) validates resolved
+settings once, without inserting defaults. Unknown settings are ignored. Invalid
+known settings or config/media failures leave a black background and log an error.
 
 ## Playback
 

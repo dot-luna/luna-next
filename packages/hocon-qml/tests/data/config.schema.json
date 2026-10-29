@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "wallpaper": { "$ref": "#/$defs/wallpaper" },
+    "selected": { "type": "string" },
+    "absent": { "type": "boolean", "default": true }
+  },
+  "required": ["wallpaper", "selected"],
+  "$defs": {
+    "wallpaper": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string" },
+        "transition": { "enum": ["fade", "none"] },
+        "duration": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["path", "transition", "duration"]
+    }
+  }
+}

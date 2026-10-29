@@ -64,7 +64,7 @@ class WallpaperShellTests(Harness, unittest.TestCase):
     def setUp(self):
         self.prepare(prefix="luna wallpaper ' ")
         self.renderer = self.root / "src/shell"
-        shutil.copytree(APP / "src/shell", self.renderer)
+        shutil.copytree(APP / "src", self.renderer.parent, dirs_exist_ok=True)
         self.config = Path(self.env["XDG_CONFIG_HOME"]) / "luna-next/wallpaper.conf"
         self.defaults = self.config.parent / "defaults.conf"
         self.config.parent.mkdir(parents=True)
@@ -224,14 +224,19 @@ Item {
         self.assertEqual(state["configStatus"], "ready")
         self.assertEqual(state["status"], "ready")
         self.assertEqual(self.config.read_text(), "")
+        self.assertEqual(state["config"], {})
         self.assert_dark(state)
 
     def test_invalid_configuration_falls_back_without_rewriting(self):
         for invalid in ('wallpaper {', 'wallpaper.source = 3', 'wallpaper.fit = "unknown"',
                         'wallpaper.background_color = "not-a-color"', 'wallpaper = []',
+                        'wallpaper = null', 'playback = false', 'transition = "fade"',
                         'playback.pause_when_output_inactive = "false"',
                         'transition.type = "unknown"', 'transition.duration_ms = -1',
-                        'transition.duration_ms = "200"'):
+                        'transition.duration_ms = "200"', 'transition.duration_ms = 0.5',
+                        'transition.duration_ms = 2147483648', 'transition.duration_ms = null',
+                        'wallpaper.background_color = "#12345678"',
+                        'wallpaper.background_color = "#123456\\n"'):
             with self.subTest(config=invalid):
                 self.config.write_text(invalid)
                 state = self.start()
@@ -239,6 +244,65 @@ Item {
                 self.assertIsNone(state["config"])
                 self.assert_dark(state)
                 self.assertEqual(self.config.read_text(), invalid)
+                self.stop()
+
+    def test_invalid_media_paths_are_rejected_before_rendering(self):
+        for path in ("relative.png", "~/wallpaper.png", "$HOME/wallpaper.png", "file:///wallpaper.png",
+                     "/wallpaper\x00.png", "/wallpaper\x1f.png", "/wallpaper\x7f.png", "/wallpaper.png\n"):
+            with self.subTest(path=path):
+                source = "wallpaper.source = " + json.dumps(path) + "\n"
+                self.config.write_text(source)
+                state = self.start()
+                self.assertEqual(state["configStatus"], "error")
+                self.assertIsNone(state["config"])
+                self.assert_dark(state)
+                self.assertEqual(self.config.read_text(), source)
+                self.assertIn("/wallpaper/source", self.log_path.read_text())
+                self.stop()
+
+    def test_schema_accepts_duration_boundaries_and_preserves_optional_unknown_settings(self):
+        for duration in (0, 2147483647):
+            with self.subTest(duration=duration):
+                document = {"wallpaper": {"background_color": "#aBcDeF", "future": None},
+                            "playback": {"future": [1, "two"]},
+                            "transition": {"duration_ms": duration},
+                            "future": {"enabled": True}}
+                source = json.dumps(document)
+                self.config.write_text(source)
+                state = self.start()
+                self.assertEqual(state["configStatus"], "ready")
+                self.assertEqual(state["config"], document)
+                self.assertEqual(state["color"], "#abcdef")
+                self.assertEqual(state["fadeDuration"], duration)
+                self.assertEqual(state["images"], [])
+                self.assertEqual(self.config.read_text(), source)
+                self.stop()
+
+    def test_invalid_inherited_settings_report_the_field_without_rewriting(self):
+        self.defaults.write_text('wallpaper.fit = "invalid"\n')
+        self.config.write_text('include file("defaults.conf")\nwallpaper.source = ""\n')
+        before = {path: path.read_bytes() for path in (self.config, self.defaults)}
+        state = self.start()
+        self.assertEqual(state["configStatus"], "error")
+        self.assert_dark(state)
+        self.assertIn("/wallpaper/fit", self.log_path.read_text())
+        for path, original in before.items():
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_unreadable_or_invalid_schema_fails_without_rewriting_config(self):
+        schema = self.renderer.parent / "config.schema.json"
+        original = self.config.read_bytes()
+        schema.unlink()
+        for content in (None, '{"type": "not-a-type"}'):
+            with self.subTest(schema=content):
+                if content is not None:
+                    schema.write_text(content)
+                state = self.start()
+                self.assertEqual(state["configStatus"], "error")
+                self.assertIsNone(state["config"])
+                self.assert_dark(state)
+                self.assertEqual(self.config.read_bytes(), original)
+                self.assertIn("config.schema.json", self.log_path.read_text())
                 self.stop()
 
     def test_example_config_is_a_valid_configured_background(self):

@@ -6,8 +6,12 @@ description = "HOCON configuration helper for Luna Next"
 license = "MIT"
 readme = "README.md"
 
+[features]
+schema = ["dep:jsonschema"]
+
 [dependencies]
 hocon-rs = "=0.2.0"
+jsonschema = { version = "0.60.2", default-features = false, optional = true }
 serde_json = "1.0"
 tempfile = "3.23"
 thiserror = "2.0"

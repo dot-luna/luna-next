@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Luna Wallpaper configuration",
+  "type": "object",
+  "properties": {
+    "wallpaper": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "An absolute local media path, or empty for the background only. No ~ or variable expansion.",
+          "type": "string",
+          "anyOf": [{ "const": "" }, { "pattern": "^/" }],
+          "not": { "pattern": "[\\u0000-\\u001f\\u007f]" }
+        },
+        "fit": {
+          "enum": ["fill", "fit", "stretch", "center", "tile"]
+        },
+        "background_color": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      }
+    },
+    "playback": {
+      "type": "object",
+      "properties": {
+        "pause_when_output_inactive": { "type": "boolean" }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["none", "fade"] },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      }
+    }
+  }
+}

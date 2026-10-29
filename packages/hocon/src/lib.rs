@@ -35,6 +35,12 @@ pub enum Error {
     Edit { message: String },
     #[error("cannot encode JSON: {0}")]
     Json(#[from] serde_json::Error),
+    #[cfg(feature = "schema")]
+    #[error("invalid JSON schema at '{path}': {message}")]
+    InvalidSchema { path: String, message: String },
+    #[cfg(feature = "schema")]
+    #[error("configuration at '{path}' does not match schema: {message}")]
+    Validation { path: String, message: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -132,6 +138,27 @@ impl Config {
     /// Encode the effective configuration as pretty JSON text, without saving it.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(&self.resolved)?)
+    }
+
+    /// Validate the loaded, resolved configuration against a JSON Schema.
+    /// Requires the `schema` feature. Does not change values or files, apply
+    /// schema defaults, or retrieve external schema references.
+    /// Reports the first failure with its JSON Pointer (`""` means the root).
+    #[cfg(feature = "schema")]
+    pub fn validate(&self, schema: &Value) -> Result<()> {
+        let validator = jsonschema::options()
+            .offline()
+            .build(schema)
+            .map_err(|error| Error::InvalidSchema {
+                path: error.instance_path().to_string(),
+                message: error.to_string(),
+            })?;
+        validator
+            .validate(&self.resolved)
+            .map_err(|error| Error::Validation {
+                path: error.instance_path().to_string(),
+                message: error.to_string(),
+            })
     }
 
     fn modify(&mut self, path: &str, value: Option<&Value>) -> Result<()> {

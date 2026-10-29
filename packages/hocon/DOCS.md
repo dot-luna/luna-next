@@ -11,11 +11,28 @@ All methods return `Result`. `Value` means `serde_json::Value`.
 | `unset(path)` | `()` | Remove its definitions from the opened file; inherited values become visible. Missing settings are a no-op. |
 | `resolved()` | `&Value` | Borrow the full effective configuration. |
 | `to_json()` | `String` | Return pretty JSON text without saving it. |
+| `validate(schema)` | `()` | Check resolved values against a JSON Schema; requires the `schema` feature. |
 
 Paths use nonempty dot-separated object keys, such as `wallpaper.duration`.
 Array indexing and quoted path expressions are unsupported. Missing keys,
 reads through non-objects, and explicit null return `Value::Null`.
 Values accept all JSON types; objects follow HOCON merge rules.
+
+## Optional schema validation
+
+Enable `features = ["schema"]` on the dependency, then call:
+
+```rust
+config.validate(&serde_json::json!({
+    "properties": {"duration": {"type": "integer", "minimum": 0}}
+}))?;
+```
+
+Validation checks the loaded snapshot without changing values, applying schema
+defaults, or saving files. Missing and unknown settings follow the schema's rules.
+Internal references work; external references are rejected without fetching them.
+`Error::InvalidSchema` and `Error::Validation` report the first error and a JSON
+Pointer (`""` means the root).
 
 ## Files and includes
 
@@ -48,4 +65,5 @@ From the repository root:
 
 ```sh
 cargo test -p luna-next-hocon
+cargo test -p luna-next-hocon --features schema
 ```

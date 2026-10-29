@@ -13,7 +13,8 @@ class Config final : public QObject {
 
 public:
     static Config *create(QQmlEngine *, QJSEngine *engine);
-    Q_INVOKABLE QJSValue load_as_json(const QString &path) const;
+    Q_INVOKABLE QJSValue load_as_json(const QString &path,
+                                    const QString &schemaPath = QString()) const;
 
 private:
     explicit Config(QJSEngine *engine) : QObject(engine), engine_(engine) {}

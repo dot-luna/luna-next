@@ -1,15 +1,30 @@
 # LunaNext.Config
 
-`import LunaNext.Config` exposes `Config.load_as_json(path)`, which returns the
-resolved HOCON configuration as a plain JavaScript object. Load it at startup
-and keep the object in memory.
+`import LunaNext.Config` exposes `Config.load_as_json(path[, schemaPath])`.
+Load the resolved HOCON once and keep the returned JavaScript object in memory.
 
 - Accepts local paths and file URLs; relative paths use the working directory.
   Includes resolve relative to their source file.
-- Missing files and parent directories are created; an empty file returns `{}`.
+- Missing configuration files and parent directories are created. Empty files
+  load `{}`; supplied schemas still apply. Schema files must already exist.
 - Changing the returned object affects memory only. Missing properties are
   `undefined`; explicit null stays `null`. JavaScript number precision applies.
-- Parsing, required-include, and filesystem failures throw catchable `Error` values.
+- Parsing, required-include, filesystem, and validation failures throw catchable
+  `Error` values. Validation errors include the failing field's JSON Pointer.
+
+## Validation
+
+Each app owns its JSON Schema; pass its path when loading:
+
+```qml
+config = Config.load_as_json(configPath, Quickshell.shellPath("config.schema.json"))
+```
+
+Both arguments accept local paths or file URLs. Omit `schemaPath` or pass `""`
+to skip validation. Validation checks resolved values without changing files,
+inserting defaults, or converting types. The schema controls required fields
+and whether unknown properties are accepted. Internal `$defs`/`$ref` references
+work; external schema references are rejected without network or file retrieval.
 
 ## Build and install
 

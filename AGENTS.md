@@ -12,8 +12,12 @@
 - Keep `packages/hocon` a standalone Rust configuration helper. Preserve includes
   and unrelated source text when editing; never save resolved data over the file.
 - Keep `packages/hocon-qml` a separate, one-shot adapter exposing only
-  `Config.load_as_json(path)`. Return a plain JavaScript object for the app to hold
-  in memory; do not add watchers, caches, live getters, or editing methods.
+  `Config.load_as_json(path, schemaPath?)`. Return a plain JavaScript object for
+  the app to hold in memory; do not add watchers, caches, live getters, or editing
+  methods.
+- Apps own their JSON Schemas. Use the HOCON helper's optional schema validation
+  on resolved values; keep schema reference resolution offline and defaults in
+  the app. Do not duplicate schema rules in handwritten validators.
 - Preserve explicit file paths, automatic missing-file creation, and null values
   for missing Rust keys. Apps choose configuration paths; do not add environment
   selection or reload APIs to either configuration package.

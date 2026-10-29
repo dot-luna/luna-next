@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import LunaNext.Config
-import "Wallpaper.js" as Wallpaper
 
 ShellRoot {
     id: shell
@@ -16,7 +15,7 @@ ShellRoot {
     Component.onCompleted: {
         Quickshell.watchFiles = false;
         try {
-            config = Wallpaper.validate(Config.load_as_json(configPath));
+            config = Config.load_as_json(configPath, Quickshell.shellPath("../config.schema.json"));
             configStatus = "ready";
         } catch (error) {
             configStatus = "error";

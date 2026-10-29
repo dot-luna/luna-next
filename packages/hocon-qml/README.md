@@ -23,4 +23,5 @@ export QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_
 quickshell -p /path/to/shell.qml
 ```
 
-Use `config` directly in memory. See [DOCS.md](DOCS.md) for setup, behavior, and tests.
+Use `config` directly in memory. Pass an optional second path to validate against
+your app's JSON Schema. See [DOCS.md](DOCS.md) for validation, setup, and tests.
