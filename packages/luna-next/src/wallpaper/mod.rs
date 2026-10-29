@@ -126,7 +126,9 @@ impl Wallpaper {
         self.runtime.restart()
     }
     pub fn reload(&self) -> Result<Status> {
-        self.restart()
+        let _lock = self.lock_config()?;
+        self.get_config(None)?;
+        self.runtime.reload()
     }
     pub fn status(&self) -> Result<Status> {
         self.runtime.status()

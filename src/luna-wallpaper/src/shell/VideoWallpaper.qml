@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import "Video.js" as Video
 
-// One owned player per Loader instance. Recreate the component to change media.
+// Keep one owned player and surface while changing video or rendering options.
 Item {
     id: root
 
@@ -26,15 +26,89 @@ Item {
     property bool directoryFinished: false
     property bool playerAttempted: false
     property int startupTimeout: 15000
+    property string playerSourcePath: ""
+    property int mediaGeneration: 0
+    property int nextRequestId: 0
+    property var pendingRequests: ({})
+    property bool mediaEventSeen: false
+    property bool replacing: false
+    property bool decodedVideo: false
 
-    function send(command, requestId) {
+    function send(command, kind) {
         if (ipc.connected && !stopping) {
+            const requestId = ++nextRequestId;
+            if (kind)
+                pendingRequests[requestId] = {kind: kind, generation: mediaGeneration};
+            if (kind === "update" && stateValue === "ready") {
+                stateValue = "loading";
+                deadline.restart();
+            }
             ipc.write(JSON.stringify({
                 command: command,
-                request_id: requestId || 0
+                request_id: requestId
             }) + "\n");
             ipc.flush();
         }
+    }
+
+    function finishUpdate() {
+        if (!decodedVideo || stopping)
+            return;
+        for (const key of Object.keys(pendingRequests)) {
+            const request = pendingRequests[key];
+            if (request.kind === "update")
+                return;
+        }
+        stateValue = "ready";
+        replacing = false;
+        deadline.stop();
+    }
+
+    function updateFit() {
+        const mode = Video.sizing(fit);
+        send(["set_property", "keepaspect", mode.keepaspect], "update");
+        send(["set_property", "panscan", mode.panscan], "update");
+        send(["set_property", "video-unscaled", mode.unscaled], "update");
+    }
+
+    function queryVideo() {
+        if (!mediaEventSeen)
+            return;
+        send(["get_property", "path"], "path");
+    }
+
+    function replaceVideo() {
+        replacing = true;
+        playerSourcePath = sourcePath;
+        send(["loadfile", sourcePath, "replace"], "load");
+    }
+
+    // Settings changes stay on the existing player; loading new media resets
+    // readiness before asynchronous IPC can deliver old-file notifications.
+    function load(path) {
+        if (stopping || path === sourcePath)
+            return;
+        if (!path.startsWith("/")) {
+            fail("Video wallpaper requires an absolute local media path.");
+            return;
+        }
+        sourcePath = path;
+        stateValue = "loading";
+        lastPlayerError = "";
+        mediaGeneration++;
+        // Setting commands affect the same player across file switches. Their
+        // acknowledgements must still complete before this reload can succeed.
+        const updates = {};
+        for (const key of Object.keys(pendingRequests)) {
+            if (pendingRequests[key].kind === "update")
+                updates[key] = pendingRequests[key];
+        }
+        pendingRequests = updates;
+        mediaEventSeen = false;
+        decodedVideo = false;
+        deadline.restart();
+        if (ipc.connected)
+            replaceVideo();
     }
 
     function removeDirectory() {
@@ -96,6 +170,7 @@ Item {
             HOME: privateDirectory
         };
         player.command = ["mpvpaper", "--layer", "bottom", "--mpv-options", Video.options(fit, backgroundColor.toString(), paused), "--", outputName, sourcePath];
+        playerSourcePath = sourcePath;
         playerAttempted = true;
         player.running = true;
     }
@@ -114,21 +189,39 @@ Item {
         }
 
         if (message.event === "end-file" || message.event === "shutdown") {
-            fail("Video playback stopped" + (message.error ? ": " + message.error : "."));
+            if (message.event === "end-file" && message.reason === "stop" && replacing)
+                return;
+            const error = message.file_error || message.error;
+            fail("Video playback stopped" + (error ? ": " + error : "."));
         } else if (message.event === "log-message" && (message.level === "error" || message.level === "fatal")) {
             // Decoders can recover from these diagnostics (including hardware
             // decoding fallback). Terminal events and deadlines decide failure.
             lastPlayerError = String(message.text || "unknown error").slice(-600).trim();
         } else if (message.event === "video-reconfig" || message.event === "file-loaded") {
-            send(["get_property", "video-out-params"], 1);
-        } else if ((message.request_id === 1 && message.error === "success") || (message.event === "property-change" && message.name === "video-out-params")) {
-            // A live process/socket alone does not establish that video decoded.
-            if (Video.videoReady(message.data)) {
-                stateValue = "ready";
-                deadline.stop();
+            mediaEventSeen = true;
+            queryVideo();
+        } else if (message.event === "property-change" && message.name === "video-out-params") {
+            queryVideo();
+        } else if (Object.prototype.hasOwnProperty.call(pendingRequests, message.request_id)) {
+            const request = pendingRequests[message.request_id];
+            delete pendingRequests[message.request_id];
+            if (request.generation !== mediaGeneration && request.kind !== "update")
+                return;
+            // Read the source before querying dimensions. Unsolicited property
+            // events and replies from earlier loads cannot establish readiness.
+            if (request.kind === "path") {
+                if (message.error === "success" && message.data === sourcePath)
+                    send(["get_property", "video-out-params"], "parameters");
+            } else if (request.kind === "parameters") {
+                if (message.error !== "success" || !Video.videoReady(message.data))
+                    return;
+                decodedVideo = true;
+                finishUpdate();
+            } else if (message.error !== "success") {
+                fail("Video player could not update playback: " + message.error);
+            } else if (request.kind === "update") {
+                finishUpdate();
             }
-        } else if (message.request_id === 2 && message.error !== "success") {
-            fail("Video player could not update playback: " + message.error);
         }
     }
 
@@ -143,7 +236,9 @@ Item {
             privateDirectory = directoryOutput.text.trim();
         removeDirectory();
     }
-    onPausedChanged: send(["set_property", "pause", paused], 2)
+    onPausedChanged: send(["set_property", "pause", paused], "update")
+    onFitChanged: updateFit()
+    onBackgroundColorChanged: send(["set_property", "background-color", backgroundColor.toString()], "update")
 
     Process {
         id: directory
@@ -205,10 +300,18 @@ Item {
                 root.connectedOnce = true;
                 connectionRetry.stop();
                 // Property notifications replace polling after the first connection.
-                root.send(["request_log_messages", "error"]);
-                root.send(["observe_property", 1, "video-out-params"]);
-                root.send(["get_property", "video-out-params"], 1);
-                root.send(["set_property", "pause", root.paused], 2);
+                root.send(["request_log_messages", "error"], "setup");
+                root.send(["observe_property", 1, "video-out-params"], "setup");
+                if (root.playerSourcePath !== root.sourcePath) {
+                    root.replaceVideo();
+                } else {
+                    // The first file can finish loading before IPC connects.
+                    root.mediaEventSeen = true;
+                    root.queryVideo();
+                }
+                root.updateFit();
+                root.send(["set_property", "background-color", root.backgroundColor.toString()], "update");
+                root.send(["set_property", "pause", root.paused], "update");
             } else if (!connected && root.connectedOnce && !root.stopping) {
                 root.fail("Video player IPC connection closed.");
             }

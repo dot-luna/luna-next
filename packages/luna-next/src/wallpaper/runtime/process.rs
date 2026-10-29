@@ -41,11 +41,8 @@ impl Runtime {
                     .map_err(|error| io_error("capture Quickshell errors", &executable, error))?,
             );
         if launch {
-            let config_file = std::path::absolute(&self.config_file).map_err(|error| {
-                io_error("resolve configuration path", &self.config_file, error)
-            })?;
             command
-                .env("LUNA_WALLPAPER_CONFIG", config_file)
+                .env("LUNA_WALLPAPER_CONFIG", self.config_path()?)
                 .process_group(0);
         }
         let mut child = command

@@ -33,6 +33,16 @@ elif args[0] == 'kill':
     state['instances'] = [item for item in state['instances'] if item['pid'] != pid]
     save()
 elif args[0] == 'ipc':
+    if args[5] == 'reload':
+        if state.get('reload_error'):
+            print('reload IPC failed', file=sys.stderr)
+            sys.exit(1)
+        if 'reload_status' in state:
+            state['status'] = state['reload_status']
+        state['loading'] = state.get('reload_loading', 0)
+        save()
+        print(state.get('reload_response', 'ok'))
+        sys.exit(0)
     if state.get('ipc_pending', 0) > 0:
         state['ipc_pending'] -= 1
         save()
@@ -92,7 +102,8 @@ fn scenario(name: &str) {
         .env("LUNA_RUNTIME_SCENARIO", name)
         .env("PATH", root.join("bin"))
         .env("WAYLAND_DISPLAY", "fake-test-display")
-        .env("QML_IMPORT_PATH", "/preserved/imports");
+        .env("QML_IMPORT_PATH", "/preserved/imports")
+        .current_dir(root);
     if name == "bad_context" {
         command.env_remove("WAYLAND_DISPLAY");
     }
@@ -113,6 +124,24 @@ fn lifecycle_scopes_instances_and_reuses_the_existing_renderer() {
 #[test]
 fn restart_replaces_the_renderer_and_passes_the_configuration_path() {
     scenario("restart");
+}
+
+#[test]
+fn reload_keeps_matching_processes_and_passes_an_absolute_configuration_path() {
+    scenario("reload");
+}
+
+#[test]
+fn reload_starts_a_stopped_renderer() {
+    scenario("reload_stopped");
+}
+
+#[test]
+fn reload_requires_acceptance_and_waits_for_media_without_replacing_processes() {
+    scenario("reload_rejected");
+    scenario("reload_bad_response");
+    scenario("reload_ipc_failure");
+    scenario("reload_media_failure");
 }
 
 #[test]
@@ -158,7 +187,7 @@ fn runtime_scenario() {
     let runtime = Runtime::new(root.join("shell.qml"), root.join("config/wallpaper.conf"));
     let running = !matches!(
         name.as_str(),
-        "launch_failure" | "media_failure" | "missing_renderer"
+        "launch_failure" | "media_failure" | "missing_renderer" | "reload_stopped"
     );
     let mut state = fixture_state(&root, running);
     match name.as_str() {
@@ -183,7 +212,7 @@ fn runtime_scenario() {
         }
         "restart" => {
             write_state(&root, &state);
-            assert_eq!(runtime.reload().unwrap(), Status::Ready);
+            assert_eq!(runtime.restart().unwrap(), Status::Ready);
             let state = read_state(&root);
             assert_eq!(
                 state["config"],
@@ -206,6 +235,88 @@ fn runtime_scenario() {
                     .as_array()
                     .unwrap()
                     .contains(&json!("--no-duplicate"))
+            );
+        }
+        "reload" => {
+            state["instances"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!({"config_path":root.join("shell.qml"),"pid":456}));
+            let original_instances = state["instances"].clone();
+            state["reload_loading"] = json!(1);
+            write_state(&root, &state);
+            let relative = Runtime::new(root.join("shell.qml"), "config/wallpaper.conf".into());
+            assert_eq!(relative.reload().unwrap(), Status::Ready);
+            let state = read_state(&root);
+            assert_eq!(state["instances"], original_instances);
+            let calls = state["calls"].as_array().unwrap();
+            let reloads: Vec<_> = calls
+                .iter()
+                .filter(|call| call[0] == "ipc" && call[5] == "reload")
+                .collect();
+            let config = root.join("config/wallpaper.conf");
+            assert_eq!(
+                reloads,
+                vec![
+                    &json!(["ipc", "--pid", "123", "call", "wallpaper", "reload", config]),
+                    &json!(["ipc", "--pid", "456", "call", "wallpaper", "reload", config])
+                ]
+            );
+            assert!(
+                calls
+                    .iter()
+                    .all(|call| call[0] != "kill" && call[0] != "-p")
+            );
+            assert_eq!(state["loading"], 0);
+        }
+        "reload_stopped" => {
+            write_state(&root, &state);
+            assert_eq!(runtime.reload().unwrap(), Status::Ready);
+            let state = read_state(&root);
+            assert_eq!(state["instances"].as_array().unwrap().len(), 2);
+            assert_eq!(state["instances"][0]["pid"], 999);
+            assert_eq!(
+                state["config"],
+                root.join("config/wallpaper.conf").to_str().unwrap()
+            );
+            let calls = state["calls"].as_array().unwrap();
+            assert_eq!(calls.iter().filter(|call| call[0] == "-p").count(), 1);
+            assert!(calls.iter().all(|call| call[0] != "kill"));
+        }
+        "reload_rejected"
+        | "reload_bad_response"
+        | "reload_ipc_failure"
+        | "reload_media_failure" => {
+            let expected = match name.as_str() {
+                "reload_rejected" => {
+                    state["reload_response"] = json!("error: invalid configuration");
+                    "invalid configuration"
+                }
+                "reload_bad_response" => {
+                    state["reload_response"] = json!("ready");
+                    "Could not reload wallpaper"
+                }
+                "reload_ipc_failure" => {
+                    state["reload_error"] = json!(true);
+                    "reload IPC failed"
+                }
+                _ => {
+                    state["reload_status"] = json!("error");
+                    state["reload_loading"] = json!(1);
+                    "configuration or media"
+                }
+            };
+            let original_instances = state["instances"].clone();
+            write_state(&root, &state);
+            assert!(runtime.reload().unwrap_err().to_string().contains(expected));
+            let state = read_state(&root);
+            assert_eq!(state["instances"], original_instances);
+            assert!(
+                state["calls"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|call| call[0] != "kill" && call[0] != "-p")
             );
         }
         "launch_failure" => {

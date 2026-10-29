@@ -62,7 +62,8 @@ Use `lnxt wallpaper` (or `lnxt w`):
 | `start` / `stop` / `restart` / `reload` / `status` | Control the renderer. |
 
 `set`, `random`, and `update-config` automatically reload the renderer after
-configuration changes. No file watcher is needed. See the
+configuration changes. `reload` keeps the process running; `restart` stops and
+starts it. No file watcher is needed. See the
 [library docs](../../packages/luna-next/DOCS.md) for paths, dependencies, and
 failure behavior.
 

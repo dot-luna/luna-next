@@ -52,16 +52,19 @@ for explicit paths. Methods return `Result` unless they only return a path.
 | `directory()`, `open_directory()` | Locate or open the media library. |
 | `start()`, `stop()`, `restart()`, `reload()`, `status()` | Control only this renderer. Status: stopped, loading, ready, error. |
 
-`update_config`, `set`, and `random` restart the one-shot renderer automatically.
-`reload` also restarts; there is no file watcher. Failed application restores the
-exact previous config when it has not changed externally. Includes, comments,
-permissions, and symlinks are preserved; defaults are returned without copying
+`update_config`, `set`, and `random` reload the running renderer automatically.
+`reload` rereads configuration in place; `restart` replaces the process. There is
+no file watcher. Unchanged media keeps playing; video changes reuse its player.
+Failed application restores the exact previous config when it has not changed
+externally. Includes, comments, permissions, and symlinks are preserved; defaults
+are returned without copying
 them into the file. Updates use nested keys; empty or dot-containing object keys
 are unsupported. Schema errors leave the file unchanged.
 
 Imports validate the complete batch before copying. Conflicting filenames need
 `force`; folders recurse only when requested. Deletion has no prompts in the API;
-the CLI handles confirmation. Replacing selected media reloads a running renderer.
+the CLI handles confirmation. Replacing selected media restarts a running renderer
+to reread the replaced file.
 URL downloads are limited to 512 MiB and 120 seconds.
 
 ## Paths and setup

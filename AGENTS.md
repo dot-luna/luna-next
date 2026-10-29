@@ -35,7 +35,8 @@
   the app. Do not duplicate schema rules in handwritten validators.
 - Keep shared application operations in `packages/luna-next`; CLI code handles
   arguments, prompts, and output. Standard wallpaper config mutations validate
-  and save atomically, then restart the one-shot renderer automatically. Failed
+  and save atomically, then explicitly reload the running renderer. Keep full
+  process replacement for `restart`; do not add configuration file watchers. Failed
   application restores the previous source without overwriting external edits.
 - Preserve explicit file paths, automatic missing-file creation, and null values
   for missing Rust keys. Apps choose configuration paths; do not add environment

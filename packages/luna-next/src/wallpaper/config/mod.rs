@@ -67,7 +67,7 @@ impl Wallpaper {
         if config.source() == original {
             return Ok(result);
         }
-        if let Err(apply_error) = self.runtime.restart() {
+        if let Err(apply_error) = self.runtime.reload() {
             if let Err(rollback_error) =
                 persistence::restore(&canonical, config.source(), &original, permissions)
             {
@@ -76,7 +76,7 @@ impl Wallpaper {
                 )));
             }
             let recovery = if was_running {
-                self.runtime.restart()
+                self.runtime.reload()
             } else {
                 self.runtime.stop()
             };

@@ -116,7 +116,7 @@ pub(crate) enum WallpaperCommand {
     Stop,
     /// Restart the renderer to read the latest configuration.
     Restart,
-    /// Apply saved configuration by restarting the renderer.
+    /// Apply saved configuration without restarting the renderer.
     Reload,
     /// Report whether the renderer is running.
     Status,

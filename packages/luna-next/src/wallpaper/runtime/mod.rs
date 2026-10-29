@@ -4,7 +4,7 @@ mod paths;
 mod process;
 mod status;
 
-use crate::{Error, Result};
+use crate::{Error, Result, io_error};
 use paths::canonical_path;
 use process::{command_error, quickshell};
 use serde::Serialize;
@@ -102,7 +102,7 @@ impl Runtime {
         }
     }
 
-    /// Reads saved configuration by replacing the one-shot renderer process.
+    /// Replaces the renderer process and waits for its media.
     pub fn restart(&self) -> Result<Status> {
         let path = self.renderer_path()?;
         self.check_launch_context(&path)?;
@@ -110,8 +110,39 @@ impl Runtime {
         self.start()
     }
 
+    /// Applies saved configuration in place, or starts the renderer if stopped.
+    /// Rejected configuration leaves the running renderer intact.
     pub fn reload(&self) -> Result<Status> {
-        self.restart()
+        let path = self.renderer_path()?;
+        let instances = self.instances(&path)?;
+        if instances.is_empty() {
+            return self.start();
+        }
+        let config_file = self.config_path()?;
+        for instance in instances {
+            let output = self.run(
+                &[
+                    "ipc".into(),
+                    "--pid".into(),
+                    instance.pid.to_string().into(),
+                    "call".into(),
+                    "wallpaper".into(),
+                    "reload".into(),
+                    config_file.as_os_str().to_owned(),
+                ],
+                false,
+            )?;
+            if !output.status.success() {
+                return Err(command_error("reload wallpaper", &output));
+            }
+            let response = output.stdout.trim();
+            if response != "ok" {
+                return Err(Error::Message(format!(
+                    "Could not reload wallpaper: {response:?}"
+                )));
+            }
+        }
+        self.wait_ready(&path)
     }
 
     fn renderer_path(&self) -> Result<PathBuf> {
@@ -120,6 +151,11 @@ impl Runtime {
         } else {
             self.renderer.clone()
         })
+    }
+
+    fn config_path(&self) -> Result<PathBuf> {
+        std::path::absolute(&self.config_file)
+            .map_err(|error| io_error("resolve configuration path", &self.config_file, error))
     }
 
     fn check_launch_context(&self, path: &Path) -> Result<()> {

@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import sys
 import textwrap
+import time
 import unittest
 
 from _support import APP, Harness
@@ -45,6 +46,11 @@ ShellRoot {
             player.item.failed.connect(function(message) { failure = message; });
         }
         function pause(value: bool): void { video.paused = value; }
+        function load(path: string): void { video.load(path); }
+        function settings(fit: string, color: string): void {
+            video.fit = fit;
+            video.backgroundColor = color;
+        }
         function destroy(): void { player.active = false; }
     }
 }
@@ -67,13 +73,30 @@ ShellRoot {
             client.settimeout(0.05)
             data = b""
             announced = False
+            current = sys.argv[-1]
+            pending = None
+            updates = []
+            entry = 1
             while True:
+                if updates and not (root / "hold-updates").exists():
+                    for result in updates:
+                        if (root / "command-error").exists(): result["error"] = "property unavailable"
+                        client.sendall(json.dumps(result).encode() + b"\\n")
+                    updates = []
                 if (root / "disconnect").exists():
                     client.close()
                     time.sleep(10)
                 if (root / "event").exists():
                     client.sendall((root / "event").read_bytes() + b"\\n")
                     (root / "event").unlink()
+                if pending is not None and not (root / "hold-load").exists():
+                    current = pending
+                    pending = None
+                    entry += 1
+                    announced = False
+                    for event in ({"event": "start-file", "playlist_entry_id": entry},
+                                  {"event": "file-loaded"}):
+                        client.sendall(json.dumps(event).encode() + b"\\n")
                 if not announced and not (root / "hold").exists():
                     client.sendall(json.dumps({"event": "property-change", "name": "video-out-params",
                         "data": {"w": 3840, "h": 2160}}).encode() + b"\\n")
@@ -88,8 +111,26 @@ ShellRoot {
                     with (root / "commands").open("a") as file:
                         file.write(json.dumps(message) + "\\n")
                     result = {"request_id": message["request_id"], "error": "success"}
-                    if message["command"][:1] == ["get_property"]:
+                    command = message["command"]
+                    if command[:1] == ["loadfile"]:
+                        if (root / "command-error").exists():
+                            result["error"] = "loading failed"
+                        else:
+                            pending = command[1]
+                            client.sendall(json.dumps({"event": "end-file", "reason": "stop",
+                                "playlist_entry_id": entry}).encode() + b"\\n")
+                    elif command[:2] == ["get_property", "path"]:
+                        result["data"] = current
+                    elif command[:2] == ["get_property", "video-out-params"]:
                         result["data"] = None if (root / "hold").exists() else {"w": 3840, "h": 2160}
+                        if (root / "defer-parameters").exists():
+                            (root / "deferred-reply").write_text(json.dumps(result))
+                            continue
+                    elif command[:1] == ["set_property"] and (root / "command-error").exists():
+                        result["error"] = "property unavailable"
+                    if command[:1] == ["set_property"] and (root / "hold-updates").exists():
+                        updates.append(result)
+                        continue
                     client.sendall(json.dumps(result).encode() + b"\\n")
         '''))
         fake.chmod(0o755)
@@ -139,6 +180,130 @@ ShellRoot {
         self.until(lambda: not Path(f"/proc/{pid}").exists())
         self.assertEqual(self.state()["status"], "absent")
         self.assertEqual(self.state()["error"], "")
+
+    def test_video_switch_reuses_player_and_preserves_literal_media_path(self):
+        self.start()
+        self.until(lambda: self.state()["status"] == "ready")
+        launch = self.rows("launches")[0]
+        source = str(self.root / 'next video;$(touch forbidden)".mp4')
+        (self.root / "hold-load").touch()
+        self.ipc("load", source)
+        self.until(lambda: any(row["command"] == ["loadfile", source, "replace"]
+                               for row in self.rows("commands")))
+        self.assertEqual(self.state()["status"], "loading")
+        self.assertEqual(self.state()["error"], "")
+        (self.root / "hold-load").unlink()
+        self.until(lambda: self.state()["status"] == "ready")
+        self.assertEqual(self.rows("launches"), [launch])
+        self.assertTrue(Path(f'/proc/{launch["pid"]}').exists())
+        self.assertFalse((self.root / "forbidden").exists())
+
+    def test_old_notifications_and_replies_cannot_complete_a_new_video(self):
+        self.start()
+        self.until(lambda: self.state()["status"] == "ready")
+        (self.root / "defer-parameters").touch()
+        (self.root / "event").write_text(json.dumps({"event": "video-reconfig"}))
+        deferred = self.root / "deferred-reply"
+        self.until(deferred.exists)
+        (self.root / "defer-parameters").unlink()
+        (self.root / "hold-load").touch()
+        self.ipc("load", str(self.root / "next.mp4"))
+        self.until(lambda: any(row["command"][:1] == ["loadfile"]
+                               for row in self.rows("commands")))
+        before = len(self.rows("commands"))
+        (self.root / "event").write_text("\n".join([
+            deferred.read_text(),
+            json.dumps({"event": "property-change", "name": "video-out-params",
+                        "data": {"w": 3840, "h": 2160}}),
+            json.dumps({"event": "file-loaded"}),
+        ]))
+        self.until(lambda: len(self.rows("commands")) > before)
+        self.assertEqual(self.state()["status"], "loading")
+        (self.root / "hold").touch()
+        (self.root / "hold-load").unlink()
+        self.until(lambda: not (self.root / "event").exists())
+        self.assertEqual(self.state()["status"], "loading")
+        (self.root / "hold").unlink()
+        self.until(lambda: self.state()["status"] == "ready")
+        self.assertEqual(len(self.rows("launches")), 1)
+
+    def test_setting_changes_apply_without_reloading_video(self):
+        source = self.start()
+        self.until(lambda: self.state()["status"] == "ready")
+        launch = self.rows("launches")[0]
+        count = len(self.rows("commands"))
+        self.ipc("settings", "stretch", "#123456")
+        self.ipc("pause", True)
+        expected = (["set_property", "keepaspect", False],
+                    ["set_property", "panscan", 0],
+                    ["set_property", "video-unscaled", "no"],
+                    ["set_property", "background-color", "#123456"],
+                    ["set_property", "pause", True])
+        self.until(lambda: all(command in [row["command"] for row in self.rows("commands")[count:]]
+                               for command in expected))
+        self.ipc("load", source)
+        self.assertFalse(any(row["command"][:1] == ["loadfile"]
+                             for row in self.rows("commands")))
+        self.assertEqual(self.rows("launches"), [launch])
+        self.assertEqual(self.state()["status"], "ready")
+
+    def test_runtime_update_and_load_command_errors_fail_and_clean_up(self):
+        for command in ("settings", "load"):
+            with self.subTest(command=command):
+                self.start()
+                self.until(lambda: self.state()["status"] == "ready")
+                directory = Path(self.state()["directory"])
+                (self.root / "command-error").touch()
+                if command == "settings":
+                    self.ipc("settings", "fit", "#abcdef")
+                else:
+                    self.ipc("load", str(self.root / "broken.mp4"))
+                self.until(lambda: self.state()["status"] == "error")
+                self.assertIn("could not update playback", self.state()["error"])
+                self.until(lambda: not directory.exists())
+                self.ipc("destroy")
+                (self.root / "command-error").unlink()
+
+    def test_setting_changes_wait_for_player_acknowledgements(self):
+        for switch, failure in ((False, False), (False, True), (True, False), (True, True)):
+            with self.subTest(switch=switch, failure=failure):
+                self.start()
+                self.until(lambda: self.state()["status"] == "ready")
+                (self.root / "hold-updates").touch()
+                self.ipc("settings", "stretch", "#123456")
+                if switch:
+                    count = len(self.rows("commands"))
+                    self.ipc("load", str(self.root / "next.mp4"))
+                    self.until(lambda: any(row["command"] == ["get_property", "video-out-params"]
+                                           for row in self.rows("commands")[count:]))
+                    time.sleep(0.1)
+                self.assertEqual(self.state()["status"], "loading")
+                if failure:
+                    (self.root / "command-error").touch()
+                (self.root / "hold-updates").unlink()
+                expected = "error" if failure else "ready"
+                self.until(lambda: self.state()["status"] == expected)
+                if failure:
+                    self.assertIn("property unavailable", self.state()["error"])
+                    (self.root / "command-error").unlink()
+                self.ipc("destroy")
+
+    def test_replacement_timeout_and_decode_failure_release_owned_player(self):
+        for failure in ("timeout", "decode"):
+            with self.subTest(failure=failure):
+                self.start()
+                self.until(lambda: self.state()["status"] == "ready")
+                directory = Path(self.state()["directory"])
+                (self.root / "hold-load").touch()
+                self.ipc("load", str(self.root / "replacement.mp4"))
+                if failure == "decode":
+                    (self.root / "event").write_text(json.dumps({
+                        "event": "end-file", "reason": "error", "file_error": "decode failed"}))
+                self.until(lambda: self.state()["status"] == "error")
+                self.assertIn(failure, self.state()["error"])
+                self.until(lambda: not directory.exists())
+                self.ipc("destroy")
+                (self.root / "hold-load").unlink()
 
     def test_decoder_diagnostics_allow_recovery_and_keep_bounded_context(self):
         (self.root / "hold").touch()
@@ -204,7 +369,7 @@ ShellRoot {
                 (self.root / marker).unlink()
 
     def test_socket_disconnect_and_bad_ipc_fail_after_ready(self):
-        for failure in ("disconnect", "bad-ipc", "decode"):
+        for failure in ("disconnect", "bad-ipc", "decode", "stop"):
             with self.subTest(failure=failure):
                 self.start()
                 self.until(lambda: self.state()["status"] == "ready")
@@ -213,9 +378,12 @@ ShellRoot {
                     (self.root / "disconnect").touch()
                 elif failure == "bad-ipc":
                     (self.root / "event").write_text("not json")
-                else:
+                elif failure == "decode":
                     (self.root / "event").write_text(json.dumps({
                         "event": "end-file", "reason": "error", "error": "decode failed"}))
+                else:
+                    (self.root / "event").write_text(json.dumps({
+                        "event": "end-file", "reason": "stop"}))
                 self.until(lambda: self.state()["status"] == "error")
                 self.assertTrue(self.state()["error"])
                 self.until(lambda: not directory.exists())

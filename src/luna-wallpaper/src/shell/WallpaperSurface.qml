@@ -4,7 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
-import "Wallpaper.js" as Wallpaper
 
 PanelWindow {
     id: surface
@@ -13,6 +12,11 @@ PanelWindow {
     property string mediaStatus: "error"
     property string kind: "image"
     property bool completed: false
+    property string requestedSource: ""
+    property var currentImage: null
+    property var pendingImage: null
+    property var retiringImage: null
+    property int generation: 0
 
     readonly property string sourcePath: settings?.wallpaper?.source ?? ""
     readonly property string fit: settings?.wallpaper?.fit ?? "fill"
@@ -50,23 +54,54 @@ PanelWindow {
 
     function fail(message) {
         deadline.stop();
-        fade.stop();
         probe.active = false;
-        image.active = false;
-        video.active = false;
+        if (pendingImage) {
+            pendingImage.active = false;
+            pendingImage = null;
+        }
+        if (video.item?.status === "error")
+            video.active = false;
         mediaStatus = "error";
         console.warn("Wallpaper " + (screen?.name || "output") + ": " + message);
     }
 
-    function apply() {
+    function finishFade() {
+        if (retiringImage && retiringImage !== currentImage)
+            retiringImage.active = false;
+        retiringImage = null;
+    }
+
+    function apply(force) {
+        const nextSource = settings?.wallpaper?.source ?? "";
+        // Fit, color, and playback settings update through their existing bindings.
+        if (!force && nextSource === requestedSource && mediaStatus !== "error")
+            return;
+        generation++;
         probe.active = false;
-        image.active = false;
-        video.active = false;
+        requestedSource = nextSource;
         deadline.stop();
         fade.stop();
-        image.opacity = 0;
-        if (!settings || !sourcePath || !screen) {
+        finishFade();
+        if (currentImage)
+            currentImage.opacity = 1;
+        if (pendingImage) {
+            pendingImage.active = false;
+            pendingImage = null;
+        }
+        if (force)
+            video.active = false;
+        if (!settings || !requestedSource || !screen) {
+            if (currentImage)
+                currentImage.active = false;
+            currentImage = null;
+            video.active = false;
             mediaStatus = !settings ? "error" : screen ? "ready" : "loading";
+            return;
+        }
+        if (!force && currentImage?.sourcePath === requestedSource && currentImage.item?.status === Image.Ready) {
+            video.active = false;
+            kind = currentImage.mediaKind;
+            mediaStatus = "ready";
             return;
         }
         mediaStatus = "loading";
@@ -78,39 +113,86 @@ PanelWindow {
         kind = mediaKind;
         if (kind === "video") {
             deadline.stop(); // The video component owns its startup deadline.
-            video.active = true;
+            if (video.item && video.item.status !== "error" && !video.item.stopping) {
+                video.item.load(requestedSource);
+                videoStatusChanged();
+            } else {
+                video.active = false;
+                video.setSource("VideoWallpaper.qml", {
+                    sourcePath: requestedSource,
+                    outputName: screen.name,
+                    fit: Qt.binding(() => surface.fit),
+                    backgroundColor: Qt.binding(() => surface.backgroundColor),
+                    paused: Qt.binding(() => surface.pauseMedia)
+                });
+                video.active = true;
+            }
         } else {
-            image.active = true;
+            // Decode into the spare slot before releasing the visible image.
+            const next = currentImage === firstImage ? secondImage : firstImage;
+            next.active = false;
+            next.sourcePath = requestedSource;
+            next.mediaKind = kind;
+            next.opacity = 0;
+            next.z = 1;
+            pendingImage = next;
+            next.active = true;
         }
     }
 
-    function decoded(status) {
-        if (!image.active)
+    function decoded(image, status) {
+        if (image !== pendingImage && image !== currentImage)
             return;
         if (status === Image.Error) {
-            // Let the decoder's native callback return before unloading it.
-            const failedImage = image.item;
+            const request = generation;
             Qt.callLater(function () {
-                if (image.item === failedImage)
+                if (generation === request && (image === pendingImage || image === currentImage)) {
+                    if (image === currentImage) {
+                        currentImage.active = false;
+                        currentImage = null;
+                    }
                     surface.fail("Cannot decode " + surface.sourcePath);
+                }
             });
-        } else if (status === Image.Ready && mediaStatus === "loading") {
+        } else if (status === Image.Ready && image === pendingImage && mediaStatus === "loading") {
             deadline.stop();
+            const previous = currentImage;
+            currentImage = image;
+            pendingImage = null;
+            const replacingVideo = video.active;
+            video.active = false;
             mediaStatus = "ready";
-            if (fadeDuration > 0)
+            if (previous)
+                previous.z = 0;
+            if (!replacingVideo && fadeDuration > 0) {
+                retiringImage = previous;
+                fade.target = image;
                 fade.start();
-            else
+            } else {
                 image.opacity = 1;
+                if (previous)
+                    previous.active = false;
+            }
+        }
+    }
+
+    function videoStatusChanged() {
+        if (kind !== "video" || !video.item || video.item.sourcePath !== requestedSource)
+            return;
+        mediaStatus = video.item.status;
+        if (mediaStatus === "ready" && currentImage) {
+            currentImage.active = false;
+            currentImage = null;
         }
     }
 
     onSettingsChanged: if (completed)
-        Qt.callLater(apply)
+        apply(false)
     onScreenChanged: if (completed)
-        Qt.callLater(apply)
+        apply(true)
     Component.onCompleted: {
         completed = true;
-        apply();
+        apply(false);
     }
 
     Timer {
@@ -125,7 +207,7 @@ PanelWindow {
         sourceComponent: Component {
             MediaProbe {
                 id: inspection
-                sourcePath: surface.sourcePath
+                sourcePath: surface.requestedSource
                 onIdentified: kind => {
                     if (probe.item === inspection)
                         surface.render(kind);
@@ -133,8 +215,10 @@ PanelWindow {
                 onFailed: message => {
                     if (probe.item !== inspection)
                         return;
+                    const request = surface.generation;
                     Qt.callLater(function () {
-                        surface.fail(message);
+                        if (surface.generation === request)
+                            surface.fail(message);
                     });
                 }
             }
@@ -143,11 +227,11 @@ PanelWindow {
 
     NumberAnimation {
         id: fade
-        target: image
         property: "opacity"
         from: 0
         to: 1
         duration: surface.fadeDuration
+        onFinished: surface.finishFade()
     }
 
     Timer {
@@ -162,77 +246,54 @@ PanelWindow {
         anchors.fill: parent
         clip: true
 
-        Loader {
-            id: image
+        WallpaperImage {
+            id: firstImage
             width: parent.width / surface.nativeScale
             height: parent.height / surface.nativeScale
             scale: surface.nativeScale
             transformOrigin: Item.TopLeft
             active: false
             opacity: 0
-            sourceComponent: surface.kind === "animated" ? animated : still
-            onLoaded: surface.decoded(item.status)
-        }
-    }
-
-    Component {
-        id: still
-        Image {
-            source: Wallpaper.fileUrl(surface.sourcePath)
+            fit: surface.fit
             fillMode: surface.imageFillMode
-            asynchronous: true
-            cache: false
-            autoTransform: true
-            smooth: surface.fit !== "center" && surface.fit !== "tile"
-            mipmap: smooth
-            sourceSize: /\.svg$/i.test(surface.sourcePath) && smooth ? Qt.size(surface.width * (surface.screen?.devicePixelRatio || 1), surface.height * (surface.screen?.devicePixelRatio || 1)) : undefined
-            onStatusChanged: surface.decoded(status)
-        }
-    }
-
-    Component {
-        id: animated
-        AnimatedImage {
-            source: Wallpaper.fileUrl(surface.sourcePath)
-            fillMode: surface.imageFillMode
-            asynchronous: true
-            cache: false
-            smooth: surface.fit !== "center" && surface.fit !== "tile"
-            mipmap: smooth
             paused: surface.pauseMedia
-            onStatusChanged: surface.decoded(status)
-            function repeatAnimation() {
-                if (status === Image.Ready && frameCount > 1) {
-                    currentFrame = 0;
-                    playing = true;
-                }
-            }
-            onPlayingChanged: if (!playing)
-                Qt.callLater(repeatAnimation)
+            pixelRatio: surface.screen?.devicePixelRatio || 1
+            onDecoded: status => surface.decoded(firstImage, status)
+        }
+
+        WallpaperImage {
+            id: secondImage
+            width: parent.width / surface.nativeScale
+            height: parent.height / surface.nativeScale
+            scale: surface.nativeScale
+            transformOrigin: Item.TopLeft
+            active: false
+            opacity: 0
+            fit: surface.fit
+            fillMode: surface.imageFillMode
+            paused: surface.pauseMedia
+            pixelRatio: surface.screen?.devicePixelRatio || 1
+            onDecoded: status => surface.decoded(secondImage, status)
         }
     }
 
     Loader {
         id: video
         active: false
-        sourceComponent: Component {
-            VideoWallpaper {
-                sourcePath: surface.sourcePath
-                outputName: surface.screen?.name || ""
-                fit: surface.fit
-                backgroundColor: surface.backgroundColor
-                paused: surface.pauseMedia
-                onStatusChanged: surface.mediaStatus = status
-                onFailed: message => {
-                    const failedPlayer = video.item;
-                    Qt.callLater(function () {
-                        if (video.item === failedPlayer)
-                            surface.fail(message);
-                    });
-                }
-            }
-        }
+        onLoaded: surface.videoStatusChanged()
         onStatusChanged: if (status === Loader.Error)
             surface.fail("Could not load the video backend")
+    }
+
+    Connections {
+        target: video.item
+        function onStatusChanged() { surface.videoStatusChanged(); }
+        function onFailed(message) {
+            const failedPlayer = video.item;
+            Qt.callLater(function () {
+                if (video.item === failedPlayer)
+                    surface.fail(message);
+            });
+        }
     }
 }

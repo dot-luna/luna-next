@@ -20,11 +20,12 @@ Uses `LUNA_WALLPAPER_CONFIG` when nonempty, otherwise
 directory. Includes resolve relative to their source file.
 
 Copy [example.conf](example.conf) to your config path. It lists every setting,
-accepted value, and default. The app reads once at startup; restart it after
-changes. It does not copy the example automatically or rewrite existing files.
+accepted value, and default. The app reads at startup and on explicit reload;
+there is no file watcher. It does not copy the example or rewrite existing files.
 
-The [lnxt CLI](../ln-cli/README.md) applies its config changes automatically by
-restarting wallpaper. Direct file edits still need a restart.
+The [lnxt CLI](../ln-cli/README.md) applies its config changes automatically.
+After direct file edits, run `lnxt wallpaper reload`. Reload keeps the window and
+unchanged media running; `restart` performs a full stop/start.
 
 Missing files and parent directories are created; empty files or omitted settings
 use defaults. [config.schema.json](src/config.schema.json) validates resolved
@@ -40,6 +41,9 @@ the media, Qt image decoding is attempted.
 Video loops silently with automatic hardware decoding when available. Personal
 mpv settings and scripts are disabled. Exiting the app stops its player. Pausing
 on sleeping or disabled outputs is supported on Hyprland.
+
+Images remain visible while their replacement loads. Video changes reuse the
+player and surface; a brief decoding gap can still occur when switching files.
 
 ## Tests
 

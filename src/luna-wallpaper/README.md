@@ -11,5 +11,5 @@ export QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_
 quickshell -p src/luna-wallpaper/src/shell/shell.qml
 ```
 
-Restart the app after config changes. See [DOCS.md](DOCS.md) for dependencies,
-config paths, and tests.
+Run `lnxt wallpaper reload` after direct config edits. See [DOCS.md](DOCS.md) for
+dependencies, config paths, and tests.

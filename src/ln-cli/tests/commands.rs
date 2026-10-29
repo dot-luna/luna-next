@@ -35,6 +35,22 @@ case "$1" in
   kill) /bin/rm -f "$FAKE_STATE"; printf 'stop\n' >> "$FAKE_LOG" ;;
   -p) printf 'running\n' > "$FAKE_STATE"; printf 'start\n' >> "$FAKE_LOG" ;;
   ipc)
+    case "$6" in
+      reload)
+        printf 'reload\n' >> "$FAKE_LOG"
+        printf '%s\n' "$7" > "$FAKE_RELOAD_PATH"
+        if test -n "$FAKE_REJECT_MATCH"; then
+          while IFS= read -r line; do
+            case "$line" in
+              *"$FAKE_REJECT_MATCH"*) printf 'error: rejected configuration\n'; exit 0 ;;
+            esac
+          done < "$7"
+        fi
+        printf 'ok\n'
+        exit 0 ;;
+      status) ;;
+      *) printf 'unexpected fake IPC command\n' >&2; exit 9 ;;
+    esac
     if test -n "$FAKE_FAIL_MATCH"; then
       while IFS= read -r line; do
         case "$line" in
@@ -87,6 +103,7 @@ exit 8
             .env("WAYLAND_DISPLAY", "test-wayland")
             .env("FAKE_STATE", self.root.path().join("running"))
             .env("FAKE_LOG", self.root.path().join("runtime.log"))
+            .env("FAKE_RELOAD_PATH", self.root.path().join("reload-path"))
             .env("FAKE_CONFIG", &self.config)
             .current_dir(self.root.path())
             .stdin(Stdio::null());
@@ -236,7 +253,7 @@ fn imports_lists_previews_and_removes_without_json_prompts() {
 }
 
 #[test]
-fn update_config_preserves_include_and_automatically_restarts() {
+fn update_config_preserves_include_and_reloads_without_stopping() {
     let sandbox = Sandbox::new();
     sandbox.write_config("# keep comment\ninclude file(\"defaults.conf\")\n");
     let defaults = sandbox.config.with_file_name("defaults.conf");
@@ -258,7 +275,15 @@ fn update_config_preserves_include_and_automatically_restarts() {
     assert_eq!(fs::read_to_string(defaults).unwrap(), original);
     assert_eq!(
         fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
-        "stop\nstart\n"
+        "reload\n"
+    );
+    assert_eq!(
+        fs::read_to_string(sandbox.root.path().join("reload-path")).unwrap(),
+        format!("{}\n", sandbox.config.display())
+    );
+    assert_eq!(
+        fs::read_to_string(sandbox.root.path().join("running")).unwrap(),
+        "running"
     );
 }
 
@@ -282,7 +307,7 @@ fn set_and_random_apply_the_selection_and_protect_current_file() {
     assert_eq!(random, expected);
     assert_eq!(
         fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
-        "start\nstop\nstart\n"
+        "start\nreload\n"
     );
 }
 
@@ -335,7 +360,7 @@ fn lifecycle_commands_return_status_without_contaminating_json() {
     assert_eq!(sandbox.success(&["wallpaper", "stop", "--json"]), "stopped");
     assert_eq!(
         fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
-        "start\nstop\nstart\nstop\nstart\nstop\n"
+        "start\nreload\nstop\nstart\nstop\n"
     );
 }
 
@@ -439,9 +464,94 @@ fn failed_apply_restores_exact_source_symlink_permissions_and_running_renderer()
     );
     assert_eq!(
         fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
-        "stop\nstart\nstop\nstart\n"
+        "reload\nreload\n"
     );
     assert_eq!(sandbox.success(&["wallpaper", "status", "--json"]), "ready");
+}
+
+#[test]
+fn rejected_reload_restores_configuration_without_replacing_the_renderer() {
+    let sandbox = Sandbox::new();
+    let original = "# previous source\nwallpaper.fit = fill\n";
+    sandbox.write_config(original);
+    fs::write(sandbox.root.path().join("running"), "running").unwrap();
+    let output = sandbox
+        .command()
+        .env("FAKE_REJECT_MATCH", "#ABCDEF")
+        .args([
+            "wallpaper",
+            "update-config",
+            "{\"wallpaper\":{\"background_color\":\"#ABCDEF\"}}",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success(), "{output:?}");
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let error = response["error"].as_str().unwrap();
+    assert!(error.contains("rejected configuration"), "{response}");
+    assert!(error.contains("restored"), "{response}");
+    assert_eq!(fs::read_to_string(&sandbox.config).unwrap(), original);
+    assert_eq!(
+        fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
+        "reload\nreload\n"
+    );
+    assert_eq!(
+        fs::read_to_string(sandbox.root.path().join("running")).unwrap(),
+        "running"
+    );
+}
+
+#[test]
+fn failed_apply_keeps_a_previously_stopped_renderer_stopped() {
+    let sandbox = Sandbox::new();
+    let original = "# previous source\nwallpaper.fit = fill\n";
+    sandbox.write_config(original);
+    let output = sandbox
+        .command()
+        .env("FAKE_FAIL_MATCH", "#ABCDEF")
+        .args([
+            "wallpaper",
+            "update-config",
+            "{\"wallpaper\":{\"background_color\":\"#ABCDEF\"}}",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success(), "{output:?}");
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(response["error"].as_str().unwrap().contains("restored"));
+    assert_eq!(fs::read_to_string(&sandbox.config).unwrap(), original);
+    assert_eq!(
+        fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
+        "start\nstop\n"
+    );
+    assert_eq!(
+        sandbox.success(&["wallpaper", "status", "--json"]),
+        "stopped"
+    );
+}
+
+#[test]
+fn reload_rejects_invalid_configuration_without_touching_the_running_renderer() {
+    let sandbox = Sandbox::new();
+    fs::write(sandbox.root.path().join("running"), "running").unwrap();
+    for source in [
+        "wallpaper.fit = invalid\n",
+        "wallpaper { fit = \"unterminated\n",
+    ] {
+        sandbox.write_config(source);
+        let output = sandbox.run(&["wallpaper", "reload", "--json"]);
+        assert!(!output.status.success(), "{output:?}");
+        let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(response["ok"], false);
+        assert_eq!(fs::read_to_string(&sandbox.config).unwrap(), source);
+        assert!(!sandbox.root.path().join("runtime.log").exists());
+        assert_eq!(
+            fs::read_to_string(sandbox.root.path().join("running")).unwrap(),
+            "running"
+        );
+    }
 }
 
 #[test]
@@ -509,6 +619,6 @@ fn external_edit_during_failed_apply_is_not_overwritten_by_rollback() {
     assert_eq!(fs::read_to_string(&sandbox.config).unwrap(), external);
     assert_eq!(
         fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
-        "stop\nstart\n"
+        "reload\n"
     );
 }

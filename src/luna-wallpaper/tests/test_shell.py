@@ -18,10 +18,11 @@ import zlib
 from _support import APP, HAS_CONFIG, Harness
 
 
-# Inserted into a disposable copy only; application IPC exposes status alone.
+# Inserted into a disposable copy only; inspect media ownership without a GUI.
 INSPECTOR = '''
     IpcHandler {
         target: "test"
+        property var knownImages: []
         function state(): string {
             const images = [], videos = [], seen = [];
             function visit(item) {
@@ -29,7 +30,8 @@ INSPECTOR = '''
                 seen.push(item);
                 if (item.objectName === "fake-video") videos.push({source: item.sourcePath});
                 if (item.source !== undefined && item.sourceSize !== undefined) {
-                    images.push({source: String(item.source), status: item.status,
+                    if (knownImages.indexOf(item) === -1) knownImages.push(item);
+                    images.push({id: knownImages.indexOf(item), source: String(item.source), status: item.status,
                         width: item.sourceSize.width, height: item.sourceSize.height,
                         displayWidth: item.width, displayHeight: item.height,
                         scale: item.parent.scale, opacity: item.parent.opacity,
@@ -54,7 +56,7 @@ INSPECTOR = '''
         function outputActive(value: bool): void {
             surface.monitor = {lastIpcObject: {dpmsStatus: value}};
         }
-        function decodeError(): void { surface.decoded(Image.Error); }
+        function decodeError(): void { surface.decoded(surface.currentImage, Image.Error); }
     }
 '''
 
@@ -96,8 +98,20 @@ Item {
     property color backgroundColor: "#000000"
     property bool paused: false
     property string status: "loading"
+    function load(path) {
+        sourcePath = path;
+        status = "loading";
+        Qt.callLater(function () {
+            if (sourcePath.endsWith("broken-video.mp4")) {
+                status = "error";
+                failed("Fake video decoding failure");
+            } else {
+                status = "ready";
+            }
+        });
+    }
     signal failed(string message)
-    Component.onCompleted: status = "ready"
+    Component.onCompleted: load(sourcePath)
 }
 ''')
         self.image = self.root / "wallpaper ' #?.png"
@@ -234,6 +248,129 @@ Item {
         self.assertEqual(latest["config"], first["config"])
         self.assertEqual(latest["status"], first["status"])
         self.assertEqual(latest["images"][0]["source"], first["images"][0]["source"])
+
+    def reload(self, path=None):
+        return subprocess.run(
+            ["qs", "ipc", "-p", str(self.renderer), "call", "wallpaper", "reload", str(path or self.config)],
+            env=self.env, capture_output=True, text=True, check=True, timeout=3,
+        ).stdout.strip()
+
+    def test_explicit_reload_applies_included_settings_without_recreating_media(self):
+        self.write_config()
+        first = self.start()
+        pid = self.process.pid
+        original_config = self.config.read_bytes()
+        self.defaults.write_text('playback.pause_when_output_inactive = false\ntransition.duration_ms = 750\n')
+        self.config.write_text(self.config.read_text().replace('fit = "fit"', 'fit = "center"'))
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: self.renderer_status() == "ready")
+        latest = self.state()
+        self.assertEqual(self.process.pid, pid)
+        self.assertEqual(latest["images"][0]["id"], first["images"][0]["id"])
+        self.assertEqual(latest["images"][0]["fillMode"], latest["fillModes"]["center"])
+        self.assertEqual(latest["fadeDuration"], 750)
+        self.assertFalse(latest["config"]["playback"]["pause_when_output_inactive"])
+        self.assertIn(b'include file("defaults.conf")', self.config.read_bytes())
+        self.assertEqual(self.config.read_bytes(), original_config.replace(b'fit = "fit"', b'fit = "center"'))
+
+    def test_invalid_reload_keeps_the_previous_configuration_and_media(self):
+        self.write_config()
+        first = self.start()
+        self.config.write_text('wallpaper.fit = "invalid"\n')
+        self.assertTrue(self.reload().startswith("error: "))
+        latest = self.state()
+        self.assertEqual(latest["config"], first["config"])
+        self.assertEqual(latest["images"][0]["id"], first["images"][0]["id"])
+        self.assertEqual(self.renderer_status(), "ready")
+        self.assertEqual(self.config.read_text(), 'wallpaper.fit = "invalid"\n')
+
+    def test_media_reload_retains_the_current_image_until_the_replacement_decodes(self):
+        replacement = self.root / "replacement.png"
+        self.png(replacement)
+        tools = self.root / "bin"
+        tools.mkdir()
+        probe = tools / "ffprobe"
+        probe.write_text('#!/usr/bin/python3\nimport json, pathlib, sys, time\n'
+                         'source = pathlib.Path(sys.argv[-1])\n'
+                         'if source.name == "replacement.png":\n'
+                         '    source.with_suffix(".waiting").touch()\n'
+                         '    while not source.with_suffix(".release").exists(): time.sleep(0.01)\n'
+                         'print(json.dumps({"streams": [{"codec_name": "png"}], "format": {"format_name": "png_pipe"}}))\n')
+        probe.chmod(0o755)
+        self.env["PATH"] = str(tools) + ":" + self.env["PATH"]
+        self.write_config(extra="transition.duration_ms = 500\n")
+        first = self.start()
+        self.write_config(source=replacement, extra="transition.duration_ms = 500\n")
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: replacement.with_suffix(".waiting").exists())
+        pending = self.state()
+        self.assertEqual(pending["status"], "loading")
+        self.assertTrue(pending["visible"])
+        self.assertEqual(pending["images"][0]["id"], first["images"][0]["id"])
+        self.assertEqual(pending["images"][0]["source"], first["images"][0]["source"])
+        self.assertEqual(pending["images"][0]["opacity"], 1)
+        replacement.with_suffix(".release").touch()
+        self.until(lambda: self.renderer_status() == "ready")
+        self.until(lambda: len(self.state()["images"]) == 1)
+        latest = self.state()
+        self.assertIn("replacement.png", latest["images"][0]["source"])
+        self.assertNotEqual(latest["images"][0]["id"], first["images"][0]["id"])
+
+    def test_failed_media_reload_keeps_the_previous_image_and_can_recover(self):
+        self.write_config()
+        first = self.start()
+        self.write_config(source=self.root / "missing.png")
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: self.renderer_status() == "error")
+        failed = self.state()
+        self.assertTrue(failed["visible"])
+        self.assertEqual(failed["images"][0]["id"], first["images"][0]["id"])
+        self.write_config()
+        self.assertEqual(self.reload(), "ok")
+        self.assertEqual(self.renderer_status(), "ready")
+        self.assertEqual(self.state()["images"][0]["id"], first["images"][0]["id"])
+
+    def test_reload_switches_between_images_and_videos_in_the_same_shell(self):
+        tools = self.root / "bin"
+        tools.mkdir()
+        probe = tools / "ffprobe"
+        probe.write_text('#!/usr/bin/python3\nimport json, sys\n'
+                         'video = sys.argv[-1].endswith(".mp4")\n'
+                         'print(json.dumps({"streams": [{"codec_name": "h264" if video else "png"}], '
+                         '"format": {"format_name": "mov,mp4" if video else "png_pipe"}}))\n')
+        probe.chmod(0o755)
+        self.env["PATH"] = str(tools) + ":" + self.env["PATH"]
+        self.write_config()
+        self.start()
+        pid = self.process.pid
+        for name in ("first.mp4", "second.mp4"):
+            video = self.root / name
+            self.write_config(source=video)
+            self.assertEqual(self.reload(), "ok")
+            self.until(lambda: self.renderer_status() == "ready")
+            state = self.state()
+            self.assertEqual(state["videos"], [{"source": str(video)}])
+            self.assertEqual(state["images"], [])
+            self.assertEqual(self.process.pid, pid)
+        self.write_config()
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: self.renderer_status() == "ready")
+        state = self.state()
+        self.assertEqual(len(state["images"]), 1)
+        self.assertEqual(state["videos"], [])
+        self.assertEqual(self.process.pid, pid)
+        image_id = state["images"][0]["id"]
+        self.write_config(source=self.root / "broken-video.mp4")
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: self.renderer_status() == "error")
+        self.assertEqual(self.state()["images"][0]["id"], image_id)
+        self.write_config()
+        self.assertEqual(self.reload(), "ok")
+        self.assertEqual(self.renderer_status(), "ready")
+        recovered = self.state()
+        self.assertEqual(recovered["kind"], "image")
+        self.assertEqual(recovered["images"][0]["id"], image_id)
+        self.assertEqual(recovered["videos"], [])
 
     def test_missing_config_is_created_and_uses_safe_empty_settings(self):
         self.config.unlink()
