@@ -22,7 +22,8 @@ failure behavior.
 
 `--json` works before or after subcommands. Responses use
 `{"ok":true,"result":...}` or `{"ok":false,"error":"..."}`. Errors exit nonzero.
-JSON removal requires `--yes` or `--dry-run`; it never prompts.
+Removal requires `--yes` or `--dry-run` in JSON mode or without a terminal;
+it never prompts in those cases.
 
 ```sh
 lnxt wallpaper get-config wallpaper.source --json

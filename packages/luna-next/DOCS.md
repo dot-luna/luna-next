@@ -23,6 +23,7 @@ are unsupported. Schema errors leave the file unchanged.
 Imports validate the complete batch before copying. Conflicting filenames need
 `force`; folders recurse only when requested. Deletion has no prompts in the API;
 the CLI handles confirmation. Replacing selected media reloads a running renderer.
+URL downloads are limited to 512 MiB and 120 seconds.
 
 ## Paths and setup
 
@@ -34,8 +35,13 @@ Empty/unset XDG paths default to `~/.config` and `~/.local/share`. Missing confi
 files and parents are created when reading or updating. `stop` works even with
 invalid config. Concurrent mutations use short-lived file locks.
 
-Set `LUNA_WALLPAPER_SHELL` to the renderer's `shell.qml` when running it from
-another location. Configure the [QML module import path](../hocon-qml/DOCS.md#build-and-install).
+To use the renderer from this checkout, run from the repository root:
+
+```sh
+export LUNA_WALLPAPER_SHELL="$PWD/src/luna-wallpaper/src/shell/shell.qml"
+```
+
+Configure the [QML module import path](../hocon-qml/DOCS.md#build-and-install).
 Playback needs the [wallpaper setup and dependencies](../../src/luna-wallpaper/DOCS.md).
 Library operations additionally need `file`, `curl` for URLs, and `xdg-open`
 (`xdg-utils`) for opening folders. Dependencies are never installed automatically.

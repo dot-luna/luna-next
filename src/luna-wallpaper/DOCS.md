@@ -43,8 +43,7 @@ on sleeping or disabled outputs is supported on Hyprland.
 
 ## Tests
 
-Implementation is in `src/shell/`; tests and fixtures are in `tests/`. After
-building the config module, run from the repository root:
+After building the config module, run from the repository root:
 
 ```sh
 python3 -m unittest discover -s src/luna-wallpaper/tests -v

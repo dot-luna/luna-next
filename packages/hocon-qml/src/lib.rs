@@ -26,21 +26,7 @@ pub fn load_as_json(path: &str) -> Result<String> {
 /// Load resolved HOCON, optionally validating it against a JSON Schema file.
 /// An empty schema path skips validation. Schema files must already exist.
 pub fn load_as_json_with_schema(path: &str, schema_path: &str) -> Result<String> {
-    let schema = if schema_path.is_empty() {
-        None
-    } else {
-        let source = fs::read_to_string(schema_path).map_err(|source| Error::Io {
-            operation: "read schema",
-            path: Path::new(schema_path).into(),
-            source,
-        })?;
-        Some(
-            serde_json::from_str::<Value>(&source).map_err(|error| Error::InvalidSchema {
-                path: String::new(),
-                message: format!("cannot parse '{schema_path}' as JSON: {error}"),
-            })?,
-        )
-    };
+    let schema = read_schema(schema_path)?;
     let config = Config::open(path)?;
     if let Some(schema) = schema {
         config.validate(&schema).map_err(|error| match error {
@@ -52,4 +38,21 @@ pub fn load_as_json_with_schema(path: &str, schema_path: &str) -> Result<String>
         })?;
     }
     Ok(serde_json::to_string(config.resolved()?)?)
+}
+
+fn read_schema(path: &str) -> Result<Option<Value>> {
+    if path.is_empty() {
+        return Ok(None);
+    }
+
+    let source = fs::read_to_string(path).map_err(|source| Error::Io {
+        operation: "read schema",
+        path: Path::new(path).into(),
+        source,
+    })?;
+    let schema = serde_json::from_str(&source).map_err(|error| Error::InvalidSchema {
+        path: String::new(),
+        message: format!("cannot parse '{path}' as JSON: {error}"),
+    })?;
+    Ok(Some(schema))
 }

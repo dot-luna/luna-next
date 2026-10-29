@@ -48,8 +48,15 @@ pub(super) fn download(target: &str, directory: &Path, index: usize) -> Result<P
         .arg("--url")
         .arg(url.as_str());
     run(&mut command, Duration::from_secs(125))?;
-    let mime = media_type(&payload)?;
-    let extension = match mime.as_str() {
+    let extension = media_extension(&media_type(&payload)?)?;
+    let destination = folder.join(download_filename(&url, index, extension));
+    fs::rename(&payload, &destination)
+        .map_err(|error| io_error("name wallpaper download", &destination, error))?;
+    Ok(destination)
+}
+
+fn media_extension(mime: &str) -> Result<&'static str> {
+    Ok(match mime {
         "image/png" => "png",
         "image/jpeg" => "jpg",
         "image/webp" => "webp",
@@ -68,7 +75,10 @@ pub(super) fn download(target: &str, directory: &Path, index: usize) -> Result<P
                 "Unsupported downloaded wallpaper format: {mime}"
             )));
         }
-    };
+    })
+}
+
+fn download_filename(url: &Url, index: usize, extension: &str) -> String {
     let raw_name = url
         .path_segments()
         .and_then(|mut parts| parts.next_back())
@@ -97,10 +107,7 @@ pub(super) fn download(target: &str, directory: &Path, index: usize) -> Result<P
     } else {
         stem.to_owned()
     };
-    let destination = folder.join(format!("{stem}.{extension}"));
-    fs::rename(&payload, &destination)
-        .map_err(|error| io_error("name wallpaper download", &destination, error))?;
-    Ok(destination)
+    format!("{stem}.{extension}")
 }
 
 fn percent_decode(value: &str) -> String {

@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
 import Quickshell.Wayland
 import "Wallpaper.js" as Wallpaper
 
@@ -19,7 +18,15 @@ PanelWindow {
     readonly property string fit: settings?.wallpaper?.fit ?? "fill"
     readonly property color backgroundColor: settings?.wallpaper?.background_color ?? "#000000"
     readonly property real nativeScale: fit === "center" || fit === "tile" ? 1 / (screen?.devicePixelRatio || 1) : 1
-    readonly property int imageFillMode: fit === "fill" ? Image.PreserveAspectCrop : fit === "fit" ? Image.PreserveAspectFit : fit === "stretch" ? Image.Stretch : fit === "tile" ? Image.Tile : Image.Pad
+    readonly property int imageFillMode: {
+        switch (fit) {
+        case "fill": return Image.PreserveAspectCrop;
+        case "fit": return Image.PreserveAspectFit;
+        case "stretch": return Image.Stretch;
+        case "tile": return Image.Tile;
+        default: return Image.Pad;
+        }
+    }
     readonly property int fadeDuration: (settings?.transition?.type ?? "fade") === "fade" ? (settings?.transition?.duration_ms ?? 200) : 0
 
     readonly property bool hasHyprland: !!Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")
@@ -116,35 +123,20 @@ PanelWindow {
         id: probe
         active: false
         sourceComponent: Component {
-            Process {
+            MediaProbe {
                 id: inspection
-                property bool finished: false
-                command: ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name:format=format_name", "-of", "json", "-i", surface.sourcePath]
-                running: true
-                stdout: StdioCollector {
-                    id: metadata
+                sourcePath: surface.sourcePath
+                onIdentified: kind => {
+                    if (probe.item === inspection)
+                        surface.render(kind);
                 }
-                stderr: SplitParser {}
-                onExited: code => {
-                    finished = true;
+                onFailed: message => {
                     if (probe.item !== inspection)
                         return;
-                    try {
-                        surface.render(code === 0 ? Wallpaper.mediaKind(JSON.parse(metadata.text)) : "image");
-                    } catch (error) {
-                        Qt.callLater(function () {
-                            surface.fail("Could not identify media: " + error.message);
-                        });
-                    }
-                }
-                // Missing ffprobe need not prevent Qt from displaying a valid image.
-                onRunningChanged: if (!running)
                     Qt.callLater(function () {
-                        if (!inspection.finished && probe.item === inspection) {
-                            inspection.finished = true;
-                            surface.render("image");
-                        }
-                    })
+                        surface.fail(message);
+                    });
+                }
             }
         }
     }

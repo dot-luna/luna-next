@@ -1,7 +1,7 @@
 # HOCON API
 
 Use `luna_next_hocon::Config`; see [README.md](README.md) for an example.
-All methods return `Result`. `Value` means `serde_json::Value`.
+Methods return `Result` except `source()`. `Value` means `serde_json::Value`.
 
 | Method | Result | Behavior |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ All methods return `Result`. `Value` means `serde_json::Value`.
 | `get(path)` | `&Value` | Read a resolved value; missing keys return null. |
 | `set(path, value)` | `()` | Save a setting and update loaded values. |
 | `set_many(values)` | `()` | Save a map of dot-separated paths atomically. |
-| `set_many_validated(values, schema)` | `()` | Validate the final resolved batch before saving; requires `schema`. |
+| `set_many_validated(values, schema)` | `()` | Validate the final resolved batch before saving; requires the `schema` feature. |
 | `unset(path)` | `()` | Remove its definitions from the opened file; inherited values become visible. Missing settings are a no-op. |
 | `resolved()` | `&Value` | Borrow the full effective configuration. |
 | `to_json()` | `String` | Return pretty JSON text without saving it. |

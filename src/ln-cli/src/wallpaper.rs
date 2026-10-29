@@ -1,6 +1,7 @@
 use std::{
     error::Error,
     io::{self, IsTerminal, Write},
+    path::PathBuf,
 };
 
 use luna_next::wallpaper::{AddOptions, Wallpaper};
@@ -36,23 +37,8 @@ pub(crate) fn run(command: &WallpaperCommand, json_output: bool) -> Result<Value
             if *dry_run {
                 return Ok(serde_json::to_value(plan)?);
             }
-            if !yes {
-                if json_output || !io::stdin().is_terminal() {
-                    return Err(
-                        "removal requires --yes or --dry-run when not prompting in a terminal"
-                            .into(),
-                    );
-                }
-                for path in &plan {
-                    eprintln!("{}", path.display());
-                }
-                eprint!("Remove {} wallpaper(s)? [y/N] ", plan.len());
-                io::stderr().flush()?;
-                let mut answer = String::new();
-                io::stdin().read_line(&mut answer)?;
-                if !matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
-                    return Ok(json!([]));
-                }
+            if !yes && !confirm_removal(&plan, json_output)? {
+                return Ok(json!([]));
             }
             serde_json::to_value(wallpaper.remove(names)?)?
         }
@@ -72,4 +58,21 @@ pub(crate) fn run(command: &WallpaperCommand, json_output: bool) -> Result<Value
         WallpaperCommand::Reload => serde_json::to_value(wallpaper.reload()?)?,
         WallpaperCommand::Status => serde_json::to_value(wallpaper.status()?)?,
     })
+}
+
+fn confirm_removal(paths: &[PathBuf], json_output: bool) -> Result<bool> {
+    if json_output || !io::stdin().is_terminal() {
+        return Err("removal requires --yes or --dry-run when not prompting in a terminal".into());
+    }
+    for path in paths {
+        eprintln!("{}", path.display());
+    }
+    eprint!("Remove {} wallpaper(s)? [y/N] ", paths.len());
+    io::stderr().flush()?;
+    let mut answer = String::new();
+    io::stdin().read_line(&mut answer)?;
+    Ok(matches!(
+        answer.trim().to_ascii_lowercase().as_str(),
+        "y" | "yes"
+    ))
 }

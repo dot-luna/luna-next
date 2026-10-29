@@ -83,6 +83,23 @@ Item {
         directory.running = true;
     }
 
+    function startPlayer() {
+        // Keep Unix socket paths below the platform limit.
+        if ((privateDirectory + "/ipc").length > 100) {
+            fail("The video player's runtime socket path is too long.");
+            return;
+        }
+        ipc.path = privateDirectory + "/ipc";
+        player.workingDirectory = privateDirectory;
+        // mpvpaper reads HOME/.config/mpvpaper independently of mpv's config=no.
+        player.environment = {
+            HOME: privateDirectory
+        };
+        player.command = ["mpvpaper", "--layer", "bottom", "--mpv-options", Video.options(fit, backgroundColor.toString(), paused), "--", outputName, sourcePath];
+        playerAttempted = true;
+        player.running = true;
+    }
+
     function receive(line) {
         if (stopping)
             return;
@@ -151,20 +168,7 @@ Item {
                 root.fail("Could not create the video player's private runtime directory.");
                 return;
             }
-            // Keep Unix socket paths below the platform limit.
-            if ((root.privateDirectory + "/ipc").length > 100) {
-                root.fail("The video player's runtime socket path is too long.");
-                return;
-            }
-            ipc.path = root.privateDirectory + "/ipc";
-            player.workingDirectory = root.privateDirectory;
-            // mpvpaper reads HOME/.config/mpvpaper independently of mpv's config=no.
-            player.environment = {
-                HOME: root.privateDirectory
-            };
-            player.command = ["mpvpaper", "--layer", "bottom", "--mpv-options", Video.options(root.fit, root.backgroundColor.toString(), root.paused), "--", root.outputName, root.sourcePath];
-            root.playerAttempted = true;
-            player.running = true;
+            root.startPlayer();
         }
     }
 

@@ -7,6 +7,7 @@ Install to `~/.local/bin/lnxt` from the repository root:
 
 ```sh
 mise run install:ln-cli
+export PATH="$HOME/.local/bin:$PATH"
 lnxt wallpaper list --json
 ```
 

@@ -48,7 +48,7 @@ fn file(path: &Path, stack: &mut Vec<PathBuf>, entry_point: bool) -> hocon_rs::R
             }
         }
     } else {
-        crate::edit::validate(&source)?
+        crate::syntax::validate(&source)?
     };
     stack.push(path.clone());
     let result = includes(

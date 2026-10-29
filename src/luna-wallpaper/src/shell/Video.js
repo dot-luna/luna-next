@@ -8,6 +8,12 @@ function options(fit, background, paused) {
         stretch: "keepaspect=no panscan=0 video-unscaled=no",
         center: "keepaspect=yes panscan=0 video-unscaled=yes"
     };
+    let sizingOptions = sizing.fill;
+    // Tiling is image-only; videos retain their native size for this mode.
+    if (fit === "tile")
+        sizingOptions = sizing.center;
+    else if (Object.prototype.hasOwnProperty.call(sizing, fit))
+        sizingOptions = sizing[fit];
 
     return [
         "config=no load-scripts=no input-default-bindings=no input-terminal=no terminal=no",
@@ -16,8 +22,7 @@ function options(fit, background, paused) {
         "background=color background-color='" + background + "'",
         "pause=" + (paused ? "yes" : "no"),
         "input-ipc-server=./ipc",
-        // Tiling is image-only; videos retain their native size for this mode.
-        fit === "tile" ? sizing.center : Object.prototype.hasOwnProperty.call(sizing, fit) ? sizing[fit] : sizing.fill
+        sizingOptions
     ].join(" ");
 }
 

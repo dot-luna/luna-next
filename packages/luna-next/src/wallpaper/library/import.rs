@@ -23,57 +23,8 @@ impl Library {
         }
         let downloads = tempfile::tempdir()
             .map_err(|error| io_error("stage wallpaper downloads", &self.directory, error))?;
-        let mut sources = Vec::new();
-        for (index, target) in targets.iter().enumerate() {
-            let lower = target.to_ascii_lowercase();
-            if lower.starts_with("http://") || lower.starts_with("https://") {
-                sources.push(download(target, downloads.path(), index)?);
-                continue;
-            }
-            if target.contains("://") {
-                return Err(message("Only HTTP and HTTPS wallpaper URLs are supported"));
-            }
-            let path = canonicalize(Path::new(target))?;
-            if path.is_dir() {
-                let files = scan(&path, options.recursive, true)?;
-                if files.is_empty() {
-                    return Err(message(format!("No supported media in folder: {target}")));
-                }
-                sources.extend(files);
-            } else {
-                sources.push(path);
-            }
-        }
-
-        let mut names: HashMap<std::ffi::OsString, PathBuf> = HashMap::new();
-        let mut plan = Vec::new();
-        for source in sources {
-            self.validate(&source)?;
-            let name = source
-                .file_name()
-                .ok_or_else(|| message("Wallpaper has no filename"))?
-                .to_owned();
-            if name.to_string_lossy().starts_with(STAGING_PREFIX) {
-                return Err(message("Wallpaper filename uses a reserved staging prefix"));
-            }
-            if let Some(previous) = names.get(&name) {
-                if !same_contents(previous, &source)? {
-                    return Err(message(format!(
-                        "Different wallpapers share a filename: {}",
-                        name.to_string_lossy()
-                    )));
-                }
-                continue;
-            }
-            names.insert(name.clone(), source.clone());
-            let destination = self.directory.join(name);
-            plan.push(Import {
-                source,
-                destination,
-                added: true,
-                previous: None,
-            });
-        }
+        let sources = collect_sources(targets, downloads.path(), options.recursive)?;
+        let mut plan = self.plan_imports(sources)?;
 
         fs::create_dir_all(&self.directory)
             .map_err(|error| io_error("create wallpaper library", &self.directory, error))?;
@@ -116,4 +67,64 @@ impl Library {
             })
             .collect())
     }
+
+    fn plan_imports(&self, sources: Vec<PathBuf>) -> Result<Vec<Import>> {
+        let mut names: HashMap<std::ffi::OsString, PathBuf> = HashMap::new();
+        let mut plan = Vec::new();
+        for source in sources {
+            self.validate(&source)?;
+            let name = source
+                .file_name()
+                .ok_or_else(|| message("Wallpaper has no filename"))?
+                .to_owned();
+            if name.to_string_lossy().starts_with(STAGING_PREFIX) {
+                return Err(message("Wallpaper filename uses a reserved staging prefix"));
+            }
+            if let Some(previous) = names.get(&name) {
+                if !same_contents(previous, &source)? {
+                    return Err(message(format!(
+                        "Different wallpapers share a filename: {}",
+                        name.to_string_lossy()
+                    )));
+                }
+                continue;
+            }
+            names.insert(name.clone(), source.clone());
+            let destination = self.directory.join(name);
+            plan.push(Import {
+                source,
+                destination,
+                added: true,
+                previous: None,
+            });
+        }
+
+        Ok(plan)
+    }
+}
+
+fn collect_sources(targets: &[String], downloads: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
+    let mut sources = Vec::new();
+    for (index, target) in targets.iter().enumerate() {
+        let lower = target.to_ascii_lowercase();
+        if lower.starts_with("http://") || lower.starts_with("https://") {
+            sources.push(download(target, downloads, index)?);
+            continue;
+        }
+        if target.contains("://") {
+            return Err(message("Only HTTP and HTTPS wallpaper URLs are supported"));
+        }
+        let path = canonicalize(Path::new(target))?;
+        if path.is_dir() {
+            let files = scan(&path, recursive, true)?;
+            if files.is_empty() {
+                return Err(message(format!("No supported media in folder: {target}")));
+            }
+            sources.extend(files);
+        } else {
+            sources.push(path);
+        }
+    }
+
+    Ok(sources)
 }
