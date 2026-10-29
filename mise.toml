@@ -1,0 +1,11 @@
+[tasks."build:hocon-qml"]
+description = "Build the HOCON QML module"
+run = [
+  "cmake -S packages/hocon-qml -B target/hocon-qml -G Ninja -DCMAKE_BUILD_TYPE=Release -DLUNA_NEXT_QML_INSTALL_DIR=lib/qt6/qml",
+  "cmake --build target/hocon-qml --parallel",
+]
+
+[tasks."install:hocon-qml"]
+description = "Build and install the HOCON QML module into ~/.local"
+depends = ["build:hocon-qml"]
+run = 'cmake --install target/hocon-qml --prefix "$HOME/.local"'

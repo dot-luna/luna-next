@@ -13,17 +13,32 @@ and keep the object in memory.
 
 ## Build and install
 
-Needs Qt 6.5+ Core/QML development tools, C++17, CMake 3.21+, Rust/Cargo, and
-Ninja for the [README commands](README.md). Use Qt matching the host application.
+Needs Qt 6.5+ Core/QML development tools, C++17, CMake 3.21+, Rust/Cargo,
+Ninja, and mise for the [README commands](README.md). Use Qt matching the host
+application.
 QML smoke tests need `qml6` or `qml`; use `-DBUILD_TESTING=OFF` to skip them.
 
-After building:
+From the repository root:
 
 ```sh
-cmake --install target/hocon-qml --prefix "$HOME/.local"
+mise run build:hocon-qml    # Build only
+mise run install:hocon-qml  # Build and install into ~/.local
 ```
 
-Add `<prefix>/<CMAKE_INSTALL_LIBDIR>/qt6/qml` to `QML_IMPORT_PATH`.
+The module installs to `~/.local/lib/qt6/qml/LunaNext/Config/`. Set this in your
+desktop session so QML apps can import it:
+
+```sh
+export QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+```
+
+For Hyprland with [UWSM](https://github.com/Vladimir-csp/uwsm#4-environments-and-shell-profile),
+create `~/.config/uwsm/env` (and its parent directory if needed) and add that line.
+Log out and back in so desktop and autostart apps inherit it. If you customize
+`XDG_CONFIG_HOME`, use `$XDG_CONFIG_HOME/uwsm/env` instead.
+
+For terminal-launched apps only, put the line in `~/.zshrc` or `~/.bashrc` and
+reload the shell.
 
 ## Tests
 

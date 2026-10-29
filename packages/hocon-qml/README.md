@@ -15,12 +15,12 @@ ShellRoot {
 }
 ```
 
-Build and expose the module from the repository root:
+Build and install the module from the repository root:
 
 ```sh
-cmake -S packages/hocon-qml -B target/hocon-qml -G Ninja
-cmake --build target/hocon-qml
-QML_IMPORT_PATH="$PWD/target/hocon-qml/qml" quickshell -p /path/to/shell.qml
+mise run install:hocon-qml
+export QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+quickshell -p /path/to/shell.qml
 ```
 
 Use `config` directly in memory. See [DOCS.md](DOCS.md) for setup, behavior, and tests.
