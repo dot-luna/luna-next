@@ -1,0 +1,14 @@
+[package]
+name = "luna-next-hocon"
+version = "0.1.0"
+edition = "2024"
+description = "HOCON configuration helper for Luna Next"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+hocon-rs = "=0.2.0"
+serde_json = "1.0"
+tempfile = "3.23"
+thiserror = "2.0"
+url = "2.5"

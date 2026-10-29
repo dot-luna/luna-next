@@ -1,0 +1,7 @@
+[workspace]
+members = ["packages/hocon", "packages/hocon-qml"]
+default-members = ["packages/hocon"]
+resolver = "3"
+
+[workspace.dependencies]
+luna-next-hocon = { path = "packages/hocon" }
