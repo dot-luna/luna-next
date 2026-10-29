@@ -704,6 +704,7 @@ dependencies = [
  "libc",
  "luna-next-hocon",
  "rand",
+ "semver",
  "serde",
  "serde_json",
  "tempfile",

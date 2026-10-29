@@ -108,6 +108,8 @@ impl Fixture {
                     .to_string(),
             ),
             version: version.map(str::to_owned),
+            git_include_prereleases: false,
+            git_release_tag_pattern: None,
             destination: None,
             command: vec![vec![
                 "/bin/sh".into(),
@@ -157,6 +159,31 @@ fn requested_tag_stays_pinned_when_the_default_branch_advances() {
 #[test]
 fn latest_selects_the_highest_version_tag_and_updates_to_new_tags() {
     scenario("latest");
+}
+
+#[test]
+fn latest_with_prereleases_orders_numeric_identifiers_and_updates_to_new_nightlies() {
+    scenario("prerelease");
+}
+
+#[test]
+fn latest_prefers_a_stable_release_over_prereleases_of_the_same_version() {
+    scenario("stable_precedence");
+}
+
+#[test]
+fn latest_with_only_prerelease_tags_requires_explicit_opt_in_before_cloning() {
+    scenario("prerelease_only");
+}
+
+#[test]
+fn latest_accepts_non_semver_tags_and_can_select_a_tag_namespace() {
+    scenario("non_semver_tags");
+}
+
+#[test]
+fn latest_with_no_tags_matching_the_pattern_fails_before_cloning() {
+    scenario("unmatched_pattern");
 }
 
 #[test]
@@ -258,7 +285,9 @@ fn git_scenario() {
             git(&fixture.remote, &["checkout", "-b", "feature/test"]);
             fixture.commit("feature");
             git(&fixture.remote, &["checkout", "main"]);
-            fixture.install(Some("feature/test"));
+            let mut package = fixture.package(Some("feature/test"));
+            package.git_release_tag_pattern = Some("release/*".into());
+            install_via_git(&[package.clone()]).unwrap();
             assert_eq!(fixture.contents(), "feature");
             assert_eq!(
                 git(&fixture.checkout, &["branch", "--show-current"]),
@@ -266,38 +295,168 @@ fn git_scenario() {
             );
             git(&fixture.remote, &["checkout", "feature/test"]);
             fixture.commit("feature updated");
-            fixture.install(Some("feature/test"));
+            install_via_git(&[package]).unwrap();
             assert_eq!(fixture.contents(), "feature updated");
             fixture.assert_shallow();
         }
         "tag" => {
-            git(&fixture.remote, &["tag", "v1.0"]);
+            git(&fixture.remote, &["tag", "v1.0.0-rc.1"]);
             fixture.commit("new default");
-            fixture.install(Some("v1.0"));
+            let mut package = fixture.package(Some("v1.0.0-rc.1"));
+            package.git_release_tag_pattern = Some("release/*".into());
+            install_via_git(&[package.clone()]).unwrap();
             assert_eq!(fixture.contents(), "first");
             assert_eq!(git(&fixture.checkout, &["branch", "--show-current"]), "");
             fixture.commit("newer default");
-            fixture.install(Some("v1.0"));
+            install_via_git(&[package]).unwrap();
             assert_eq!(fixture.contents(), "first");
             fixture.assert_shallow();
         }
         "latest" => {
+            let mut package = fixture.package(Some("latest"));
+            package.git_release_tag_pattern = Some("v[0-9]*".into());
+            git(&fixture.remote, &["tag", "v1"]);
+            fixture.commit("untagged after version one");
+            install_via_git(&[package.clone()]).unwrap();
+            assert_eq!(fixture.contents(), "first");
+            fixture.commit("version nine");
             git(&fixture.remote, &["tag", "v1.9"]);
+            install_via_git(&[package.clone()]).unwrap();
+            assert_eq!(fixture.contents(), "version nine");
             fixture.commit("version ten");
             git(&fixture.remote, &["tag", "v1.10"]);
+            fixture.commit("future prerelease");
+            git(&fixture.remote, &["tag", "v2.0.0-nightly.10"]);
+            fixture.commit("non-version tag");
+            git(&fixture.remote, &["tag", "android-beta"]);
             fixture.commit("untagged");
-            fixture.install(Some("latest"));
+            install_via_git(&[package.clone()]).unwrap();
             assert_eq!(fixture.contents(), "version ten");
             fixture.commit("version eleven");
             git(
                 &fixture.remote,
                 &["tag", "--annotate", "v1.11", "--message", "release"],
             );
-            fixture.install(Some("latest"));
+            install_via_git(&[package.clone()]).unwrap();
             assert_eq!(fixture.contents(), "version eleven");
-            fixture.install(Some("latest"));
+            install_via_git(&[package]).unwrap();
             assert_eq!(fixture.contents(), "version eleven");
             fixture.assert_shallow();
+        }
+        "prerelease" => {
+            git(&fixture.remote, &["tag", "v1.0.0"]);
+            fixture.commit("nightly ten");
+            git(&fixture.remote, &["tag", "v2.0.0-nightly.10"]);
+            fixture.commit("nightly nine");
+            git(&fixture.remote, &["tag", "v2.0.0-nightly.9"]);
+            fixture.commit("non-version tag");
+            git(&fixture.remote, &["tag", "android-beta"]);
+            fixture.commit("untagged");
+            let mut package = fixture.package(Some("latest"));
+            package.git_include_prereleases = true;
+            package.git_release_tag_pattern = Some("v[0-9]*".into());
+            package.command.push(vec![
+                "/bin/sh".into(),
+                "-c".into(),
+                "printf '%s' \"$LUNA_PACKAGE_VERSION\" > selected-version.txt".into(),
+            ]);
+            install_via_git(&[package.clone()]).unwrap();
+            assert_eq!(fixture.contents(), "nightly ten");
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("selected-version.txt")).unwrap(),
+                "v2.0.0-nightly.10"
+            );
+            fixture.commit("nightly eleven");
+            git(&fixture.remote, &["tag", "v2.0.0-nightly.11"]);
+            fixture.commit("newer default");
+            install_via_git(&[package.clone()]).unwrap();
+            install_via_git(&[package]).unwrap();
+            assert_eq!(fixture.contents(), "nightly eleven");
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("selected-version.txt")).unwrap(),
+                "v2.0.0-nightly.11"
+            );
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("build.log")).unwrap(),
+                "built\nbuilt\nbuilt\n"
+            );
+            fixture.assert_shallow();
+        }
+        "stable_precedence" => {
+            git(&fixture.remote, &["tag", "v2.0.0"]);
+            fixture.commit("nightly");
+            git(&fixture.remote, &["tag", "v2.0.0-nightly.100"]);
+            fixture.commit("release candidate");
+            git(&fixture.remote, &["tag", "v2.0.0-rc.1"]);
+            fixture.install(Some("latest"));
+            assert_eq!(fixture.contents(), "first");
+            let mut package = fixture.package(Some("latest"));
+            package.git_include_prereleases = true;
+            install_via_git(&[package]).unwrap();
+            assert_eq!(fixture.contents(), "first");
+            fixture.assert_shallow();
+        }
+        "prerelease_only" => {
+            git(&fixture.remote, &["tag", "v2.0.0-nightly.1"]);
+            fixture.commit("release candidate");
+            git(&fixture.remote, &["tag", "v2.0.0-rc.1"]);
+            fixture.commit("untagged default");
+            let mut package = fixture.package(Some("latest"));
+            let error = install_via_git(&[package.clone()]).unwrap_err();
+            let message = error.to_string();
+            assert!(message.contains("tag"), "{message}");
+            assert!(
+                message.contains("stable") || message.contains("prerelease"),
+                "{message}"
+            );
+            assert!(!fixture.checkout.exists());
+
+            package.git_include_prereleases = true;
+            install_via_git(&[package.clone()]).unwrap();
+            assert_eq!(fixture.contents(), "release candidate");
+            package.git_include_prereleases = false;
+            assert!(install_via_git(&[package]).is_err());
+            assert_eq!(fixture.contents(), "release candidate");
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("build.log")).unwrap(),
+                "built\n"
+            );
+        }
+        "non_semver_tags" => {
+            git(&fixture.remote, &["tag", "android-beta"]);
+            fixture.commit("untagged default");
+            fixture.install(Some("latest"));
+            assert_eq!(fixture.contents(), "first");
+            fixture.commit("release nine");
+            git(&fixture.remote, &["tag", "release/9"]);
+            fixture.commit("release ten");
+            git(&fixture.remote, &["tag", "release/10"]);
+            fixture.commit("unrelated tag");
+            git(&fixture.remote, &["tag", "zzz-unrelated"]);
+            fixture.install(Some("latest"));
+            assert_eq!(fixture.contents(), "unrelated tag");
+
+            let mut package = fixture.package(Some("latest"));
+            package.git_release_tag_pattern = Some("release/*".into());
+            install_via_git(&[package]).unwrap();
+            assert_eq!(fixture.contents(), "release ten");
+            fixture.assert_shallow();
+        }
+        "unmatched_pattern" => {
+            let mut package = fixture.package(Some("latest"));
+            package.git_release_tag_pattern = Some("release/*".into());
+            let error = install_via_git(&[package.clone()]).unwrap_err();
+            assert!(error.to_string().contains("tag"), "{error}");
+            assert!(error.to_string().contains("release/*"), "{error}");
+            assert!(!fixture.checkout.exists());
+
+            git(&fixture.remote, &["tag", "android-beta"]);
+            fixture.commit("untagged default");
+            package.git_include_prereleases = true;
+            let error = install_via_git(&[package]).unwrap_err();
+            assert!(error.to_string().contains("tag"), "{error}");
+            assert!(error.to_string().contains("release/*"), "{error}");
+            assert!(!fixture.checkout.exists());
         }
         "no_tags" => {
             fixture.install(Some("latest"));

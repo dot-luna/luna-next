@@ -21,8 +21,14 @@ They return `Report { installed, skipped }` and stop on failure; completed work 
 Run as a normal user; pacman uses sudo. Pacman/AUR version pinning is unsupported.
 
 Git packages shallow-clone into `~/.local/src/<name>` and update existing checkouts.
-`version` selects a branch/tag; `latest` selects the highest version tag, falling
-back to the default branch without tags. Local packages symlink their source into
+`version` selects a branch/tag; `latest` uses Git's version sorting.
+`git_release_tag_pattern` optionally narrows tags with a glob (e.g. `v*`);
+`git_include_prereleases: true` includes SemVer prereleases (optional `v`).
+Other tag names remain eligible. Filters do not affect explicit branches/tags.
+Without a pattern, untagged remotes use the default branch; no matching or
+eligible tags is an error.
+Git commands receive the selected ref as `LUNA_PACKAGE_VERSION`, unset when no
+ref was selected. Local packages symlink their source into
 `~/.local/src/<name>` or `destination` relative to `~/.local`.
 Both run their `command` arrays from the package directory. Local installs refresh
 links and replace destination directories; sources and regular files are protected.

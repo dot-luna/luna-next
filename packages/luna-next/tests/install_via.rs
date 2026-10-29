@@ -56,6 +56,8 @@ fn minimal_package_objects_need_a_name_and_source() {
     assert_eq!(value.name, "git");
     assert_eq!(value.version, None);
     assert_eq!(value.url, None);
+    assert!(!value.git_include_prereleases);
+    assert_eq!(value.git_release_tag_pattern, None);
     assert!(value.command.is_empty());
 }
 

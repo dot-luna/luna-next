@@ -71,6 +71,14 @@ fn repository_manifests_load_with_current_local_sources() {
     assert!(packages.iter().any(|package| package.name == "git"));
     assert!(packages.iter().any(|package| package.name == "yay"));
     assert!(packages.iter().any(|package| package.name == "rust"));
+    let t3code = packages
+        .iter()
+        .find(|package| package.name == "t3code")
+        .unwrap();
+    assert_eq!(t3code.source, Source::Git);
+    assert_eq!(t3code.version.as_deref(), Some("latest"));
+    assert!(t3code.git_include_prereleases);
+    assert_eq!(t3code.git_release_tag_pattern.as_deref(), Some("v[0-9]*"));
 
     for (name, source) in [
         ("hocon-qml", "packages/hocon-qml"),

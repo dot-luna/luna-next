@@ -1,4 +1,5 @@
 mod app_configs;
+mod git_versions;
 mod install_via;
 mod packages;
 

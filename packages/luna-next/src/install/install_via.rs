@@ -8,6 +8,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use super::git_versions;
 use crate::{Error, Result, io_error};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Deserialize)]
@@ -36,12 +37,19 @@ pub struct Package {
     pub source: Source,
     /// Git remote URL or local source directory; unused by package-manager sources.
     pub url: Option<String>,
-    /// Git branch/tag (`latest` selects the highest version-sorted remote tag), or mise version.
+    /// Git branch/tag (`latest` selects the highest eligible remote tag), or mise version.
     /// Unspecified Git versions use the remote's default branch on the first clone.
     pub version: Option<String>,
+    /// Allow prerelease version tags for Git `latest`; pinned refs are unaffected.
+    #[serde(default)]
+    pub git_include_prereleases: bool,
+    /// Optional Git tag-name glob for `latest`, such as `v*` or `release/*`.
+    pub git_release_tag_pattern: Option<String>,
     /// Local link path relative to `~/.local`; defaults to `src/<name>`.
     pub destination: Option<PathBuf>,
     /// Argument arrays run in the Git checkout or local link, without an implicit shell.
+    /// Git recipes receive the selected ref in `LUNA_PACKAGE_VERSION`, unset for default-branch
+    /// installs without a selected tag. The `refs/tags/` prefix is stripped; a leading `v` remains.
     #[serde(default)]
     pub command: Vec<Vec<String>>,
 }
@@ -88,7 +96,8 @@ pub fn install_via_mise(packages: &[Package]) -> Result<Report> {
 /// Clone shallow checkouts under `~/.local/src/<name>` and run each recipe's commands.
 /// Existing branches pull with fast-forward only; selected refs fetch at depth one.
 /// Dirty tracked files, mismatched origins, and unreferenced detached commits are rejected.
-/// `latest` uses the highest version-sorted tag, or the remote default when no tags exist.
+/// `latest` uses Git version sorting with optional tag-pattern and prerelease filters.
+/// Without a pattern, untagged remotes use the default branch.
 pub fn install_via_git(packages: &[Package]) -> Result<Report> {
     let mut names = HashSet::new();
     for package in packages {
@@ -107,6 +116,14 @@ pub fn install_via_git(packages: &[Package]) -> Result<Report> {
             )));
         }
         validate_commands(package)?;
+        if let Some(pattern) = &package.git_release_tag_pattern
+            && (pattern.is_empty() || pattern.contains('\0'))
+        {
+            return Err(Error::Message(format!(
+                "Invalid Git release tag pattern for '{}'",
+                package.name
+            )));
+        }
         if let Some(version) = &package.version {
             query(Command::new("git").args(["check-ref-format", "--allow-onelevel", version]))?;
         }
@@ -162,18 +179,31 @@ pub fn install_via_git(packages: &[Package]) -> Result<Report> {
             }
         }
         let version = if package.version.as_deref() == Some("latest") {
-            let tags = query(Command::new("git").args([
+            let mut command = Command::new("git");
+            command.args([
+                "-c",
+                "versionsort.suffix=-",
                 "ls-remote",
                 "--tags",
                 "--refs",
                 "--sort=-version:refname",
                 "--",
                 url,
-            ]))?;
-            tags.lines()
-                .filter_map(|line| line.split_once('\t').map(|(_, reference)| reference))
-                .find(|reference| reference.starts_with("refs/tags/"))
-                .map(str::to_owned)
+            ]);
+            if let Some(pattern) = &package.git_release_tag_pattern {
+                command.arg(format!("refs/tags/{pattern}"));
+            }
+            let tags = query(&mut command)?;
+            let selected = git_versions::latest(&tags, package.git_include_prereleases)?;
+            if selected.is_none()
+                && let Some(pattern) = &package.git_release_tag_pattern
+            {
+                return Err(Error::Message(format!(
+                    "No Git tags match '{pattern}' for '{}'",
+                    package.name
+                )));
+            }
+            selected
         } else {
             package.version.clone()
         };
@@ -239,7 +269,7 @@ pub fn install_via_git(packages: &[Package]) -> Result<Report> {
                 checkout_git_ref(&directory, version.as_deref().unwrap_or("HEAD"))?;
             }
         }
-        run_commands(package, &directory)?;
+        run_commands(package, &directory, version.as_deref())?;
         report.installed.push(package.name.clone());
     }
     Ok(report)
@@ -347,7 +377,7 @@ pub fn install_via_local(packages: &[Package]) -> Result<Report> {
         }
         fs::rename(&link, &directory)
             .map_err(|error| io_error("replace local package link", &directory, error))?;
-        run_commands(package, &directory)?;
+        run_commands(package, &directory, None)?;
         report.installed.push(package.name.clone());
     }
     Ok(report)
@@ -410,13 +440,20 @@ fn validate_commands(package: &Package) -> Result<()> {
     Ok(())
 }
 
-fn run_commands(package: &Package, directory: &Path) -> Result<()> {
+fn run_commands(package: &Package, directory: &Path, version: Option<&str>) -> Result<()> {
     for arguments in &package.command {
-        execute(
-            Command::new(&arguments[0])
-                .args(&arguments[1..])
-                .current_dir(directory),
-        )?;
+        let mut command = Command::new(&arguments[0]);
+        command.args(&arguments[1..]).current_dir(directory);
+        // Recipes need the selected tag, rather than the literal "latest", for release assets.
+        if let Some(version) = version {
+            command.env(
+                "LUNA_PACKAGE_VERSION",
+                version.strip_prefix("refs/tags/").unwrap_or(version),
+            );
+        } else {
+            command.env_remove("LUNA_PACKAGE_VERSION");
+        }
+        execute(&mut command)?;
     }
     Ok(())
 }
