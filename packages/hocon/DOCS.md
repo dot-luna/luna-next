@@ -5,6 +5,7 @@ Methods return `Result` except `source()`. `Value` means `serde_json::Value`.
 
 | Method | Result | Behavior |
 | --- | --- | --- |
+| `luna_next_hocon::load(file)` | `Value` | Read an existing object or array and resolve includes without creating or modifying files. |
 | `Config::open(file)` | `Config` | Load and resolve HOCON; create missing files and parent directories. |
 | `get(path)` | `&Value` | Read a resolved value; missing keys return null. |
 | `set(path, value)` | `()` | Save a setting and update loaded values. |

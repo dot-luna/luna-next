@@ -1,4 +1,6 @@
-use clap::{Parser, Subcommand};
+use std::path::PathBuf;
+
+use clap::{ArgGroup, Args, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "lnxt", version, about)]
@@ -12,12 +14,52 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    /// Install package groups, named packages, or local applications.
+    Install(InstallArgs),
+    /// Install all package groups, tools, and local applications.
+    Setup {
+        /// Use this Luna Next checkout.
+        #[arg(long, value_name = "PATH")]
+        repo: Option<PathBuf>,
+    },
     /// Manage wallpapers and their configuration.
     #[command(alias = "w")]
     Wallpaper {
         #[command(subcommand)]
         command: WallpaperCommand,
     },
+}
+
+#[derive(Args)]
+#[command(group(ArgGroup::new("source").args(["pacman", "aur", "mise", "git", "local"])))]
+pub(crate) struct InstallArgs {
+    /// Install named packages; use --local to select local application names.
+    #[arg(value_name = "PACKAGE")]
+    pub(crate) names: Vec<String>,
+    /// Select the core package group.
+    #[arg(long, conflicts_with_all = ["mise", "git", "local"])]
+    pub(crate) core: bool,
+    /// Select the main package group.
+    #[arg(long, conflicts_with_all = ["mise", "git", "local"])]
+    pub(crate) main: bool,
+    /// Select the tools managed by mise.
+    #[arg(long)]
+    pub(crate) mise: bool,
+    /// Select packages installed from Git repositories.
+    #[arg(long)]
+    pub(crate) git: bool,
+    /// Select local applications from this checkout.
+    #[arg(long, visible_alias = "apps")]
+    pub(crate) local: bool,
+    /// Select packages from the Arch User Repository.
+    #[arg(long)]
+    pub(crate) aur: bool,
+    /// Select packages from the official Arch repositories.
+    #[arg(long)]
+    pub(crate) pacman: bool,
+    /// Use this Luna Next checkout.
+    #[arg(long, value_name = "PATH")]
+    pub(crate) repo: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

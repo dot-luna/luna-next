@@ -46,6 +46,15 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Read and resolve an existing HOCON object or array without changing files.
+pub fn load(path: impl AsRef<Path>) -> Result<Value> {
+    let path = path.as_ref();
+    load::resolve_value(path).map_err(|source| Error::Parse {
+        path: path.into(),
+        source,
+    })
+}
+
 /// A HOCON configuration file with path-based access, editing, and resolution.
 ///
 /// Reads use the values loaded on open. Successful edits save immediately and

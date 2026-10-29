@@ -1,12 +1,23 @@
 use serde_json::{Value, json};
 
-use crate::args::WallpaperCommand;
+use crate::args::{Command, WallpaperCommand};
 
-pub(crate) fn success(command: &WallpaperCommand, value: &Value, json_output: bool) {
+pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
     if json_output {
         println!("{}", json!({ "ok": true, "result": value }));
     } else {
-        print_human(command, value);
+        match command {
+            Command::Install(_) | Command::Setup { .. } => print_install(value),
+            Command::Wallpaper { command } => print_human(command, value),
+        }
+    }
+}
+
+fn print_install(value: &Value) {
+    for (field, action) in [("installed", "Installed"), ("skipped", "Skipped")] {
+        for name in value[field].as_array().into_iter().flatten() {
+            println!("{action}: {}", name.as_str().unwrap_or_default());
+        }
     }
 }
 

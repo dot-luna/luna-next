@@ -1,6 +1,7 @@
 # Luna Next API
 
-Shared Rust operations for Luna's CLI, menu, and other applications.
+Shared Rust operations for package installation and wallpaper management in
+Luna's CLI, menu, and other applications.
 
 ```toml
 [dependencies]
@@ -17,5 +18,4 @@ fn main() -> luna_next::Result<()> {
 }
 ```
 
-Config updates apply automatically. See [DOCS.md](DOCS.md) for APIs, paths,
-dependencies, and tests.
+See [DOCS.md](DOCS.md) for APIs, paths, dependencies, and tests.

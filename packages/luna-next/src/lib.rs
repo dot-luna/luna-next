@@ -1,5 +1,6 @@
 //! Shared application operations for Luna's command line and desktop clients.
 
+pub mod install;
 pub mod wallpaper;
 
 use std::{

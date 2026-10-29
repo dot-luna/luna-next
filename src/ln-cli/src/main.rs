@@ -1,4 +1,5 @@
 mod args;
+mod install;
 mod output;
 mod wallpaper;
 
@@ -32,10 +33,14 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let Command::Wallpaper { command } = &cli.command;
-    match wallpaper::run(command, cli.json) {
+    let result: Result<_, Box<dyn std::error::Error>> = match &cli.command {
+        Command::Install(arguments) => install::run(arguments).map_err(Into::into),
+        Command::Setup { repo } => install::setup(repo.as_deref()).map_err(Into::into),
+        Command::Wallpaper { command } => wallpaper::run(command, cli.json),
+    };
+    match result {
         Ok(value) => {
-            output::success(command, &value, cli.json);
+            output::success(&cli.command, &value, cli.json);
             ExitCode::SUCCESS
         }
         Err(error) => {

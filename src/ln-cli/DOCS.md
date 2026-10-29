@@ -1,5 +1,44 @@
 # lnxt
 
+## Installation
+
+Run as your normal user; system packages use sudo.
+
+```sh
+lnxt install --core --main       # Combine package groups
+lnxt install yay                 # Use its declared source
+lnxt install --main --aur        # Filter main by source
+lnxt install --pacman ripgrep    # Official package, even if unlisted
+lnxt install --mise              # Declared mise tools
+lnxt install --git yay           # Git package recipe
+lnxt install --local cli         # Local package; --apps is an alias
+lnxt setup                      # Install everything in the lists
+```
+
+Names narrow the selected groups or source. Source flags (`--pacman`, `--aur`,
+`--mise`, `--git`, `--local`) are mutually exclusive. Only `--pacman`/`--aur`
+can combine with `--core`/`--main`. Unlisted names need an explicit system source
+without a group flag.
+
+The [HOCON lists](../../installs/README.md) supply package objects and commands.
+Setup installs pacman packages, Git recipes (including yay), AUR packages, mise
+tools, then local packages. Direct AUR installs require yay already installed.
+Failures stop later steps; completed work remains.
+
+Git packages clone into `~/.local/src/<name>`. Local packages symlink their source
+there, or into `destination` relative to `~/.local`, then run their commands.
+Local installs refresh links and replace existing destination directories.
+The current recipes install `lnxt` into `~/.local/bin`, the QML module into
+`~/.local/lib/qt6/qml`, and link wallpaper into
+`~/.local/share/luna-next/wallpaper`. Keep the checkout available for local links.
+Set the [QML import path](../../packages/hocon-qml/DOCS.md#build-and-install)
+before launching wallpaper. Installation does not start apps or change the session.
+
+Locate the checkout with `--repo PATH`, `LUNA_NEXT_ROOT`, the current directory's
+ancestors, or `~/.local/src/luna-next` (checked in that order).
+
+## Wallpaper
+
 Use `lnxt wallpaper` (or `lnxt w`):
 
 | Command | Action |
@@ -36,4 +75,8 @@ Without `--json`, missing keys print nothing; objects print formatted JSON.
 
 ```sh
 cargo test -p ln-cli
+python3 -m unittest discover -s tests -v
 ```
+
+Run these from the repository root. Installation tests use fake commands and
+temporary directories; they do not install system packages.

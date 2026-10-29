@@ -701,6 +701,7 @@ dependencies = [
 name = "luna-next"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "luna-next-hocon",
  "rand",
  "serde",

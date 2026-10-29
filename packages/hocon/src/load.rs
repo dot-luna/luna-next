@@ -24,7 +24,65 @@ pub(crate) fn resolve(path: &Path) -> hocon_rs::Result<Value> {
     hocon_rs::Config::from(raw).resolve()
 }
 
+pub(crate) fn resolve_value(path: &Path) -> hocon_rs::Result<Value> {
+    const ROOT_ARRAY: &str = "__hocon_root_array__";
+    let mut array = false;
+    let raw = file_with(path, &mut Vec::new(), |_, source| {
+        let scanner = crate::syntax::Scanner { source };
+        let start = scanner.trivia(0, source.len());
+        if source.as_bytes().get(start) != Some(&b'[') {
+            return crate::syntax::validate(source);
+        }
+        let end = scanner
+            .enclosed(start, source.len())
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+        if scanner.trivia(end, source.len()) != source.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "unexpected content after root HOCON array",
+            )
+            .into());
+        }
+        array = true;
+        crate::syntax::validate(&format!(
+            "{}\"{ROOT_ARRAY}\" =\n{}\n",
+            &source[..start],
+            &source[start..]
+        ))
+    })?;
+    let mut value: Value = hocon_rs::Config::from(raw).resolve()?;
+    Ok(if array {
+        value[ROOT_ARRAY].take()
+    } else {
+        value
+    })
+}
+
 fn file(path: &Path, stack: &mut Vec<PathBuf>, entry_point: bool) -> hocon_rs::Result<RawObject> {
+    file_with(path, stack, |path, source| {
+        if !entry_point
+            && path
+                .extension()
+                .is_some_and(|extension| extension == "json")
+        {
+            match RawValue::from(serde_json::from_str::<Value>(source)?) {
+                RawValue::Object(object) => Ok(object),
+                _ => Err(Error::InvalidValue {
+                    val: "non-object root",
+                    ty: "configuration",
+                }),
+            }
+        } else {
+            crate::syntax::validate(source)
+        }
+    })
+}
+
+fn file_with(
+    path: &Path,
+    stack: &mut Vec<PathBuf>,
+    parse: impl FnOnce(&Path, &str) -> hocon_rs::Result<RawObject>,
+) -> hocon_rs::Result<RawObject> {
     let path = fs::canonicalize(path)?;
     if stack.contains(&path) {
         return Err(Error::InclusionCycle);
@@ -33,23 +91,7 @@ fn file(path: &Path, stack: &mut Vec<PathBuf>, entry_point: bool) -> hocon_rs::R
         return Err(Error::InclusionDepthExceeded { max_depth: 64 });
     }
     let source = fs::read_to_string(&path)?;
-    let mut object = if !entry_point
-        && path
-            .extension()
-            .is_some_and(|extension| extension == "json")
-    {
-        match RawValue::from(serde_json::from_str::<Value>(&source)?) {
-            RawValue::Object(object) => object,
-            _ => {
-                return Err(Error::InvalidValue {
-                    val: "non-object root",
-                    ty: "configuration",
-                });
-            }
-        }
-    } else {
-        crate::syntax::validate(&source)?
-    };
+    let mut object = parse(&path, &source)?;
     stack.push(path.clone());
     let result = includes(
         &mut object,

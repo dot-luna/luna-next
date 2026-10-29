@@ -1,5 +1,35 @@
 # Luna Next API
 
+## Installation
+
+```rust
+use std::path::Path;
+use luna_next::install::{get_packages, install_packages};
+
+let packages = get_packages(Path::new("/path/to/luna-next"), &["core"], None, &[])?;
+let report = install_packages(&packages)?;
+```
+
+`get_packages(repo, groups, source, names)` reads the [HOCON lists](../../installs/README.md)
+and returns `Package` objects. Groups are `core`/`main`; sources are `Pacman`,
+`Aur`, `Git`, `Mise`, and `Local`. Names narrow the selection; empty filters
+return everything. Relative local URLs resolve from the checkout.
+
+`install_packages(&packages)` batches by source: pacman, Git, AUR, mise, local.
+`install(source, &packages)` and `install_via_*(&packages)` run one backend.
+They return `Report { installed, skipped }` and stop on failure; completed work remains.
+Run as a normal user; pacman uses sudo. Pacman/AUR version pinning is unsupported.
+
+Git packages shallow-clone into `~/.local/src/<name>` and update existing checkouts.
+`version` selects a branch/tag; `latest` selects the highest version tag, falling
+back to the default branch without tags. Local packages symlink their source into
+`~/.local/src/<name>` or `destination` relative to `~/.local`.
+Both run their `command` arrays from the package directory. Local installs refresh
+links and replace destination directories; sources and regular files are protected.
+Git changes are preserved. Local links require the checkout to remain available.
+
+## Wallpaper
+
 Use `luna_next::wallpaper::Wallpaper::from_env()` or `Wallpaper::new(Paths { ... })`
 for explicit paths. Methods return `Result` unless they only return a path.
 
@@ -44,7 +74,7 @@ export LUNA_WALLPAPER_SHELL="$PWD/src/luna-wallpaper/src/shell/shell.qml"
 Configure the [QML module import path](../hocon-qml/DOCS.md#build-and-install).
 Playback needs the [wallpaper setup and dependencies](../../src/luna-wallpaper/DOCS.md).
 Library operations additionally need `file`, `curl` for URLs, and `xdg-open`
-(`xdg-utils`) for opening folders. Dependencies are never installed automatically.
+(`xdg-utils`) for opening folders. Wallpaper operations do not install dependencies.
 
 ## Tests
 
