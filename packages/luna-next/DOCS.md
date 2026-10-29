@@ -44,6 +44,41 @@ File exports with `defaults` refresh that file and recreate the user entry as a
 HOCON include, resetting local changes. Paths follow `XDG_CONFIG_HOME`; nonempty
 `file_env` overrides the user config path, otherwise `target` supplies the default.
 
+## Themes
+
+Use `theme::Themes::from_env()` or `Themes::new(theme::Paths { config_file,
+library_dir, wallpaper_dir })` for explicit paths. Relative paths use the working
+directory. Theme sources and supported roles are in [the theme reference](../../themes/DOCS.md).
+
+| Method | Behavior |
+| --- | --- |
+| `install(folder, name?, force)` | Validate and copy a theme folder; import declared wallpapers. Existing copies require `force`. |
+| `list()`, `path(name)`, `directory()` | List installed names with selection markers or locate their files. |
+| `current()`, `config_file()` | Read the optional selected name or locate selection configuration. |
+| `get(key?)`, `inspect(name)` | Resolve with defaults in memory; missing keys return null. `inspect` does not select. |
+| `set(name)` | Save selection and apply its system mode. Does not reload apps or choose wallpaper. |
+| `mode()`, `set_mode(mode)`, `toggle()` | Read/change system preference while retaining theme colors. |
+| `hyprland()` | Translate semantic `appearance` and colors to native compositor settings, without applying them. |
+| `removal_plan(names)`, `remove(names)` | Validate a batch, protect the selected theme, and remove installed copies without prompts. |
+
+Selection uses `$XDG_CONFIG_HOME/luna-next/theme.conf`; themes use
+`$XDG_DATA_HOME/luna-next/themes`. Empty/unset XDG paths fall back to `~/.config`
+and `~/.local/share`. Missing selection files are created. No selection resolves
+to Tokyo Night defaults in memory. Reads resolve installed HOCON anew; there are
+no watchers or generated JSON files. Source includes and comments are preserved.
+
+Mutations share an advisory lock. Copies are validated in staging and replace
+whole theme directories atomically. Directory-sync/cleanup errors may occur after
+replacement. Imported wallpapers remain if a later theme publication fails;
+theme removal leaves source folders and imported wallpapers intact. Removal
+validates the batch before deletion; I/O failures may leave a partial batch.
+
+Selection and mode changes use GSettings (`glib2`, `gsettings-desktop-schemas`,
+`dconf`) in a user desktop session. Failed application attempts to restore the
+previous preference and exact selection source, preserving detected external edits.
+Legacy GTK settings and fixed application palettes are not rewritten. Portal apps
+also need a Settings portal provider, such as `xdg-desktop-portal-gtk` on Hyprland.
+
 ## Wallpaper
 
 Use `luna_next::wallpaper::Wallpaper::from_env()` or `Wallpaper::new(Paths { ... })`

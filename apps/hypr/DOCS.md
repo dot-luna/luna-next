@@ -51,6 +51,14 @@ import path. Install the [wallpaper app](../../src/luna-wallpaper/DOCS.md) first
 | Super+Shift+Backspace / Super+Backspace | Toggle gaps / opacity. |
 | Super+Ctrl+Backspace | Toggle square aspect for a lone tiled window. |
 
+## Themes
+
+Install the current `lnxt` CLI at `~/.local/bin/lnxt`. After `lnxt theme set NAME`,
+reload Hyprland to read the selected theme's semantic `appearance` and palette.
+With no theme selection file, the defaults above apply. Invalid themes are reported;
+personal settings loaded after Luna Next can override its appearance.
+See [theme commands](../../src/ln-cli/DOCS.md#themes).
+
 ## Checks
 
 From the repository root; these do not reload the running desktop:

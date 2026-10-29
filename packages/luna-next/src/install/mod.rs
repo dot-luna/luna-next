@@ -2,6 +2,7 @@ mod app_configs;
 mod git_versions;
 mod install_via;
 mod packages;
+pub(crate) use app_configs::files::{copy_tree, replace};
 
 pub use app_configs::{configure_installed_apps, install_app_configs};
 pub use install_via::{

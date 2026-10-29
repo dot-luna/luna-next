@@ -12,6 +12,7 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
                 print_install(value)
             }
             Command::Wallpaper { command } => print_human(command, value),
+            Command::Theme { command } => crate::theme::print(command, value),
         }
     }
 }

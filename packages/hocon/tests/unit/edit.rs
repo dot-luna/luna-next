@@ -38,7 +38,7 @@ fn preserves_unrelated_bytes_and_comments() {
     assert!(edited.contains("include file(\"defaults.conf\")"));
     assert!(edited.contains("  // keep this\n  path = \"custom.jpg\""));
     assert!(edited.contains("other = [1, { x = 2 }]"));
-    assert!(edited.ends_with("\"wallpaper\".\"duration\" = 600\n"));
+    assert!(edited.ends_with("\"wallpaper\" {\n  \"duration\" = 600\n}\n"));
 }
 
 #[test]
@@ -55,7 +55,7 @@ fn handles_root_braces_crlf_and_literal_delimiters() {
     let source = "{\r\n  a = \"\"\"# , { \"quoted\"\n // }\"\"\",\r\n  b = \"#{} //\",\r\n}\r\n";
     let edited = apply(source, &["a"], Some(&json!({"literal.dot": [true, null]}))).unwrap();
     assert!(edited.contains("  b = \"#{} //\",\r\n"));
-    assert!(edited.ends_with("  \"a\" = {\"literal.dot\":[true,null]}\r\n}\r\n"));
+    assert!(edited.ends_with("  \"a\" {\r\n    \"literal.dot\" = [true,null]\r\n  }\r\n}\r\n"));
 }
 
 #[test]

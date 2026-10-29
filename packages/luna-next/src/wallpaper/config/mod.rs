@@ -1,8 +1,8 @@
 //! Validate effective settings, then edit only the HOCON entry point and apply them.
 //! Config mutations hold their lock through renderer application and attempted recovery.
 
-mod persistence;
 mod values;
+use crate::config_io as persistence;
 
 use super::{Status, Wallpaper};
 use crate::{Error, Result, io_error};

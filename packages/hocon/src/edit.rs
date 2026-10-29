@@ -52,11 +52,6 @@ pub(crate) fn apply(source: &str, path: &[&str], value: Option<&Value>) -> Resul
     if let Some(value) = value {
         // Appending after all includes gives this local assignment precedence.
         // Quote each segment separately so key text cannot become HOCON syntax.
-        let key = path
-            .iter()
-            .map(serde_json::to_string)
-            .collect::<std::result::Result<Vec<_>, _>>()?
-            .join(".");
         let newline = if source.contains("\r\n") {
             "\r\n"
         } else {
@@ -68,18 +63,45 @@ pub(crate) fn apply(source: &str, path: &[&str], value: Option<&Value>) -> Resul
         } else {
             ""
         };
-        let indent = if braced { "  " } else { "" };
+        let depth = usize::from(braced);
         output.insert_str(
             insertion,
-            &format!(
-                "{prefix}{indent}{key} = {}{newline}",
-                serde_json::to_string(value)?
-            ),
+            &format!("{prefix}{}", assignment(path, value, depth, newline)?),
         );
     }
     // Verify the edited source before it is handed to the resolving/writing layer.
     parse(&output)?;
     Ok(output)
+}
+
+// Render only the new assignment; existing source, includes and comments keep their bytes.
+fn assignment(path: &[&str], value: &Value, depth: usize, newline: &str) -> Result<String> {
+    let indent = "  ".repeat(depth);
+    let key = serde_json::to_string(path[0])?;
+    let children = if path.len() > 1 {
+        Some(assignment(&path[1..], value, depth + 1, newline)?)
+    } else if let Value::Object(fields) = value {
+        if fields.is_empty() {
+            None
+        } else {
+            let mut children = String::new();
+            for (key, value) in fields {
+                children.push_str(&assignment(&[key], value, depth + 1, newline)?);
+            }
+            Some(children)
+        }
+    } else {
+        None
+    };
+    match children {
+        Some(children) => Ok(format!(
+            "{indent}{key} {{{newline}{children}{indent}}}{newline}"
+        )),
+        None => Ok(format!(
+            "{indent}{key} = {}{newline}",
+            serde_json::to_string(value)?
+        )),
+    }
 }
 
 struct Editor<'a> {
@@ -159,7 +181,17 @@ impl Editor<'_> {
                         self.changes.push((comma..comma + 1, String::new()));
                     }
                 } else if path.starts_with(&key) {
-                    self.children(value_start..end, value, &path[key.len()..])?;
+                    let before = self.changes.len();
+                    let child_path = &path[key.len()..];
+                    self.children(value_start..end, value, child_path)?;
+                    // An empty appended block would mask an earlier scalar after unset.
+                    if self.changes.len() > before && removes_all_fields(value, child_path) {
+                        self.changes.truncate(before);
+                        self.remove(start..end)?;
+                        if let Some(comma) = comma {
+                            self.changes.push((comma..comma + 1, String::new()));
+                        }
+                    }
                 }
             }
         }
@@ -230,6 +262,25 @@ impl Editor<'_> {
         }
         self.changes.push((range, replacement));
         Ok(())
+    }
+}
+
+fn removes_all_fields(value: &RawValue, path: &[&str]) -> bool {
+    match value {
+        RawValue::Object(object) => object.iter().all(|field| match field {
+            ObjectField::NewlineComment(_) => true,
+            ObjectField::Inclusion { .. } => false,
+            ObjectField::KeyValue { key, value, .. } => {
+                let key = key.as_path();
+                key.starts_with(path)
+                    || (path.starts_with(&key) && removes_all_fields(value, &path[key.len()..]))
+            }
+        }),
+        RawValue::Concat(concat) => concat
+            .get_values()
+            .iter()
+            .all(|part| removes_all_fields(part, path)),
+        _ => false,
     }
 }
 

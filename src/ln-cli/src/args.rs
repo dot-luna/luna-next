@@ -37,6 +37,55 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: WallpaperCommand,
     },
+    /// Manage shared themes and system appearance.
+    Theme {
+        #[command(subcommand)]
+        command: ThemeCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub(crate) enum ThemeCommand {
+    /// Validate and copy a folder containing theme.conf; import its wallpapers.
+    Install {
+        folder: PathBuf,
+        #[arg(long)]
+        name: Option<String>,
+        #[arg(long)]
+        force: bool,
+    },
+    /// List installed themes and mark the selected one.
+    List,
+    /// Print the selected theme name, if any.
+    Current,
+    /// Print the library directory or an installed theme's folder.
+    Path { name: Option<String> },
+    /// Resolve the selected theme, optionally at a dot-separated key.
+    Get { key: Option<String> },
+    /// Resolve an installed theme without selecting it.
+    Inspect { name: String },
+    /// Select a theme and apply its system light/dark preference.
+    Set { name: String },
+    /// Read or change system appearance without changing theme colors.
+    Mode {
+        #[arg(value_parser = ["dark", "light", "toggle"])]
+        mode: Option<String>,
+    },
+    /// Toggle the system appearance preference.
+    Toggle,
+    /// Print the selection configuration path.
+    GetConfigFile,
+    /// Print native Hyprland appearance as a Lua table, or JSON with --json.
+    Hyprland,
+    /// Remove installed copies, protecting the selected theme.
+    Remove {
+        #[arg(required = true, num_args = 1..)]
+        names: Vec<String>,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(short = 'y', long)]
+        yes: bool,
+    },
 }
 
 #[derive(Args)]

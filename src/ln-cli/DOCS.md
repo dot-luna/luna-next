@@ -46,6 +46,38 @@ Locate the checkout with `--repo PATH`, `LUNA_NEXT_ROOT`, the current directory'
 ancestors, `~/.local/src/luna-next`, or the checkout used to build the CLI (checked
 in that order). The build-time fallback works while that checkout stays in place.
 
+## Themes
+
+From the repository root, after installing the CLI:
+
+```sh
+lnxt theme install themes/bundled/tokyo-night
+lnxt theme set tokyo-night
+lnxt theme get appearance --json
+```
+
+| Command | Action |
+| --- | --- |
+| `install <folder> [--name NAME] [--force]` | Validate/copy `theme.conf` and import declared wallpapers. |
+| `list` / `current` / `path [name]` | List themes, read selection, or locate copies. |
+| `get [key]` / `inspect <name>` | Read resolved values with defaults, or preview an installed theme. |
+| `set <name>` | Save selection and apply its system light/dark preference. |
+| `mode [dark/light/toggle]` / `toggle` | Read/change system preference, keeping theme colors. |
+| `get-config-file` | Locate selection configuration. |
+| `hyprland` | Output native appearance as a Lua table; `--json` returns a JSON object. |
+| `remove <names...> [--dry-run] [--yes]` | Preview or confirm deletion; the selected theme is protected. |
+
+Themes use HOCON `.conf` files, with semantic `colors`, `fonts`, `appearance`, and
+`wallpaper` sections. See [theme fields and authoring](../../themes/DOCS.md).
+Selection does not reload apps or change wallpapers. With the installed
+[Hyprland configuration](../../apps/hypr/DOCS.md), reload Hyprland to apply appearance.
+
+System mode needs GSettings and a user desktop session; its dependencies are in
+`lnxt install --main`. Portal apps need a Settings provider such as
+`xdg-desktop-portal-gtk`. Fixed palettes and legacy GTK overrides may take precedence.
+Failed application attempts source and preference recovery without overwriting
+detected external edits.
+
 ## Wallpaper
 
 Use `lnxt wallpaper` (or `lnxt w`):

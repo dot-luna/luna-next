@@ -167,6 +167,37 @@ fn empty_batch_leaves_source_and_snapshot_untouched() {
     file.assert_unchanged(source, &before);
 }
 
+#[test]
+fn new_nested_settings_use_blocks_and_preserve_late_include_precedence() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("config.conf");
+    let base = directory.path().join("base.conf");
+    fs::write(&base, "background { x = 4, inherited = true }\n").unwrap();
+    let source = "# Keep this include\ninclude required(file(\"base.conf\"))\n";
+    fs::write(&path, source).unwrap();
+    let mut config = Config::open(&path).unwrap();
+    config
+        .set_many(&changes(
+            json!({"background.x": 12, "background.nested": {"null": null, "values": [1, 2]}}),
+        ))
+        .unwrap();
+    let saved = fs::read_to_string(&path).unwrap();
+    assert!(saved.starts_with(source));
+    assert!(saved.contains("\"background\" {\n"));
+    assert!(saved.contains("  \"nested\" {\n"));
+    assert!(!saved.contains("\"background\".\""));
+    assert_eq!(
+        config.get("background").unwrap(),
+        &json!({"x": 12, "inherited": true, "nested": {"null": null, "values": [1, 2]}})
+    );
+    config.unset("background.x").unwrap();
+    assert_eq!(config.get("background.x").unwrap(), &json!(4));
+    assert_eq!(
+        fs::read_to_string(base).unwrap(),
+        "background { x = 4, inherited = true }\n"
+    );
+}
+
 #[cfg(feature = "schema")]
 #[test]
 fn validated_batch_checks_final_includes_and_substitutions_before_saving() {

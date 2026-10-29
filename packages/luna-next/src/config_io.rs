@@ -3,7 +3,7 @@ use std::{fs, io::Write, path::Path};
 
 /// Lock the canonical config target until the returned file is dropped.
 /// This coordinates API clients; editors that ignore the advisory lock can still write.
-pub(super) fn lock(config_file: &Path) -> Result<fs::File> {
+pub(crate) fn lock(config_file: &Path) -> Result<fs::File> {
     let canonical = match fs::canonicalize(config_file) {
         Ok(path) => path,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
@@ -26,14 +26,14 @@ pub(super) fn lock(config_file: &Path) -> Result<fs::File> {
         .open(&lock_path)
         .map_err(|error| io_error("open lock for", &canonical, error))?;
     file.try_lock()
-        .map_err(|error| Error::Message(format!("wallpaper configuration is busy: {error}")))?;
+        .map_err(|error| Error::Message(format!("configuration is busy: {error}")))?;
     // Keep the lock path so future callers lock the same inode as existing holders.
     Ok(file)
 }
 
 /// Restore exact bytes and permissions using optimistic source checks before replacement.
 /// A detected external edit prevents restoration rather than overwriting the editor's work.
-pub(super) fn restore(
+pub(crate) fn restore(
     path: &Path,
     expected: &str,
     original: &str,

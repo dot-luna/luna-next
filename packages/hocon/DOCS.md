@@ -21,6 +21,8 @@ Paths use nonempty dot-separated object keys, such as `wallpaper.duration`.
 Array indexing and quoted path expressions are unsupported. Missing keys,
 reads through non-objects, and explicit null return `Value::Null`.
 Values accept all JSON types; objects follow HOCON merge rules.
+New assignments use nested object blocks rather than dotted keys. Existing
+source keeps its formatting; keys are quoted to preserve literal key text.
 
 ## Optional schema validation
 

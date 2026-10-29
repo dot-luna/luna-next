@@ -1,6 +1,6 @@
 # Luna Next API
 
-Shared Rust operations for package installation and wallpaper management in
+Shared Rust operations for package installation, themes, and wallpaper management in
 Luna's CLI, menu, and other applications.
 
 ```toml

@@ -1,6 +1,7 @@
 mod args;
 mod install;
 mod output;
+mod theme;
 mod wallpaper;
 
 use std::process::ExitCode;
@@ -41,6 +42,7 @@ fn main() -> ExitCode {
         }
         Command::Setup { repo } => install::setup(repo.as_deref()).map_err(Into::into),
         Command::Wallpaper { command } => wallpaper::run(command, cli.json),
+        Command::Theme { command } => theme::run(command, cli.json),
     };
     match result {
         Ok(value) => {

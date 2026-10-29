@@ -100,6 +100,36 @@ assert(commands[1].options ==
     'QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}" "$HOME/.local/bin/lnxt" wallpaper start')
 ''')
 
+    def test_shared_theme_appearance_is_loaded_on_configuration_reload(self):
+        self.installed.parent.joinpath("theme.conf").write_text('theme { name = "custom" }\n')
+        executable = self.home / ".local/bin/lnxt"
+        executable.parent.mkdir(parents=True)
+        data = self.config / "native-appearance.lua"
+        data.write_text('return {general = {gaps_in = 8}, decoration = {rounding = 14}}\n')
+        executable.write_text('#!/bin/sh\ntest "$1 $2" = "theme hyprland" || exit 8\ncat "$XDG_CONFIG_HOME/native-appearance.lua"\n')
+        executable.chmod(0o755)
+        self.lua('''
+dofile(arg[1])
+local theme
+for _, settings in ipairs(calls) do
+    if settings.decoration and settings.decoration.rounding == 14 then theme = settings end
+end
+assert(theme, "selected appearance was not applied")
+assert(theme.decoration.rounding == 14 and theme.general.gaps_in == 8)
+assert(#commands == 0, "theme reads must not launch desktop apps")
+''')
+
+    def test_invalid_theme_output_is_reported_without_executing_it(self):
+        self.installed.parent.joinpath("theme.conf").write_text('theme { name = "custom" }\n')
+        executable = self.home / ".local/bin/lnxt"
+        executable.parent.mkdir(parents=True)
+        executable.write_text('#!/bin/sh\nprintf \'{"ok":false,"error":"invalid theme"}\\n\'\n')
+        executable.chmod(0o755)
+        self.lua('''
+local ok, failure = pcall(dofile, arg[1])
+assert(not ok and tostring(failure):find("Cannot resolve Luna Next theme", 1, true))
+''')
+
     def test_workspace_ranges_follow_physical_order_and_hotplug(self):
         self.lua('''
 local right = monitor("right", 1920)

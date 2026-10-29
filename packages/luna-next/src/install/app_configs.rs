@@ -8,7 +8,7 @@ use std::{
 
 use serde::Deserialize;
 
-mod files;
+pub(super) mod files;
 
 use files::{copy_tree, relative, replace, validate_destinations, validate_source};
 

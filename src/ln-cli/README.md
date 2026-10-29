@@ -1,6 +1,6 @@
 # lnxt
 
-Package installation and wallpaper commands for terminals, menus, and other apps.
+Package installation, theme, and wallpaper commands for terminals, menus, and other apps.
 Uses the shared
 [`luna-next` library](../../packages/luna-next/README.md).
 
@@ -12,4 +12,4 @@ export PATH="$HOME/.local/bin:$PATH"
 lnxt wallpaper list --json
 ```
 
-See [DOCS.md](DOCS.md) for installation, wallpaper commands, and JSON responses.
+See [DOCS.md](DOCS.md) for commands and JSON responses.

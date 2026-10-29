@@ -155,7 +155,7 @@ pub(super) fn validate_source(path: &Path, root: &Path) -> Result<PathBuf> {
     Ok(resolved)
 }
 
-pub(super) fn copy_tree(source: &Path, destination: &Path, root: &Path) -> Result<()> {
+pub(crate) fn copy_tree(source: &Path, destination: &Path, root: &Path) -> Result<()> {
     for entry in fs::read_dir(source)
         .map_err(|error| io_error("read app configuration source", source, error))?
     {
@@ -187,7 +187,7 @@ pub(super) fn copy_tree(source: &Path, destination: &Path, root: &Path) -> Resul
 
 // Stage on the destination filesystem so publication can rename whole exports.
 // Each export swaps atomically; later cleanup or sync failures do not undo that swap.
-pub(super) fn replace(source: &Path, target: &Path, root: &Path) -> Result<()> {
+pub(crate) fn replace(source: &Path, target: &Path, root: &Path) -> Result<()> {
     let parent = target.parent().unwrap();
     fs::create_dir_all(parent)
         .map_err(|error| io_error("create configuration directory", parent, error))?;
