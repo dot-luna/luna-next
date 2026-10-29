@@ -53,6 +53,8 @@ pub(crate) fn setup(repository: Option<&Path>) -> Result<Value> {
     let configurations = install_app_configs(&repository, &[])?;
     report.installed.extend(configurations.installed);
     report.skipped.extend(configurations.skipped);
+    luna_next::keyring::setup()?;
+    report.installed.push("GNOME Keyring socket".into());
     Ok(serde_json::to_value(report)?)
 }
 

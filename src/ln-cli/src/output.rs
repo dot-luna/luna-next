@@ -13,7 +13,9 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
             }
             Command::Wallpaper { command } => print_human(command, value),
             Command::Theme { command } => crate::theme::print(command, value),
-            Command::Polkit { .. } => println!("{}", value.as_str().unwrap_or_default()),
+            Command::Polkit { .. } | Command::Keyring { .. } => {
+                println!("{}", value.as_str().unwrap_or_default())
+            }
         }
     }
 }

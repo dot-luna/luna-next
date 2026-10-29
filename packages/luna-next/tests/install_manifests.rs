@@ -71,6 +71,11 @@ fn repository_manifests_load_with_current_local_sources() {
     assert!(packages.iter().any(|package| package.name == "git"));
     assert!(packages.iter().any(|package| package.name == "yay"));
     assert!(packages.iter().any(|package| package.name == "rust"));
+    assert!(
+        packages
+            .iter()
+            .any(|package| { package.name == "gnome-keyring" && package.source == Source::Pacman })
+    );
     let t3code = packages
         .iter()
         .find(|package| package.name == "t3code")

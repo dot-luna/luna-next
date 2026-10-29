@@ -47,7 +47,7 @@ impl Sandbox {
         fs::create_dir(root.path().join("home")).unwrap();
         executable(&bin.join("sudo"), "#!/bin/sh\nexec \"$@\"\n");
         executable(&bin.join("git"), "#!/bin/sh\nexec /usr/bin/git \"$@\"\n");
-        for tool in ["pacman", "yay", "mise", "fake-build"] {
+        for tool in ["pacman", "yay", "mise", "fake-build", "systemctl"] {
             executable(
                 &bin.join(tool),
                 &format!(
@@ -279,7 +279,8 @@ fn setup_installs_sources_in_order_and_keeps_progress_out_of_json_stdout() {
             "mpvpaper",
             "rust@stable",
             "cli",
-            "demo"
+            "demo",
+            "GNOME Keyring socket"
         ])
     );
     assert_eq!(fs::read_to_string(config).unwrap(), "setting = default\n");
@@ -290,9 +291,44 @@ fn setup_installs_sources_in_order_and_keeps_progress_out_of_json_stdout() {
     let mise = log.find("mise\t").unwrap();
     let local = log.find("fake-build\tcli").unwrap();
     let configure = log.find("configure\n").unwrap();
+    let keyring = log
+        .find("systemctl\t--user\tenable\t--now\tgnome-keyring-daemon.socket\n")
+        .unwrap();
     assert!(
-        pacman < git && git < aur && aur < mise && mise < local && local < configure,
+        pacman < git
+            && git < aur
+            && aur < mise
+            && mise < local
+            && local < configure
+            && configure < keyring,
         "{log}"
+    );
+}
+
+#[test]
+fn keyring_setup_failure_is_reported_after_configs_are_installed() {
+    let sandbox = Sandbox::new();
+    let config = sandbox.app_config("demo");
+    let output = sandbox
+        .command()
+        .env("FAKE_FAIL", "systemctl")
+        .args(["setup", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(response["ok"], false);
+    assert!(
+        response["error"]
+            .as_str()
+            .unwrap()
+            .contains("gnome-keyring-daemon.socket")
+    );
+    assert_eq!(fs::read_to_string(config).unwrap(), "setting = default\n");
+    assert!(
+        sandbox
+            .log()
+            .ends_with("systemctl\t--user\tenable\t--now\tgnome-keyring-daemon.socket\n")
     );
 }
 

@@ -87,6 +87,13 @@ atomically, with optimistic checks for external edits. Late failures can leave a
 partial application. T3 fonts need a desktop restart; palette updates use T3's own
 environment-theme support. This method does not change Luna's selection or add watchers.
 
+## Keyring
+
+`keyring::setup()` enables and starts `gnome-keyring-daemon.socket` for the current
+user. Requires `gnome-keyring` and a systemd user session; command failures return
+an error. Repeated calls preserve the running daemon and unlocked keyrings.
+Login unlocking uses the display manager's PAM hooks, not this API.
+
 ## Polkit
 
 `polkit::Polkit::from_env()` controls the installed authentication agent.

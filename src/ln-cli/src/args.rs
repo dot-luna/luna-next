@@ -25,7 +25,7 @@ pub(crate) enum Command {
         #[arg(long, value_name = "PATH")]
         repo: Option<PathBuf>,
     },
-    /// Install all packages and app configurations.
+    /// Install all packages and app configurations, then enable the keyring socket.
     Setup {
         /// Use this Luna Next checkout.
         #[arg(long, value_name = "PATH")]
@@ -41,6 +41,11 @@ pub(crate) enum Command {
     Polkit {
         #[command(subcommand)]
         command: PolkitCommand,
+    },
+    /// Configure desktop secret storage.
+    Keyring {
+        #[command(subcommand)]
+        command: KeyringCommand,
     },
     /// Manage shared themes and system appearance.
     Theme {
@@ -128,6 +133,12 @@ pub(crate) struct InstallArgs {
     /// Use this Luna Next checkout.
     #[arg(long, value_name = "PATH")]
     pub(crate) repo: Option<PathBuf>,
+}
+
+#[derive(Subcommand)]
+pub(crate) enum KeyringCommand {
+    /// Enable GNOME Keyring's user socket now and for future logins.
+    Setup,
 }
 
 #[derive(Subcommand)]

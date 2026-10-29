@@ -13,7 +13,7 @@ lnxt install --mise              # Declared mise tools
 lnxt install --git yay           # Git package recipe
 lnxt install --local cli         # Local package; --apps is an alias
 lnxt configure luna-wallpaper    # Build and replace app configurations
-lnxt setup                      # Install packages and app configurations
+lnxt setup                      # Install packages/configs and enable the keyring socket
 ```
 
 Names narrow the selected groups or source. Source flags (`--pacman`, `--aur`,
@@ -23,7 +23,8 @@ without a group flag.
 
 The [HOCON lists](../../installs/README.md) supply package objects and commands.
 Setup installs pacman packages, Git recipes (including yay), AUR packages, mise
-tools, then local packages. Direct AUR installs require yay already installed.
+tools, then local packages, exports app configs, and enables the GNOME Keyring
+user socket. Direct AUR installs require yay already installed.
 Failures stop later steps; completed work remains.
 
 Package installs also configure matching [`apps/`](../../apps/README.md) entries;
@@ -40,7 +41,8 @@ The current recipes install `lnxt` into `~/.local/bin`, the QML module into
 `~/.local/lib/qt6/qml`, and link wallpaper into
 `~/.local/share/luna-next/wallpaper`. Keep the checkout available for local links.
 Set the [QML import path](../../packages/hocon-qml/DOCS.md#build-and-install)
-before launching wallpaper. Installation does not start apps or change the session.
+before launching wallpaper. Package installation does not start desktop apps;
+full setup also starts the keyring socket for Secret Service activation.
 
 Locate the checkout with `--repo PATH`, `LUNA_NEXT_ROOT`, the current directory's
 ancestors, `~/.local/src/luna-next`, or the checkout used to build the CLI (checked
@@ -83,6 +85,21 @@ The managed T3 launcher applies Luna's theme on startup. Run
 `lnxt theme apply t3code` to refresh an open app's palette; restart T3 for fonts.
 It honors `T3CODE_HOME` (default `~/.t3`) and retains unrelated preferences.
 See [T3 setup and limitations](../../apps/t3code/DOCS.md).
+
+## Keyring
+
+```sh
+lnxt install --pacman gnome-keyring
+lnxt keyring setup
+```
+
+Full setup includes this step. It enables the package's user socket now and for
+future logins, without restarting an existing daemon. Arch SDDM already supplies
+the PAM hooks to unlock the login keyring with your login password. Its password
+must match your account password; autologin and fingerprint-only login cannot
+provide it. Other login managers need their own
+[PAM integration](https://wiki.gnome.org/Projects/GnomeKeyring/Pam).
+No password is saved by Luna, and this does not change sudo or polkit prompts.
 
 ## Polkit
 
