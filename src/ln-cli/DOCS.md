@@ -78,7 +78,9 @@ lnxt wallpaper get-config wallpaper.source --json
 lnxt wallpaper update-config '{"wallpaper":{"fit":"fit"}}' --json
 ```
 
-Without `--json`, missing keys print nothing; objects print formatted JSON.
+Without `--json`, `set` and `random` print the selected path; `update-config`
+prints a confirmation. `get-config` prints values as text or formatted JSON;
+missing keys print nothing.
 
 ## Tests
 

@@ -25,6 +25,13 @@ fn print_install(value: &Value) {
 
 fn print_human(command: &WallpaperCommand, value: &Value) {
     match command {
+        WallpaperCommand::Set { .. } | WallpaperCommand::Random => {
+            println!(
+                "Wallpaper: {}",
+                value["wallpaper"]["source"].as_str().unwrap_or_default()
+            );
+        }
+        WallpaperCommand::UpdateConfig { .. } => println!("Wallpaper configuration updated."),
         WallpaperCommand::List => {
             for entry in value.as_array().into_iter().flatten() {
                 let marker = if entry["current"] == true { "* " } else { "  " };

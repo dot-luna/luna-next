@@ -243,13 +243,15 @@ fn update_config_preserves_include_and_automatically_restarts() {
     let original = "wallpaper.fit = fill\n";
     fs::write(&defaults, original).unwrap();
     fs::write(sandbox.root.path().join("running"), "running").unwrap();
+    let mut expected = sandbox.success(&["wallpaper", "get-config", "--json"]);
+    expected["wallpaper"]["fit"] = json!("fit");
     let value = sandbox.success(&[
         "wallpaper",
         "update-config",
         "{\"wallpaper\":{\"fit\":\"fit\"}}",
         "--json",
     ]);
-    assert_eq!(value["wallpaper"]["fit"], "fit");
+    assert_eq!(value, expected);
     let source = fs::read_to_string(&sandbox.config).unwrap();
     assert!(source.contains("# keep comment"));
     assert!(source.contains("include file(\"defaults.conf\")"));
@@ -268,17 +270,52 @@ fn set_and_random_apply_the_selection_and_protect_current_file() {
     let second = sandbox.library().join("second.png");
     fs::write(&first, "first image").unwrap();
     fs::write(&second, "second image").unwrap();
+    let mut expected = sandbox.success(&["wallpaper", "get-config", "--json"]);
+    expected["wallpaper"]["source"] = json!(first);
     let selected = sandbox.success(&["wallpaper", "set", "first.png", "--json"]);
-    assert_eq!(selected["wallpaper"]["source"], json!(first));
+    assert_eq!(selected, expected);
     let denied = sandbox.run(&["wallpaper", "remove", "first.png", "--yes", "--json"]);
     assert!(!denied.status.success());
     assert!(first.exists());
+    expected["wallpaper"]["source"] = json!(second);
     let random = sandbox.success(&["wallpaper", "random", "--json"]);
-    assert_eq!(random["wallpaper"]["source"], json!(second));
+    assert_eq!(random, expected);
     assert_eq!(
         fs::read_to_string(sandbox.root.path().join("runtime.log")).unwrap(),
         "start\nstop\nstart\n"
     );
+}
+
+#[test]
+fn wallpaper_mutations_print_concise_human_success_messages() {
+    let sandbox = Sandbox::new();
+    fs::create_dir_all(sandbox.library()).unwrap();
+    let first = sandbox.library().join("first.png");
+    let second = sandbox.library().join("second.png");
+    fs::write(&first, "first image").unwrap();
+    fs::write(&second, "second image").unwrap();
+    for (arguments, expected) in [
+        (
+            vec!["w", "set", "first.png"],
+            format!("Wallpaper: {}\n", first.display()),
+        ),
+        (
+            vec!["w", "random"],
+            format!("Wallpaper: {}\n", second.display()),
+        ),
+        (
+            vec!["w", "update-config", "{\"wallpaper\":{\"fit\":\"center\"}}"],
+            "Wallpaper configuration updated.\n".into(),
+        ),
+    ] {
+        let output = sandbox.run(&arguments);
+        assert!(output.status.success(), "{output:?}");
+        assert!(output.stderr.is_empty(), "{output:?}");
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+    }
+    let config = sandbox.success(&["w", "get-config", "--json"]);
+    assert_eq!(config["wallpaper"]["source"], json!(second));
+    assert_eq!(config["wallpaper"]["fit"], "center");
 }
 
 #[test]
