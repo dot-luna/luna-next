@@ -2,6 +2,7 @@ use serde_json::{Value, json};
 
 use crate::args::{Command, WallpaperCommand};
 
+// JSON retains complete API results; human output summarizes mutations without dumping config.
 pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
     if json_output {
         println!("{}", json!({ "ok": true, "result": value }));

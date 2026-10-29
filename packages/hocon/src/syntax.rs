@@ -115,6 +115,8 @@ fn normalize_multiline(source: &str) -> Result<Cow<'_, str>> {
     Ok(Cow::Owned(normalized))
 }
 
+/// Locate byte spans in the original source; the backend parser remains the
+/// authority on field meanings. Offsets are never taken from normalized tokens.
 pub(crate) struct Scanner<'a> {
     pub(crate) source: &'a str,
 }

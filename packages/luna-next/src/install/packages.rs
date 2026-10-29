@@ -9,6 +9,9 @@ use serde_json::Value;
 use super::{Package, Report, Source, install, install_via::identifier};
 use crate::{Error, Result, io_error};
 
+/// Locate package lists via an explicit path, `LUNA_NEXT_ROOT`, the working directory's
+/// ancestors, `~/.local/src/luna-next`, then this build's checkout. An explicit or
+/// environment-selected path must be valid; it does not fall through to another checkout.
 pub fn find_repository(explicit: Option<&Path>) -> Result<PathBuf> {
     let configured = env::var_os("LUNA_NEXT_ROOT").map(PathBuf::from);
     if let Some(path) = explicit.or(configured.as_deref()) {
@@ -47,6 +50,10 @@ pub fn find_repository(explicit: Option<&Path>) -> Result<PathBuf> {
     ))
 }
 
+/// Read and select package recipes without running installers.
+/// Empty groups select all lists allowed by `source`; empty names select all matches.
+/// Unlisted names are accepted only for an explicit pacman/AUR source without groups.
+/// Local relative URLs resolve against `repository`, independently of the working directory.
 pub fn get_packages(
     repository: &Path,
     groups: &[&str],
@@ -188,6 +195,9 @@ fn decode(value: Value, path: &Path) -> Result<Vec<Package>> {
     })
 }
 
+/// Install in pacman, Git, AUR, mise, then local order, retaining order within each source.
+/// Git runs before AUR so a recipe can provide `yay`. The first error stops later
+/// sources; completed installs remain. App config exports are a separate operation.
 pub fn install_packages(packages: &[Package]) -> Result<Report> {
     let mut report = Report::default();
     for source in [

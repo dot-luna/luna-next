@@ -1,6 +1,8 @@
 use crate::{Error, Result, io_error};
 use std::{fs, io::Write, path::Path};
 
+/// Lock the canonical config target until the returned file is dropped.
+/// This coordinates API clients; editors that ignore the advisory lock can still write.
 pub(super) fn lock(config_file: &Path) -> Result<fs::File> {
     let canonical = match fs::canonicalize(config_file) {
         Ok(path) => path,
@@ -25,9 +27,12 @@ pub(super) fn lock(config_file: &Path) -> Result<fs::File> {
         .map_err(|error| io_error("open lock for", &canonical, error))?;
     file.try_lock()
         .map_err(|error| Error::Message(format!("wallpaper configuration is busy: {error}")))?;
+    // Keep the lock path so future callers lock the same inode as existing holders.
     Ok(file)
 }
 
+/// Restore exact bytes and permissions using optimistic source checks before replacement.
+/// A detected external edit prevents restoration rather than overwriting the editor's work.
 pub(super) fn restore(
     path: &Path,
     expected: &str,
@@ -55,6 +60,7 @@ pub(super) fn restore(
         .as_file()
         .sync_all()
         .map_err(|error| io_error("sync restored configuration", path, error))?;
+    // Check again after staging; external writers are not required to take our lock.
     if fs::read_to_string(path).map_err(|error| io_error("check before restoring", path, error))?
         != expected
     {

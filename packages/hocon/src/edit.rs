@@ -50,7 +50,8 @@ pub(crate) fn apply(source: &str, path: &[&str], value: Option<&Value>) -> Resul
     output.push_str(&source[cursor..]);
 
     if let Some(value) = value {
-        // HOCON gives this final assignment precedence over earlier fields.
+        // Appending after all includes gives this local assignment precedence.
+        // Quote each segment separately so key text cannot become HOCON syntax.
         let key = path
             .iter()
             .map(serde_json::to_string)

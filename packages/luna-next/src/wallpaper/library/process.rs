@@ -7,6 +7,7 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 use tempfile::NamedTempFile;
 
+/// Capture command output without pipe backpressure, killing and reaping the child on timeout.
 pub(super) fn run(command: &mut Command, timeout: Duration) -> Result<String> {
     let program = PathBuf::from(command.get_program());
     let output =

@@ -31,11 +31,11 @@ Git changes are preserved. Local links require the checkout to remain available.
 `install_app_configs(repo, names)` configures [`apps/`](../../apps/README.md);
 empty names select all apps. `configure_installed_apps(repo, package_names)`
 selects apps by their `package` field, ignoring unmatched packages.
-Optional builders generate files in staging. An export's `defaults` path is
-refreshed on each run; its missing user config gets a HOCON include pointing there.
-Without `defaults`, exports are copied only when missing. User files and symlinks
-are preserved. Paths follow `XDG_CONFIG_HOME`; nonempty `file_env` overrides the
-user config path, otherwise `target` supplies the default.
+Optional builders generate files in staging. Exports replace destination files
+or whole folders without backups; `source: "."` exports the config directory.
+File exports with `defaults` refresh that file and recreate the user entry as a
+HOCON include, resetting local changes. Paths follow `XDG_CONFIG_HOME`; nonempty
+`file_env` overrides the user config path, otherwise `target` supplies the default.
 
 ## Wallpaper
 

@@ -16,7 +16,10 @@ struct Import {
 }
 
 impl Library {
-    /// Validate the complete import batch before changing existing library files.
+    /// Import files, folders, or HTTP(S) URLs, validating the complete batch before publication.
+    /// Source names are flattened into the library; differing duplicate names in one batch
+    /// are rejected even with `force`. Installed identical files are skipped.
+    /// Commit failures attempt rollback and report retained recovery files if it is incomplete.
     pub fn add(&self, targets: &[String], options: &AddOptions) -> Result<Vec<ImportResult>> {
         if targets.is_empty() {
             return Ok(Vec::new());
@@ -42,6 +45,7 @@ impl Library {
             entry.added = !unchanged;
         }
         let transaction = self.transaction()?;
+        // Copy and flush the entire batch before replacing any installed file.
         for (index, entry) in plan.iter().enumerate() {
             if entry.added {
                 let staged = transaction.path().join(format!("new-{index}"));

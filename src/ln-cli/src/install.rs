@@ -49,6 +49,7 @@ pub(crate) fn setup(repository: Option<&Path>) -> Result<Value> {
     let repository = find_repository(repository)?;
     let packages = get_packages(&repository, &[], None, &[])?;
     let mut report = install_packages(&packages)?;
+    // Configure only after every installation succeeds, when runtime files are available.
     let configurations = install_app_configs(&repository, &[])?;
     report.installed.extend(configurations.installed);
     report.skipped.extend(configurations.skipped);

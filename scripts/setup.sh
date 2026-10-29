@@ -20,6 +20,7 @@ printf 'Installing mise and compiler tools...\n'
 sudo pacman -S --needed --noconfirm -- gcc mise
 
 printf 'Installing Rust...\n'
+# Use the home context before the repository's mise tasks and Rust toolchain exist.
 mise --cd "$HOME" use --global --yes --fuzzy -- rust@stable
 
 printf 'Building and installing lnxt...\n'

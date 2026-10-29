@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Shared operation errors, retaining HOCON diagnostics and filesystem context.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]

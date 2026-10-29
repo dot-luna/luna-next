@@ -16,7 +16,7 @@ pub(crate) struct Cli {
 pub(crate) enum Command {
     /// Install package groups, named packages, or local applications.
     Install(InstallArgs),
-    /// Install app configurations, preserving existing user files.
+    /// Replace exported app configuration files and folders.
     Configure {
         /// Configure these apps; omit names to configure all apps.
         #[arg(value_name = "APP")]

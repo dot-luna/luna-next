@@ -9,6 +9,7 @@ use serde_json::Value;
 use crate::{Config, Error, Result, edit, load, validate_path};
 
 pub(super) fn open(path: &Path) -> Result<Config> {
+    // Persist to the physical target so editing through a symlink keeps the link intact.
     let path = match fs::canonicalize(path) {
         Ok(path) => path,
         Err(source) if source.kind() == io::ErrorKind::NotFound => {
@@ -165,6 +166,7 @@ impl Config {
 fn read_snapshot(path: &Path) -> Result<(String, Value)> {
     let source = read_source(path)?;
     let resolved = resolve(path, path)?;
+    // Resolution rereads the entry. Check those reads agree; includes are not locked.
     if source != read_source(path)? {
         return Err(Error::Conflict { path: path.into() });
     }
@@ -193,6 +195,8 @@ fn lookup<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
 }
 
 fn matches_value(actual: &Value, expected: &Value) -> bool {
+    // An object request constrains its supplied keys while HOCON may retain
+    // additional inherited keys. Arrays and scalar values must match exactly.
     match (actual, expected) {
         (Value::Object(actual), Value::Object(expected)) => expected.iter().all(|(key, value)| {
             actual

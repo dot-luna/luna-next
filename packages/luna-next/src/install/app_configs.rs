@@ -2,11 +2,15 @@ use std::{
     collections::HashSet,
     env, fs,
     io::{self, Write},
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
 use serde::Deserialize;
+
+mod files;
+
+use files::{copy_tree, relative, replace, validate_destinations, validate_source};
 
 use super::{Report, install_via::identifier};
 use crate::{Error, Result, io_error};
@@ -33,10 +37,17 @@ fn config_directory() -> PathBuf {
     "config".into()
 }
 
+/// Build and replace the selected `apps/<name>/app.conf` exports; empty names select all apps.
+/// Existing export contents are discarded without backups, including managed user entries.
+/// Builders and source validation finish before publication for each app. Filesystem failures
+/// during publication can leave earlier exports installed; this is not an app-wide transaction.
 pub fn install_app_configs(repository: &Path, names: &[String]) -> Result<Report> {
     configure(repository, names, None)
 }
 
+/// Replace configs whose descriptor's `package` matches an installed package name.
+/// Descriptors without `package` match their app folder name. Empty and unmatched
+/// selections do nothing; publication follows [`install_app_configs`].
 pub fn configure_installed_apps(repository: &Path, packages: &[String]) -> Result<Report> {
     if packages.is_empty() {
         return Ok(Report::default());
@@ -153,7 +164,9 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
         let mut targets = Vec::new();
         let mut seen = HashSet::new();
         for export in &app.exports {
-            relative(&export.source)?;
+            if export.source != Path::new(".") {
+                relative(&export.source)?;
+            }
             relative(&export.target)?;
             let override_path = match &export.file_env {
                 Some(key) if key.is_empty() || key.contains(['=', '\0']) => {
@@ -186,21 +199,7 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
                 .transpose()?;
             targets.push((target, defaults));
         }
-        let managed = targets.iter().any(|(_, defaults)| defaults.is_some());
-        if managed {
-            validate_destinations(&targets, repository, &root)?;
-        }
-        if targets
-            .iter()
-            .map(|(target, _)| missing(target))
-            .collect::<Result<Vec<_>>>()?
-            .iter()
-            .all(|missing| !missing)
-            && !managed
-        {
-            report.skipped.push(name);
-            continue;
-        }
+        validate_destinations(&targets, repository, &root)?;
         let stage = tempfile::tempdir()
             .map_err(|error| io_error("stage app configuration", &app_dir, error))?;
         let source = app_dir.join(&app.config);
@@ -236,20 +235,20 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
                 )));
             }
         }
+        // Inspect every generated export before replacing any destination for this app.
+        // Builders can create links or special files that were absent from the input tree.
         let mut sources = Vec::new();
-        for export in &app.exports {
+        for (export, (_, defaults)) in app.exports.iter().zip(&targets) {
             let path = stage.path().join(&export.source);
-            let source = fs::canonicalize(&path)
-                .map_err(|error| io_error("locate generated configuration", &path, error))?;
-            if !source.starts_with(stage.path()) || !source.is_file() {
+            let source = validate_source(&path, stage.path())?;
+            if defaults.is_some() && source.is_dir() {
                 return Err(Error::Message(format!(
-                    "Configuration export must be a file inside staging: {}",
+                    "Configuration defaults require a file export: {}",
                     path.display()
                 )));
             }
             sources.push(source);
         }
-        let mut installed = false;
         for (source, (target, defaults)) in sources.iter().zip(&targets) {
             if let Some(defaults) = defaults {
                 let path = defaults.to_str().ok_or_else(|| {
@@ -264,216 +263,23 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
                         Error::Message(format!("Cannot quote configuration defaults: {error}"))
                     })?
                 );
-                replace_defaults(source, defaults)?;
+                // Publish defaults first so a newly installed include can resolve immediately.
+                replace(source, defaults, stage.path())?;
                 let mut entry = tempfile::NamedTempFile::new_in(stage.path())
                     .map_err(|error| io_error("stage user configuration", target, error))?;
                 entry
                     .write_all(include.as_bytes())
                     .map_err(|error| io_error("stage user configuration", target, error))?;
-                publish(entry.path(), target)?;
-                installed = true;
+                replace(entry.path(), target, stage.path())?;
             } else {
-                installed |= publish(source, target)?;
+                replace(source, target, stage.path())?;
             }
         }
-        if installed {
-            report.installed.push(name);
-        } else {
+        if sources.is_empty() {
             report.skipped.push(name);
+        } else {
+            report.installed.push(name);
         }
     }
     Ok(report)
-}
-
-fn relative(path: &Path) -> Result<()> {
-    if path.as_os_str().is_empty()
-        || path
-            .components()
-            .any(|component| !matches!(component, Component::Normal(_)))
-    {
-        return Err(Error::Message(format!(
-            "App configuration paths must be relative without '..': {}",
-            path.display()
-        )));
-    }
-    Ok(())
-}
-
-fn validate_destinations(
-    targets: &[(PathBuf, Option<PathBuf>)],
-    repository: &Path,
-    apps: &Path,
-) -> Result<()> {
-    let repository = fs::canonicalize(repository)
-        .map_err(|error| io_error("locate configuration repository", repository, error))?;
-    let mut destinations = Vec::new();
-    for (target, defaults) in targets {
-        for path in std::iter::once(target).chain(defaults.iter()) {
-            let destination = destination_identity(path)?;
-            if destination.starts_with(&repository)
-                || repository.starts_with(&destination)
-                || destination.starts_with(apps)
-                || apps.starts_with(&destination)
-            {
-                return Err(Error::Message(format!(
-                    "Configuration destination overlaps its source tree: {}",
-                    path.display()
-                )));
-            }
-            if destinations.iter().any(|previous: &PathBuf| {
-                destination.starts_with(previous) || previous.starts_with(&destination)
-            }) {
-                return Err(Error::Message(format!(
-                    "Configuration destinations overlap: {}",
-                    path.display()
-                )));
-            }
-            destinations.push(destination);
-        }
-        if let Some(defaults) = defaults {
-            check_defaults(defaults)?;
-            if defaults.to_str().is_none() {
-                return Err(Error::Message(format!(
-                    "Configuration defaults path must be valid UTF-8: {}",
-                    defaults.display()
-                )));
-            }
-        }
-    }
-    Ok(())
-}
-
-fn destination_identity(path: &Path) -> Result<PathBuf> {
-    let mut ancestor = path;
-    let mut suffix: Vec<Component<'_>> = Vec::new();
-    loop {
-        match fs::canonicalize(ancestor) {
-            Ok(mut resolved) => {
-                for component in suffix.into_iter().rev() {
-                    if component == Component::ParentDir {
-                        resolved.pop();
-                    } else {
-                        resolved.push(component.as_os_str());
-                    }
-                }
-                return Ok(resolved);
-            }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                if let (Some(component), Some(parent)) =
-                    (ancestor.components().next_back(), ancestor.parent())
-                {
-                    suffix.push(component);
-                    ancestor = parent;
-                } else {
-                    return Err(io_error("locate configuration destination", path, error));
-                }
-            }
-            Err(error) => return Err(io_error("locate configuration destination", path, error)),
-        }
-    }
-}
-
-fn check_defaults(path: &Path) -> Result<()> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.is_file() => Ok(()),
-        Ok(_) => Err(Error::Message(format!(
-            "Configuration defaults destination must be a regular file: {}",
-            path.display()
-        ))),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(io_error("inspect configuration defaults", path, error)),
-    }
-}
-
-fn replace_defaults(source: &Path, target: &Path) -> Result<()> {
-    check_defaults(target)?;
-    let parent = target.parent().unwrap();
-    fs::create_dir_all(parent)
-        .map_err(|error| io_error("create defaults directory", parent, error))?;
-    let temporary = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|error| io_error("stage configuration defaults", target, error))?;
-    fs::copy(source, temporary.path())
-        .map_err(|error| io_error("copy configuration defaults", target, error))?;
-    temporary
-        .as_file()
-        .sync_all()
-        .map_err(|error| io_error("flush configuration defaults", target, error))?;
-    check_defaults(target)?;
-    temporary
-        .persist(target)
-        .map_err(|error| io_error("install configuration defaults", target, error.error))?;
-    fs::File::open(parent)
-        .and_then(|file| file.sync_all())
-        .map_err(|error| io_error("flush configuration defaults directory", parent, error))?;
-    Ok(())
-}
-
-fn copy_tree(source: &Path, destination: &Path, root: &Path) -> Result<()> {
-    for entry in fs::read_dir(source)
-        .map_err(|error| io_error("read app configuration source", source, error))?
-    {
-        let entry =
-            entry.map_err(|error| io_error("read app configuration source", source, error))?;
-        let path = entry.path();
-        let target = destination.join(entry.file_name());
-        let metadata = fs::symlink_metadata(&path)
-            .map_err(|error| io_error("inspect app configuration source", &path, error))?;
-        if metadata.is_dir() {
-            fs::create_dir(&target)
-                .map_err(|error| io_error("stage app configuration directory", &target, error))?;
-            copy_tree(&path, &target, root)?;
-        } else {
-            let resolved = fs::canonicalize(&path)
-                .map_err(|error| io_error("locate app configuration source", &path, error))?;
-            if !resolved.starts_with(root) || !resolved.is_file() {
-                return Err(Error::Message(format!(
-                    "App configuration source must be a file inside its config tree: {}",
-                    path.display()
-                )));
-            }
-            fs::copy(&resolved, &target)
-                .map_err(|error| io_error("stage app configuration file", &path, error))?;
-        }
-    }
-    Ok(())
-}
-
-fn missing(path: &Path) -> Result<bool> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.is_file() || metadata.is_symlink() => Ok(false),
-        Ok(_) => Err(Error::Message(format!(
-            "Configuration destination is not a file: {}",
-            path.display()
-        ))),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
-        Err(error) => Err(io_error("inspect configuration destination", path, error)),
-    }
-}
-
-fn publish(source: &Path, target: &Path) -> Result<bool> {
-    if !missing(target)? {
-        return Ok(false);
-    }
-    let parent = target.parent().unwrap();
-    fs::create_dir_all(parent)
-        .map_err(|error| io_error("create configuration directory", parent, error))?;
-    let temporary = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|error| io_error("stage configuration export", target, error))?;
-    fs::copy(source, temporary.path())
-        .map_err(|error| io_error("copy configuration export", target, error))?;
-    temporary
-        .as_file()
-        .sync_all()
-        .map_err(|error| io_error("flush configuration export", target, error))?;
-    match temporary.persist_noclobber(target) {
-        Ok(_) => Ok(true),
-        Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
-            missing(target).map(|_| false)
-        }
-        Err(error) => Err(io_error(
-            "install configuration export",
-            target,
-            error.error,
-        )),
-    }
 }

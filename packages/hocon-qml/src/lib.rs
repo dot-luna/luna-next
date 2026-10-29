@@ -1,6 +1,7 @@
 //! Rust implementation of the read-only `LunaNext.Config` QML loader.
 //!
-//! The C++ adapter converts the returned JSON text into a JavaScript object.
+//! The C++ adapter converts each result into an independent JavaScript object;
+//! this layer does not retain a configuration or JavaScript engine.
 
 use std::{fs, path::Path};
 
@@ -10,6 +11,7 @@ use serde_json::Value;
 #[cxx::bridge(namespace = "luna_next::config")]
 mod ffi {
     extern "Rust" {
+        // cxx maps Result failures to rust::Error for the C++ adapter to translate.
         fn load_as_json_with_schema(path: &str, schema_path: &str) -> Result<String>;
     }
 }
@@ -17,14 +19,15 @@ mod ffi {
 /// Load a HOCON file and return compact resolved JSON for the JavaScript parser.
 ///
 /// Missing files and parent directories are created by [`luna_next_hocon::Config::open`].
-/// Parsing, include resolution, and filesystem errors propagate to C++ as
-/// `rust::Error` exceptions.
+/// Parsing, include resolution, and filesystem failures return configuration errors.
 pub fn load_as_json(path: &str) -> Result<String> {
     load_as_json_with_schema(path, "")
 }
 
 /// Load resolved HOCON, optionally validating it against a JSON Schema file.
 /// An empty schema path skips validation. Schema files must already exist.
+/// Paths here are filesystem paths; the C++ adapter converts QML file URLs.
+/// Validation neither inserts defaults nor retrieves external references.
 pub fn load_as_json_with_schema(path: &str, schema_path: &str) -> Result<String> {
     let schema = read_schema(schema_path)?;
     let config = Config::open(path)?;

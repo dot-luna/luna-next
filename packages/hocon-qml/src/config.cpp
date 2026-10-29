@@ -29,6 +29,7 @@ QJSValue Config::load_as_json(const QString &path, const QString &schemaPath) co
     try {
         const auto pathBytes = localPath(path);
         const auto schemaBytes = localPath(schemaPath);
+        // rust::Str borrows these UTF-8 buffers only for this synchronous call.
         const auto json = luna_next::config::load_as_json_with_schema(
             rust::Str(pathBytes.constData(), static_cast<std::size_t>(pathBytes.size())),
             rust::Str(schemaBytes.constData(), static_cast<std::size_t>(schemaBytes.size())));

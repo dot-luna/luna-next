@@ -1,3 +1,6 @@
+//! Validate effective settings, then edit only the HOCON entry point and apply them.
+//! Config mutations hold their lock through renderer application and attempted recovery.
+
 mod persistence;
 mod values;
 
@@ -9,6 +12,9 @@ use std::{fs, path::PathBuf};
 use values::{effective, flatten, merge, schema};
 
 impl Wallpaper {
+    /// Reread resolved settings, add application defaults in memory, and validate the schema.
+    /// Missing files are created. Missing dot-separated keys return JSON null;
+    /// empty path segments are errors.
     pub fn get_config(&self, key: Option<&str>) -> Result<Value> {
         let config = Config::open(&self.paths.config_file)?;
         let resolved = effective(config.resolved()?);
@@ -30,8 +36,12 @@ impl Wallpaper {
         }
     }
 
-    /// Validate, save all changes together, and apply them to the renderer.
-    /// Failed application restores the exact previous source when still current.
+    /// Merge a JSON object, validate it, save the local edits atomically, and reload.
+    /// Returns the effective configuration. Includes and unrelated source text remain;
+    /// empty objects contribute no edits and unchanged source does not reload.
+    /// On application failure, restoration is attempted only while the saved source
+    /// is unchanged. Detected external edits prevent restoration; restoration or
+    /// renderer recovery failures are included in the error.
     pub fn update_config(&self, changes: Value) -> Result<Value> {
         if !changes.is_object() {
             return Err(Error::Message(
@@ -78,6 +88,7 @@ impl Wallpaper {
             let recovery = if was_running {
                 self.runtime.reload()
             } else {
+                // A failed apply may have launched a renderer; restore the stopped state too.
                 self.runtime.stop()
             };
             return Err(Error::Message(match recovery {

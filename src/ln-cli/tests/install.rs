@@ -329,7 +329,7 @@ fn package_installs_configure_only_matching_apps_after_success() {
 }
 
 #[test]
-fn configure_selects_apps_and_preserves_existing_files_without_installing_packages() {
+fn configure_selects_apps_and_replaces_existing_files_without_installing_packages() {
     let sandbox = Sandbox::new();
     let config = sandbox.app_config("demo");
     let other_config = sandbox.app_config("other");
@@ -348,11 +348,8 @@ fn configure_selects_apps_and_preserves_existing_files_without_installing_packag
     fs::write(&config, "# User settings\nsetting = custom\n").unwrap();
     let output = sandbox.run(&["configure", "demo"]);
     assert!(output.status.success(), "{output:?}");
-    assert_eq!(output.stdout, b"Skipped: demo\n");
-    assert_eq!(
-        fs::read_to_string(config).unwrap(),
-        "# User settings\nsetting = custom\n"
-    );
+    assert_eq!(output.stdout, b"Installed: demo\n");
+    assert_eq!(fs::read_to_string(config).unwrap(), "setting = default\n");
     assert!(sandbox.log().is_empty());
 }
 

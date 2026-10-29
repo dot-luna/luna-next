@@ -80,6 +80,7 @@ impl Runtime {
 
     pub(super) fn wait_ready(&self, path: &Path) -> Result<Status> {
         let deadline = Instant::now() + START_TIMEOUT;
+        // Daemon registration can lag behind launch; only treat its later disappearance as exit.
         let mut registered = false;
         loop {
             match self.status_at(path)? {

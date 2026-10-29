@@ -22,6 +22,7 @@ pub(super) fn download(target: &str, directory: &Path, index: usize) -> Result<P
         .map_err(|error| io_error("stage wallpaper download", &folder, error))?;
     let payload = folder.join("payload");
     let mut command = Command::new("curl");
+    // Ignore curlrc and restrict both the requested URL and redirects to HTTP(S).
     command
         .args([
             "--disable",
@@ -48,6 +49,7 @@ pub(super) fn download(target: &str, directory: &Path, index: usize) -> Result<P
         .arg("--url")
         .arg(url.as_str());
     run(&mut command, Duration::from_secs(125))?;
+    // The payload determines its extension; URL names alone do not identify valid media.
     let extension = media_extension(&media_type(&payload)?)?;
     let destination = folder.join(download_filename(&url, index, extension));
     fs::rename(&payload, &destination)
@@ -84,6 +86,7 @@ fn download_filename(url: &Url, index: usize, extension: &str) -> String {
         .and_then(|mut parts| parts.next_back())
         .unwrap_or("");
     let decoded = percent_decode(raw_name);
+    // Keep URL-derived names within one filesystem component and below common filename limits.
     let safe: String = decoded
         .chars()
         .map(|ch| {

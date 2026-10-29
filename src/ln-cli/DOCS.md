@@ -12,7 +12,7 @@ lnxt install --pacman ripgrep    # Official package, even if unlisted
 lnxt install --mise              # Declared mise tools
 lnxt install --git yay           # Git package recipe
 lnxt install --local cli         # Local package; --apps is an alias
-lnxt configure luna-wallpaper    # Copy missing app config, build templates if needed
+lnxt configure luna-wallpaper    # Build and replace app configurations
 lnxt setup                      # Install packages and app configurations
 ```
 
@@ -28,10 +28,10 @@ Failures stop later steps; completed work remains.
 
 Package installs also configure matching [`apps/`](../../apps/README.md) entries;
 setup configures all apps. `lnxt configure [APP...]` runs only this stage.
-Builders generate files in staging, then managed defaults are refreshed. A missing
-user config gets an include of those defaults; existing user files and symlinks
-are kept. Configs use `XDG_CONFIG_HOME` (default `~/.config`); a nonempty `file_env`
-overrides the user config's full path.
+Builders generate files in staging, then exported files and folders are replaced
+without backups. Managed HOCON entries are recreated with an include of their
+defaults, resetting local changes. Configs use `XDG_CONFIG_HOME` (default
+`~/.config`); a nonempty `file_env` overrides the user config's full path.
 
 Git packages clone into `~/.local/src/<name>`. Local packages symlink their source
 there, or into `destination` relative to `~/.local`, then run their commands.

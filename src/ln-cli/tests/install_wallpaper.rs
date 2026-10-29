@@ -99,17 +99,16 @@ fn wallpaper_install_links_runtime_and_schema_and_configures_managed_defaults() 
         fs::read(repo.join("src/luna-wallpaper/src/config.schema.json")).unwrap()
     );
 
-    let original = format!("{entry}\nwallpaper.fit = fit\n");
-    fs::write(&config, &original).unwrap();
+    fs::write(&config, format!("{entry}\nwallpaper.fit = fit\n")).unwrap();
     fs::write(&defaults, "wallpaper.fit = stretch\n").unwrap();
     run(&["install", "--local", "wallpaper"]);
-    assert_eq!(fs::read_to_string(&config).unwrap(), original);
+    assert_eq!(fs::read_to_string(&config).unwrap(), entry);
     assert_eq!(
         fs::read(&defaults).unwrap(),
         fs::read(repo.join("apps/luna-wallpaper/config/wallpaper.conf")).unwrap()
     );
     let resolved = success(command(root.path()).args(["wallpaper", "get-config", "--json"]));
-    assert_eq!(resolved["wallpaper"]["fit"], "fit");
+    assert_eq!(resolved["wallpaper"]["fit"], "fill");
     assert_eq!(resolved["transition"]["duration_ms"], 200);
     assert!(fs::symlink_metadata(&runtime).unwrap().is_symlink());
     assert!(!root.path().join(".local/bin").exists());

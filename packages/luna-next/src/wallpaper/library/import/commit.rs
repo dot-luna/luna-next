@@ -16,6 +16,7 @@ pub(super) fn apply(transaction: TempDir, plan: &[Import]) -> Result<()> {
         let destination = &entry.destination;
         let result = (|| {
             let backup = if let Some(previous) = &entry.previous {
+                // Force permits planned replacements, not files edited while staging the batch.
                 let unchanged = destination_metadata(destination)?
                     .is_some_and(|current| same_file(previous, &current));
                 if !unchanged {

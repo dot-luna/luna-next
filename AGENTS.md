@@ -4,6 +4,11 @@
   task-specific guidance; explicit user instructions take precedence.
 - Keep changes focused on the requested task. Preserve unrelated working-tree
   edits and include only intended files when committing.
+- This repository is in active development. Do not add legacy migrations,
+  backward-compatibility layers, or old-format fallbacks.
+- Installing or configuring apps replaces the declared destination files and
+  folders. Do not create backups or preserve their previous contents. Leave
+  paths outside those exports untouched; keep validation and safe writes.
 
 - Keep each package's `README.md` short: what it does, the minimum setup, and one
   working usage example. Link to the package's `DOCS.md` for everything else.
@@ -19,11 +24,13 @@
   avoid giant files and unnecessary abstractions.
 - Prefer direct control flow and existing helpers. Split by responsibility,
   without arbitrary file-size limits or layers added only to shorten a file.
-- Keep comments that explain intent, invariants, compatibility constraints, or
+- Keep comments that explain intent, invariants, caller constraints, or
   non-obvious tradeoffs. Use API docs for caller-relevant behavior and errors;
   avoid comments that repeat the code or compensate for unclear names.
 - Use `.agents/skills/code-comments/SKILL.md` for code-comment and API-doc work;
-  verify claims against implementations and callers within the requested scope.
+  apply it when adding or changing implementation too. Explain meaningful public
+  contracts and non-obvious mechanisms; verify claims against implementations
+  and callers rather than adding comments to meet a count.
 - Keep `packages/hocon` a standalone Rust configuration helper. Preserve includes
   and unrelated source text when editing; never save resolved data over the file.
 - Keep `packages/hocon-qml` a separate, one-shot adapter exposing only

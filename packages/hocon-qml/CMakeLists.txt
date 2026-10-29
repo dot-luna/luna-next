@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 include(GNUInstallDirs)
 
+# Keep the static library and its generated cxx headers in the same Cargo build.
 set(RUST_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/cargo")
 set(RUST_LIBRARY "${RUST_TARGET_DIR}/release/${CMAKE_STATIC_LIBRARY_PREFIX}luna_next_hocon_qml${CMAKE_STATIC_LIBRARY_SUFFIX}")
 file(GLOB CORE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../hocon/src/*.rs")

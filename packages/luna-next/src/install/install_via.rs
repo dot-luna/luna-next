@@ -21,23 +21,33 @@ pub enum Source {
     Local,
 }
 
+/// Names reported after successful operations, not a record of package-manager changes.
+/// A tool's `--needed` option can leave an already-installed package untouched.
 #[derive(Debug, Default, Serialize)]
 pub struct Report {
     pub installed: Vec<String>,
     pub skipped: Vec<String>,
 }
 
+/// Installation recipe. Source-specific requirements are checked by its installer.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Package {
     pub name: String,
     pub source: Source,
+    /// Git remote URL or local source directory; unused by package-manager sources.
     pub url: Option<String>,
+    /// Git branch/tag (`latest` selects the highest version-sorted remote tag), or mise version.
+    /// Unspecified Git versions use the remote's default branch on the first clone.
     pub version: Option<String>,
+    /// Local link path relative to `~/.local`; defaults to `src/<name>`.
     pub destination: Option<PathBuf>,
+    /// Argument arrays run in the Git checkout or local link, without an implicit shell.
     #[serde(default)]
     pub command: Vec<Vec<String>>,
 }
 
+/// Dispatch to `source`; the source argument selects the installer, not each recipe's field.
+/// This installs packages only. Call [`super::configure_installed_apps`] separately for configs.
 pub fn install(source: Source, packages: &[Package]) -> Result<Report> {
     match source {
         Source::Pacman => install_via_pacman(packages),
@@ -48,6 +58,7 @@ pub fn install(source: Source, packages: &[Package]) -> Result<Report> {
     }
 }
 
+/// Run `sudo pacman -S --needed --noconfirm` for nonempty, unversioned package names.
 pub fn install_via_pacman(packages: &[Package]) -> Result<Report> {
     run(
         Source::Pacman,
@@ -56,6 +67,7 @@ pub fn install_via_pacman(packages: &[Package]) -> Result<Report> {
     )
 }
 
+/// Run an existing `yay` with `--aur --needed --noconfirm` for nonempty, unversioned names.
 pub fn install_via_aur(packages: &[Package]) -> Result<Report> {
     run(
         Source::Aur,
@@ -64,6 +76,7 @@ pub fn install_via_aur(packages: &[Package]) -> Result<Report> {
     )
 }
 
+/// Run `mise install --yes` for selected tools; an empty slice uses mise's own configuration.
 pub fn install_via_mise(packages: &[Package]) -> Result<Report> {
     run(
         Source::Mise,
@@ -72,6 +85,10 @@ pub fn install_via_mise(packages: &[Package]) -> Result<Report> {
     )
 }
 
+/// Clone shallow checkouts under `~/.local/src/<name>` and run each recipe's commands.
+/// Existing branches pull with fast-forward only; selected refs fetch at depth one.
+/// Dirty tracked files, mismatched origins, and unreferenced detached commits are rejected.
+/// `latest` uses the highest version-sorted tag, or the remote default when no tags exist.
 pub fn install_via_git(packages: &[Package]) -> Result<Report> {
     let mut names = HashSet::new();
     for package in packages {
@@ -186,6 +203,8 @@ pub fn install_via_git(packages: &[Package]) -> Result<Report> {
             }
         } else {
             let branch = query(git(&directory).args(["branch", "--show-current"]))?;
+            // Ref changes detach HEAD. Do not discard commits that belong to neither a
+            // retained ref nor our previous fetch when choosing a new remote revision.
             if branch.trim().is_empty()
                 && query(git(&directory).args([
                     "for-each-ref",
@@ -226,6 +245,9 @@ pub fn install_via_git(packages: &[Package]) -> Result<Report> {
     Ok(report)
 }
 
+/// Link local source directories under `~/.local` and run their recipe commands there.
+/// Replaces existing links and removes existing destination directories without backups.
+/// Sources must remain available; command failure does not restore a replaced destination.
 pub fn install_via_local(packages: &[Package]) -> Result<Report> {
     if packages.is_empty() {
         return Ok(Report::default());
@@ -359,6 +381,7 @@ fn resolve_path(path: &Path) -> Result<PathBuf> {
 }
 
 fn local_destination(directory: &Path, root: &Path, source: &Path) -> Result<PathBuf> {
+    // Resolve parent links for containment checks while replacing the final link itself.
     let directory = resolve_path(directory.parent().unwrap())?.join(directory.file_name().unwrap());
     if !directory.starts_with(root)
         || directory.starts_with(source)
@@ -511,6 +534,7 @@ fn execute(command: &mut Command) -> Result<()> {
     let description = format!("{command:?}");
     let status = command
         .stdin(Stdio::inherit())
+        // Keep stdout available for the CLI's single JSON response.
         .stdout(Stdio::from(std::io::stderr()))
         .stderr(Stdio::inherit())
         .status()

@@ -50,6 +50,7 @@ Loader {
                     playing = true;
                 }
             }
+            // Restart finite-loop files without mutating the decoder during its signal.
             onPlayingChanged: if (!playing)
                 Qt.callLater(repeatAnimation)
         }

@@ -11,6 +11,7 @@ use args::{Cli, Command};
 
 fn main() -> ExitCode {
     let args: Vec<_> = std::env::args_os().collect();
+    // Parsing can fail before Cli exists; retain JSON error output for those failures too.
     let wants_json = args
         .iter()
         .take_while(|arg| *arg != "--")

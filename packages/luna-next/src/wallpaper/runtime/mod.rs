@@ -16,7 +16,8 @@ use std::time::{Duration, Instant};
 const STOP_TIMEOUT: Duration = Duration::from_secs(5);
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
 
-/// Whether the renderer has loaded both its configuration and selected media.
+/// Lifecycle state reported by matching renderer instances.
+/// `Loading` also covers a listed process whose IPC endpoint is not registered yet.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
@@ -27,6 +28,7 @@ pub enum Status {
 }
 
 /// Controls this wallpaper renderer without affecting other Quickshell apps.
+/// [`super::Wallpaper`] adds Rust-side config validation, mutation locks, and rollback.
 #[derive(Clone, Debug)]
 pub struct Runtime {
     renderer: PathBuf,
@@ -41,12 +43,14 @@ impl Runtime {
         }
     }
 
+    /// Return `Error` if any renderer reports failure, or `Ready` once all are ready.
     pub fn status(&self) -> Result<Status> {
         let path = self.renderer_path()?;
         self.status_at(&path)
     }
 
-    /// Reuses a running renderer, otherwise starts one and waits for its media.
+    /// Reuse a running renderer without reloading it, or start one and wait for its media.
+    /// A fresh launch requires Wayland and an installed renderer entry point.
     pub fn start(&self) -> Result<Status> {
         let path = self.renderer_path()?;
         if self.instances(&path)?.is_empty() {
@@ -110,8 +114,9 @@ impl Runtime {
         self.start()
     }
 
-    /// Applies saved configuration in place, or starts the renderer if stopped.
-    /// Rejected configuration leaves the running renderer intact.
+    /// Apply saved configuration by IPC without replacing renderer processes, or start if stopped.
+    /// Wait for media readiness after acceptance. This low-level operation does not restore
+    /// configuration after failure; [`super::Wallpaper::update_config`] owns mutation recovery.
     pub fn reload(&self) -> Result<Status> {
         let path = self.renderer_path()?;
         let instances = self.instances(&path)?;

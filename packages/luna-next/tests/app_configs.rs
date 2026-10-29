@@ -8,6 +8,7 @@ use std::{
 use luna_next::install::{Report, configure_installed_apps, install_app_configs};
 use serde_json::{Value, json};
 
+// Isolate environment changes and the working directory from parallel test cases.
 fn scenario(name: &str) {
     let temporary = tempfile::Builder::new()
         .prefix("luna app configs '")
@@ -94,8 +95,8 @@ fn app_configs_copy_files_and_companions_with_permissions_in_sorted_order() {
 }
 
 #[test]
-fn existing_config_files_and_symlinks_are_preserved_on_reinstall() {
-    scenario("preserve");
+fn existing_config_files_and_symlinks_are_replaced_on_reinstall() {
+    scenario("replace");
 }
 
 #[test]
@@ -119,8 +120,8 @@ fn config_destinations_honor_xdg_and_explicit_file_environment_overrides() {
 }
 
 #[test]
-fn directory_conflicts_are_reported_before_any_config_for_the_app_is_published() {
-    scenario("directory_conflict");
+fn file_exports_replace_existing_directory_targets() {
+    scenario("replace_directory");
 }
 
 #[test]
@@ -139,7 +140,7 @@ fn managed_defaults_create_resolvable_user_includes_and_respect_file_environment
 }
 
 #[test]
-fn managed_defaults_rebuild_on_reinstall_without_changing_user_files_or_symlinks() {
+fn managed_defaults_rebuild_and_reset_user_entries_on_reinstall() {
     scenario("managed_refresh");
 }
 
@@ -149,7 +150,7 @@ fn failed_managed_builds_and_missing_exports_preserve_installed_defaults_and_use
 }
 
 #[test]
-fn managed_default_destination_conflicts_are_rejected_before_building() {
+fn managed_defaults_replace_leaf_links_but_reject_source_aliases_and_overlapping_targets() {
     scenario("managed_conflicts");
 }
 
@@ -279,12 +280,20 @@ fn app_config_scenario() {
             write(app.join("config/extra.conf"), "extra = false\n");
             let report = fixture.install(&["generated"]).unwrap();
             assert_eq!(report.installed, ["generated"]);
-            assert_eq!(fs::read_to_string(&user).unwrap(), edited);
-            assert_eq!(fs::read_link(&extra).unwrap(), symlink_target);
+            assert_eq!(fs::read_to_string(&user).unwrap(), original);
+            assert!(!fs::symlink_metadata(&extra).unwrap().is_symlink());
+            let extra_defaults = fixture.target("generated/extra.defaults.conf");
+            assert_eq!(
+                fs::read_to_string(&extra).unwrap(),
+                format!(
+                    "include required(file({}))\n",
+                    serde_json::to_string(extra_defaults.to_str().unwrap()).unwrap()
+                )
+            );
             assert!(!symlink_target.exists());
             assert_eq!(
                 luna_next_hocon::load(&user).unwrap(),
-                json!({"value": "personal", "version": "second"})
+                json!({"value": "second", "version": "second"})
             );
             assert_eq!(
                 fs::read_to_string(fixture.target("generated/extra.defaults.conf")).unwrap(),
@@ -321,22 +330,34 @@ fn app_config_scenario() {
                 } else if name == "source-alias" {
                     symlink(app.join("config"), fixture.target("source-alias/source")).unwrap();
                 }
-                assert!(fixture.install(&[name]).is_err(), "{name}");
-                assert_eq!(fs::read_to_string(&user).unwrap(), "value = \"personal\"\n");
-                assert_eq!(fs::read_to_string(&source).unwrap(), "value = \"source\"\n");
-                assert!(!app.join("builder-ran").exists(), "{name}");
                 if name == "symlink" {
-                    assert_eq!(fs::read_link(fixture.target(defaults)).unwrap(), external);
+                    fixture.install(&[name]).unwrap();
+                    assert!(app.join("builder-ran").exists());
+                    assert!(
+                        !fs::symlink_metadata(fixture.target(defaults))
+                            .unwrap()
+                            .is_symlink()
+                    );
+                    assert_eq!(
+                        luna_next_hocon::load(&user).unwrap(),
+                        json!({"value": "source"})
+                    );
                     assert_eq!(
                         fs::read_to_string(&external).unwrap(),
                         "value = \"external\"\n"
                     );
-                } else if name == "source-alias" {
-                    assert_eq!(
-                        fs::read_link(fixture.target("source-alias/source")).unwrap(),
-                        app.join("config")
-                    );
+                } else {
+                    assert!(fixture.install(&[name]).is_err(), "{name}");
+                    assert_eq!(fs::read_to_string(&user).unwrap(), "value = \"personal\"\n");
+                    assert!(!app.join("builder-ran").exists(), "{name}");
+                    if name == "source-alias" {
+                        assert_eq!(
+                            fs::read_link(fixture.target("source-alias/source")).unwrap(),
+                            app.join("config")
+                        );
+                    }
                 }
+                assert_eq!(fs::read_to_string(&source).unwrap(), "value = \"source\"\n");
             }
         }
         "managed_failure" => {
@@ -440,7 +461,7 @@ fn app_config_scenario() {
                 b"companion\0bytes\n"
             );
         }
-        "preserve" => {
+        "replace" => {
             let app = fixture.app(
                 "sample",
                 json!({"exports": [
@@ -462,19 +483,12 @@ fn app_config_scenario() {
             fs::remove_file(fixture.target("sample/three.conf")).unwrap();
             symlink(&missing, fixture.target("sample/three.conf")).unwrap();
             fixture.install(&["sample"]).unwrap();
-            assert_eq!(
-                fs::read_to_string(fixture.target("sample/one.conf")).unwrap(),
-                "user edits\n"
-            );
-            assert_eq!(
-                fs::read_link(fixture.target("sample/two.conf")).unwrap(),
-                external
-            );
+            for name in ["one", "two", "three"] {
+                let target = fixture.target(&format!("sample/{name}.conf"));
+                assert_eq!(fs::read_to_string(&target).unwrap(), "default");
+                assert!(!fs::symlink_metadata(target).unwrap().is_symlink());
+            }
             assert_eq!(fs::read_to_string(&external).unwrap(), "external edits\n");
-            assert_eq!(
-                fs::read_link(fixture.target("sample/three.conf")).unwrap(),
-                missing
-            );
             assert!(!missing.exists());
         }
         "builder" => {
@@ -600,11 +614,11 @@ fn app_config_scenario() {
             assert!(!xdg.join("sample/special.conf").exists());
             assert!(!fixture.config.exists());
             unsafe {
-                std::env::set_var("LUNA_TEST_APP_CONFIG", "relative/special.conf");
+                std::env::set_var("LUNA_TEST_APP_CONFIG", "../relative/special.conf");
             }
             fixture.install(&["sample"]).unwrap();
             assert_eq!(
-                fs::read_to_string(fixture.repository.join("relative/special.conf")).unwrap(),
+                fs::read_to_string(fixture.root.join("relative/special.conf")).unwrap(),
                 "special\n"
             );
             unsafe {
@@ -621,7 +635,7 @@ fn app_config_scenario() {
                 "special\n"
             );
         }
-        "directory_conflict" => {
+        "replace_directory" => {
             let app = fixture.app(
                 "sample",
                 json!({"exports": [
@@ -633,12 +647,14 @@ fn app_config_scenario() {
             write(app.join("config/two.conf"), "two\n");
             fs::create_dir_all(fixture.target("sample/two.conf")).unwrap();
             write(fixture.target("sample/two.conf/keep"), "keep\n");
-            let error = fixture.install(&["sample"]).unwrap_err().to_string();
-            assert!(error.contains("two.conf"), "{error}");
-            assert!(!fixture.target("sample/one.conf").exists());
+            fixture.install(&["sample"]).unwrap();
             assert_eq!(
-                fs::read_to_string(fixture.target("sample/two.conf/keep")).unwrap(),
-                "keep\n"
+                fs::read_to_string(fixture.target("sample/one.conf")).unwrap(),
+                "one\n"
+            );
+            assert_eq!(
+                fs::read_to_string(fixture.target("sample/two.conf")).unwrap(),
+                "two\n"
             );
         }
         "missing" => {

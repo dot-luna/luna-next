@@ -25,6 +25,7 @@ impl Library {
             .open(&path)
             .map_err(|error| io_error("lock wallpaper library", &path, error))?;
         let started = Instant::now();
+        // The persistent path keeps later callers on the same lock inode after this handle drops.
         loop {
             match file.try_lock() {
                 Ok(()) => return Ok(file),
@@ -46,6 +47,7 @@ impl Library {
     }
 }
 
+/// Undo committed entries in reverse order; retain recovery files if restoration is incomplete.
 pub(super) fn rollback(
     transaction: TempDir,
     committed: &[(PathBuf, Option<PathBuf>, bool)],

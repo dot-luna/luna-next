@@ -5,7 +5,8 @@ import Quickshell
 import Quickshell.Io
 import "Video.js" as Video
 
-// Keep one owned player and surface while changing video or rendering options.
+// Own one mpvpaper child and its layer surface. Use load() for media switches;
+// WallpaperSurface recreates this component when its output changes.
 Item {
     id: root
 
@@ -25,6 +26,7 @@ Item {
     property bool directoryAttempted: false
     property bool directoryFinished: false
     property bool playerAttempted: false
+    // Milliseconds allowed for startup, media replacement, or a settings acknowledgement.
     property int startupTimeout: 15000
     property string playerSourcePath: ""
     property int mediaGeneration: 0
@@ -34,6 +36,7 @@ Item {
     property bool replacing: false
     property bool decodedVideo: false
 
+    // Changes before IPC connects are applied by startPlayer() and connection setup.
     function send(command, kind) {
         if (ipc.connected && !stopping) {
             const requestId = ++nextRequestId;
@@ -51,6 +54,8 @@ Item {
         }
     }
 
+    // A load acknowledgement alone is insufficient: decoded dimensions must be
+    // available and every setting update acknowledged before the renderer reports ready.
     function finishUpdate() {
         if (!decodedVideo || stopping)
             return;
@@ -83,8 +88,8 @@ Item {
         send(["loadfile", sourcePath, "replace"], "load");
     }
 
-    // Settings changes stay on the existing player; loading new media resets
-    // readiness before asynchronous IPC can deliver old-file notifications.
+    // Accept an absolute local path and reuse the player; the same path is a no-op.
+    // Reset readiness before asynchronous IPC can deliver old-file notifications.
     function load(path) {
         if (stopping || path === sourcePath)
             return;
@@ -189,6 +194,7 @@ Item {
         }
 
         if (message.event === "end-file" || message.event === "shutdown") {
+            // loadfile ends the previous file normally; that stop is not a playback failure.
             if (message.event === "end-file" && message.reason === "stop" && replacing)
                 return;
             const error = message.file_error || message.error;
@@ -232,6 +238,7 @@ Item {
         // Destruction also handles a child that ignores graceful termination.
         if (Number(player.processId) > 0)
             player.signal(9);
+        // mktemp may have printed its directory before its exit callback ran.
         if (!privateDirectory)
             privateDirectory = directoryOutput.text.trim();
         removeDirectory();

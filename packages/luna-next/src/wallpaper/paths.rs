@@ -1,6 +1,7 @@
 use crate::{Error, Result};
 use std::{env, path::PathBuf};
 
+/// Application-selected paths; [`super::Wallpaper::new`] resolves them to absolute paths.
 #[derive(Debug, Clone)]
 pub struct Paths {
     pub config_file: PathBuf,
@@ -9,6 +10,9 @@ pub struct Paths {
 }
 
 impl Paths {
+    /// Honor nonempty `LUNA_WALLPAPER_CONFIG` and `LUNA_WALLPAPER_SHELL` overrides.
+    /// Otherwise use XDG config/data paths, falling back to `~/.config` and
+    /// `~/.local/share`; the library lives at `luna-next/wallpapers` in the data path.
     pub fn from_env() -> Result<Self> {
         let config_file = match nonempty_env("LUNA_WALLPAPER_CONFIG") {
             Some(path) => PathBuf::from(path),

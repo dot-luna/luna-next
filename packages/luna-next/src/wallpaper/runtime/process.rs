@@ -41,6 +41,7 @@ impl Runtime {
                     .map_err(|error| io_error("capture Quickshell errors", &executable, error))?,
             );
         if launch {
+            // Terminal signals sent to the CLI's process group must not target its renderer.
             command
                 .env("LUNA_WALLPAPER_CONFIG", self.config_path()?)
                 .process_group(0);

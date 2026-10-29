@@ -28,7 +28,8 @@ Process {
         }
     }
 
-    // Missing ffprobe need not prevent Qt from displaying a valid image.
+    // Missing ffprobe need not prevent Qt from displaying a valid image. Defer
+    // the fallback so a normal exit can publish its collected metadata first.
     onRunningChanged: if (!running)
         Qt.callLater(function () {
             if (!inspection.finished) {

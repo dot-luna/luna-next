@@ -23,6 +23,8 @@ function options(fit, background, paused) {
         "hwdec=auto scale=ewa_lanczossharp cscale=ewa_lanczossharp dscale=mitchell",
         "background=color background-color='" + background + "'",
         "pause=" + (paused ? "yes" : "no"),
+        // The player runs inside its private directory, keeping the socket local
+        // without placing the runtime path inside mpv's option syntax.
         "input-ipc-server=./ipc",
         "keepaspect=" + (mode.keepaspect ? "yes" : "no")
             + " panscan=" + mode.panscan + " video-unscaled=" + mode.unscaled

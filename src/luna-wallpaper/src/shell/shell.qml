@@ -13,6 +13,8 @@ ShellRoot {
     property var config: null
     property string configStatus: "loading"
 
+    // Publish only a fully parsed and validated config. A rejected reload leaves
+    // the previous settings and media intact; it does not rewrite the source.
     function loadConfig(path) {
         try {
             const next = Config.load_as_json(path, Quickshell.shellPath("../config.schema.json"));
@@ -29,6 +31,8 @@ ShellRoot {
     }
 
     Component.onCompleted: {
+        // The CLI explicitly requests reloads after saving; filesystem changes
+        // alone must not replace the shell or its owned media processes.
         Quickshell.watchFiles = false;
         loadConfig(configPath);
     }
@@ -42,6 +46,8 @@ ShellRoot {
     IpcHandler {
         target: "wallpaper"
 
+        // "ok" accepts the configuration, not media readiness. The caller polls
+        // status() until asynchronous probing, decoding, or player updates finish.
         function reload(path: string): string {
             return shell.loadConfig(path);
         }

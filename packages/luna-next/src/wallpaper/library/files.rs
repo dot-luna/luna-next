@@ -85,6 +85,7 @@ pub(super) fn scan(
         let kind = entry
             .file_type()
             .map_err(|error| io_error("inspect wallpaper entry", &path, error))?;
+        // Transactions and the advisory lock are internal entries, never selectable media.
         if entry
             .file_name()
             .to_string_lossy()

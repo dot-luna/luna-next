@@ -12,6 +12,7 @@ function mediaKind(metadata) {
     return "video";
 }
 
+// Encode path segments so literal spaces, #, and ? remain filename characters.
 function fileUrl(path) {
     return path ? "file://" + path.split("/").map(encodeURIComponent).join("/") : "";
 }

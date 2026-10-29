@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 use thiserror::Error;
 
-/// Errors retain the operation, entry-point path, and underlying cause.
+/// Configuration loading, editing, and validation failures.
+/// Filesystem and parser variants retain their underlying causes.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("cannot {operation} '{}': {source}", path.display())]
@@ -28,10 +29,13 @@ pub enum Error {
         #[source]
         source: hocon_rs::Error,
     },
+    /// An empty path or empty dot-separated segment cannot identify a key.
     #[error("invalid dot-separated configuration path '{path}' (segments must be nonempty)")]
     InvalidPath { path: String },
+    /// The opened file's source or file type changed since its snapshot was read.
     #[error("configuration file '{}' changed; open it again before editing", path.display())]
     Conflict { path: PathBuf },
+    /// The requested edit cannot preserve source structure or its resolved value.
     #[error("cannot safely edit configuration: {message}")]
     Edit { message: String },
     #[error("cannot encode JSON: {0}")]
@@ -47,6 +51,7 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Read and resolve an existing HOCON object or array without changing files.
+/// Missing files, invalid syntax, and include failures return [`Error::Parse`].
 pub fn load(path: impl AsRef<Path>) -> Result<Value> {
     let path = path.as_ref();
     load::resolve_value(path).map_err(|source| Error::Parse {
@@ -58,7 +63,12 @@ pub fn load(path: impl AsRef<Path>) -> Result<Value> {
 /// A HOCON configuration file with path-based access, editing, and resolution.
 ///
 /// Reads use the values loaded on open. Successful edits save immediately and
-/// update those values.
+/// update those values. Edits preserve unrelated source text and never write
+/// included files or serialize the resolved configuration over the source.
+///
+/// Saves use atomic replacement with optimistic source conflict checks, without
+/// locking other writers. A directory-sync error can occur after replacement;
+/// that error says the file was saved and this snapshot already reflects it.
 #[derive(Debug)]
 pub struct Config {
     path: PathBuf,
@@ -67,7 +77,7 @@ pub struct Config {
 }
 
 impl Config {
-    /// Load a HOCON entry point, resolving includes relative to each source file.
+    /// Load a HOCON object entry point, resolving includes relative to each source file.
     /// Creates an empty file and missing parent directories when needed.
     /// Existing files are preserved and symbolic links are followed.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
@@ -77,6 +87,7 @@ impl Config {
     /// Retrieve an effective value, returning JSON null when the key is absent.
     /// Missing values and explicit JSON null both return `Ok(&Value::Null)`.
     /// Paths address object keys, with dots separating nonempty segments.
+    /// Empty segments return [`Error::InvalidPath`]; array indexing is unsupported.
     pub fn get(&self, path: &str) -> Result<&Value> {
         validate_path(path)?;
         Ok(path
@@ -90,6 +101,7 @@ impl Config {
     /// deleted, the new file contains only this setting.
     /// Objects follow HOCON's merge semantics when combined with included values.
     /// Ambiguous source edits return [`Error::Edit`] without saving.
+    /// Changed source returns [`Error::Conflict`]; reopen before retrying.
     pub fn set(&mut self, path: &str, value: Value) -> Result<()> {
         self.modify(path, Some(&value))
     }
@@ -119,6 +131,7 @@ impl Config {
 
     /// Set several dot-separated paths in a single atomic save.
     /// No values are saved if any path or source edit fails.
+    /// Parent and child requests must resolve consistently with every requested value.
     pub fn set_many(&mut self, values: &serde_json::Map<String, Value>) -> Result<()> {
         let changes: Vec<_> = values
             .iter()
@@ -157,6 +170,8 @@ impl Config {
 }
 
 /// Validate a JSON-compatible value without changing it or retrieving references.
+/// Invalid or external schema references return [`Error::InvalidSchema`]; a
+/// nonmatching value returns [`Error::Validation`] with its first JSON Pointer.
 #[cfg(feature = "schema")]
 pub fn validate_value(value: &Value, schema: &Value) -> Result<()> {
     let validator = jsonschema::options()

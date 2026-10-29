@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 
+// Own the image slots and reusable video backend for this output.
 PanelWindow {
     id: surface
 
@@ -13,14 +14,17 @@ PanelWindow {
     property string kind: "image"
     property bool completed: false
     property string requestedSource: ""
+    // The old visible slot survives decoding and, when enabled, the replacement fade.
     property var currentImage: null
     property var pendingImage: null
     property var retiringImage: null
+    // Deferred failures belong to one request, even when its Loader slot is reused.
     property int generation: 0
 
     readonly property string sourcePath: settings?.wallpaper?.source ?? ""
     readonly property string fit: settings?.wallpaper?.fit ?? "fill"
     readonly property color backgroundColor: settings?.wallpaper?.background_color ?? "#000000"
+    // Center/tile preserve physical source pixels rather than enlarging them on HiDPI.
     readonly property real nativeScale: fit === "center" || fit === "tile" ? 1 / (screen?.devicePixelRatio || 1) : 1
     readonly property int imageFillMode: {
         switch (fit) {
@@ -88,6 +92,7 @@ PanelWindow {
             pendingImage.active = false;
             pendingImage = null;
         }
+        // mpvpaper selects its output at startup, so a screen change needs a new backend.
         if (force)
             video.active = false;
         if (!settings || !requestedSource || !screen) {
@@ -98,6 +103,7 @@ PanelWindow {
             mediaStatus = !settings ? "error" : screen ? "ready" : "loading";
             return;
         }
+        // Reverting a failed replacement can reuse the image that remained visible.
         if (!force && currentImage?.sourcePath === requestedSource && currentImage.item?.status === Image.Ready) {
             video.active = false;
             kind = currentImage.mediaKind;
@@ -112,8 +118,9 @@ PanelWindow {
     function render(mediaKind) {
         kind = mediaKind;
         if (kind === "video") {
-            deadline.stop(); // The video component owns its startup deadline.
+            deadline.stop(); // The video component owns the remaining loading deadline.
             if (video.item && video.item.status !== "error" && !video.item.stopping) {
+                // Changing media through IPC keeps the player's existing layer surface.
                 video.item.load(requestedSource);
                 videoStatusChanged();
             } else {
@@ -164,6 +171,7 @@ PanelWindow {
             mediaStatus = "ready";
             if (previous)
                 previous.z = 0;
+            // The fade covers Qt image slots; mpvpaper's separate surface is already released.
             if (!replacingVideo && fadeDuration > 0) {
                 retiringImage = previous;
                 fade.target = image;
@@ -204,6 +212,7 @@ PanelWindow {
     Loader {
         id: probe
         active: false
+        // A new request destroys the old probe; callbacks must still verify item identity.
         sourceComponent: Component {
             MediaProbe {
                 id: inspection

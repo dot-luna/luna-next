@@ -1,6 +1,7 @@
 use crate::{Error, Result};
 use serde_json::{Map, Value, json};
 
+// Embed the renderer-owned schema so API clients validate the same settings without an install.
 const SCHEMA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../src/luna-wallpaper/src/config.schema.json"
@@ -9,6 +10,7 @@ const SCHEMA: &str = include_str!(concat!(
 pub(super) fn schema() -> Result<Value> {
     Ok(serde_json::from_str(SCHEMA)?)
 }
+/// Fill application defaults for reads and validation without writing them into HOCON.
 pub(super) fn effective(value: &Value) -> Value {
     let mut defaults = json!({
         "wallpaper": {
@@ -35,6 +37,8 @@ pub(super) fn merge(target: &mut Value, changes: &Value) {
         *target = changes.clone();
     }
 }
+/// Convert patch leaves into local HOCON edits; empty objects add no writes.
+/// Object keys cannot contain dots because the editor uses dotted paths.
 pub(super) fn flatten(value: &Value, prefix: &str, output: &mut Map<String, Value>) -> Result<()> {
     if let Value::Object(fields) = value {
         for (key, value) in fields {

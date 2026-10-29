@@ -25,6 +25,8 @@ pub(crate) fn resolve(path: &Path) -> hocon_rs::Result<Value> {
 }
 
 pub(crate) fn resolve_value(path: &Path) -> hocon_rs::Result<Value> {
+    // The backend resolves objects. Wrap only a root array in memory, then
+    // extract it after includes and substitutions have been resolved.
     const ROOT_ARRAY: &str = "__hocon_root_array__";
     let mut array = false;
     let raw = file_with(path, &mut Vec::new(), |_, source| {
@@ -83,6 +85,7 @@ fn file_with(
     stack: &mut Vec<PathBuf>,
     parse: impl FnOnce(&Path, &str) -> hocon_rs::Result<RawObject>,
 ) -> hocon_rs::Result<RawObject> {
+    // Physical paths detect cycles even when includes reach a file through aliases.
     let path = fs::canonicalize(path)?;
     if stack.contains(&path) {
         return Err(Error::InclusionCycle);
@@ -108,6 +111,7 @@ fn includes(object: &mut RawObject, base: &Path, stack: &mut Vec<PathBuf>) -> ho
         match field {
             ObjectField::Inclusion { inclusion, .. } => match included(inclusion, base, stack) {
                 Ok(object) => inclusion.val = Some(Box::new(object)),
+                // Optional includes ignore absence, not permission or parse failures.
                 Err(Error::Io(error))
                     if !inclusion.required && error.kind() == io::ErrorKind::NotFound => {}
                 Err(error) => {
