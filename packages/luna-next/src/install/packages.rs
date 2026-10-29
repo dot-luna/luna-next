@@ -36,6 +36,12 @@ pub fn find_repository(explicit: Option<&Path>) -> Result<PathBuf> {
                 .map_err(|error| io_error("locate Luna Next checkout", &repository, error));
         }
     }
+    // Keep installed development builds usable outside the checkout.
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    if repository.join("installs/packages.conf").is_file() {
+        return fs::canonicalize(&repository)
+            .map_err(|error| io_error("locate Luna Next checkout", &repository, error));
+    }
     Err(Error::Message(
         "Cannot find package lists; run inside the Luna Next checkout or use --repo PATH.".into(),
     ))

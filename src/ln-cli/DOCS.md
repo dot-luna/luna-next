@@ -43,7 +43,8 @@ Set the [QML import path](../../packages/hocon-qml/DOCS.md#build-and-install)
 before launching wallpaper. Installation does not start apps or change the session.
 
 Locate the checkout with `--repo PATH`, `LUNA_NEXT_ROOT`, the current directory's
-ancestors, or `~/.local/src/luna-next` (checked in that order).
+ancestors, `~/.local/src/luna-next`, or the checkout used to build the CLI (checked
+in that order). The build-time fallback works while that checkout stays in place.
 
 ## Wallpaper
 

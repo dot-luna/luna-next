@@ -46,6 +46,24 @@ fn assert_default_include(config: &Path, defaults: &Path) -> String {
 }
 
 #[test]
+fn configure_uses_compiled_checkout_from_an_unrelated_directory() {
+    let root = tempfile::tempdir().unwrap();
+    let config = root.path().join("config/luna-next/wallpaper.conf");
+    let defaults = root.path().join("config/luna-next/defaults/wallpaper.conf");
+    let result = success(command(root.path()).args(["configure", "luna-wallpaper", "--json"]));
+
+    assert_eq!(result["installed"], json!(["luna-wallpaper"]));
+    assert_default_include(&config, &defaults);
+    assert_eq!(
+        fs::read(&defaults).unwrap(),
+        fs::read(repository().join("apps/luna-wallpaper/config/wallpaper.conf")).unwrap()
+    );
+    let resolved = success(command(root.path()).args(["wallpaper", "get-config", "--json"]));
+    assert_eq!(resolved["wallpaper"]["fit"], "fill");
+    assert_eq!(resolved["transition"]["duration_ms"], 200);
+}
+
+#[test]
 fn wallpaper_install_links_runtime_and_schema_and_configures_managed_defaults() {
     let root = tempfile::tempdir().unwrap();
     let repo = repository();
