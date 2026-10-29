@@ -12,7 +12,8 @@ lnxt install --pacman ripgrep    # Official package, even if unlisted
 lnxt install --mise              # Declared mise tools
 lnxt install --git yay           # Git package recipe
 lnxt install --local cli         # Local package; --apps is an alias
-lnxt setup                      # Install everything in the lists
+lnxt configure luna-wallpaper    # Copy missing app config, build templates if needed
+lnxt setup                      # Install packages and app configurations
 ```
 
 Names narrow the selected groups or source. Source flags (`--pacman`, `--aur`,
@@ -24,6 +25,13 @@ The [HOCON lists](../../installs/README.md) supply package objects and commands.
 Setup installs pacman packages, Git recipes (including yay), AUR packages, mise
 tools, then local packages. Direct AUR installs require yay already installed.
 Failures stop later steps; completed work remains.
+
+Package installs also configure matching [`apps/`](../../apps/README.md) entries;
+setup configures all apps. `lnxt configure [APP...]` runs only this stage.
+Builders generate files in staging, then managed defaults are refreshed. A missing
+user config gets an include of those defaults; existing user files and symlinks
+are kept. Configs use `XDG_CONFIG_HOME` (default `~/.config`); a nonempty `file_env`
+overrides the user config's full path.
 
 Git packages clone into `~/.local/src/<name>`. Local packages symlink their source
 there, or into `destination` relative to `~/.local`, then run their commands.

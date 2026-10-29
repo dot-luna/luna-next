@@ -2,7 +2,10 @@ use std::path::Path;
 
 use luna_next::{
     Error, Result,
-    install::{Source, find_repository, get_packages, install_packages},
+    install::{
+        Source, configure_installed_apps, find_repository, get_packages, install_app_configs,
+        install_packages,
+    },
 };
 use serde_json::Value;
 
@@ -29,11 +32,33 @@ pub(crate) fn run(arguments: &InstallArgs) -> Result<Value> {
     }
     let repository = find_repository(arguments.repo.as_deref())?;
     let packages = get_packages(&repository, &groups, source, &arguments.names)?;
-    Ok(serde_json::to_value(install_packages(&packages)?)?)
+    let mut report = install_packages(&packages)?;
+    let apps: Vec<_> = packages
+        .iter()
+        .map(|package| package.name.clone())
+        .collect();
+    if !apps.is_empty() {
+        let configurations = configure_installed_apps(&repository, &apps)?;
+        report.installed.extend(configurations.installed);
+        report.skipped.extend(configurations.skipped);
+    }
+    Ok(serde_json::to_value(report)?)
 }
 
 pub(crate) fn setup(repository: Option<&Path>) -> Result<Value> {
     let repository = find_repository(repository)?;
     let packages = get_packages(&repository, &[], None, &[])?;
-    Ok(serde_json::to_value(install_packages(&packages)?)?)
+    let mut report = install_packages(&packages)?;
+    let configurations = install_app_configs(&repository, &[])?;
+    report.installed.extend(configurations.installed);
+    report.skipped.extend(configurations.skipped);
+    Ok(serde_json::to_value(report)?)
+}
+
+pub(crate) fn configure(repository: Option<&Path>, names: &[String]) -> Result<Value> {
+    let repository = find_repository(repository)?;
+    Ok(serde_json::to_value(install_app_configs(
+        &repository,
+        names,
+    )?)?)
 }

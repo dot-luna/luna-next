@@ -7,7 +7,9 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
         println!("{}", json!({ "ok": true, "result": value }));
     } else {
         match command {
-            Command::Install(_) | Command::Setup { .. } => print_install(value),
+            Command::Install(_) | Command::Configure { .. } | Command::Setup { .. } => {
+                print_install(value)
+            }
             Command::Wallpaper { command } => print_human(command, value),
         }
     }

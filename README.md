@@ -10,6 +10,7 @@ bash scripts/setup.sh
 
 This updates the system, prepares mise and Rust, installs `lnxt` into
 `~/.local/bin`, then runs `lnxt setup` after five seconds. Setup installs the
-declared packages, tools, and local apps.
+declared packages, tools, and local apps, then builds app defaults and creates
+missing user configurations.
 
 See [CLI commands](src/ln-cli/DOCS.md) and the [installation lists](installs/README.md).

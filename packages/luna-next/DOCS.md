@@ -28,6 +28,15 @@ Both run their `command` arrays from the package directory. Local installs refre
 links and replace destination directories; sources and regular files are protected.
 Git changes are preserved. Local links require the checkout to remain available.
 
+`install_app_configs(repo, names)` configures [`apps/`](../../apps/README.md);
+empty names select all apps. `configure_installed_apps(repo, package_names)`
+selects apps by their `package` field, ignoring unmatched packages.
+Optional builders generate files in staging. An export's `defaults` path is
+refreshed on each run; its missing user config gets a HOCON include pointing there.
+Without `defaults`, exports are copied only when missing. User files and symlinks
+are preserved. Paths follow `XDG_CONFIG_HOME`; nonempty `file_env` overrides the
+user config path, otherwise `target` supplies the default.
+
 ## Wallpaper
 
 Use `luna_next::wallpaper::Wallpaper::from_env()` or `Wallpaper::new(Paths { ... })`

@@ -79,11 +79,26 @@ impl Sandbox {
         remote
     }
 
+    fn app_config(&self, name: &str) -> PathBuf {
+        let app = self.repository.join("apps").join(name);
+        fs::create_dir_all(app.join("config")).unwrap();
+        fs::write(app.join("config/file.conf"), "setting = default\n").unwrap();
+        write_json(
+            &app.join("app.conf"),
+            json!({
+                "config": "config",
+                "exports": [{"source": "file.conf", "target": format!("{name}/file.conf")}]
+            }),
+        );
+        self.root.path().join("config").join(name).join("file.conf")
+    }
+
     fn command(&self) -> Command {
         let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
         command
             .env_clear()
             .env("HOME", self.root.path().join("home"))
+            .env("XDG_CONFIG_HOME", self.root.path().join("config"))
             .env("PATH", self.root.path().join("bin"))
             .env("FAKE_LOG", self.root.path().join("commands.log"))
             .env("GIT_CONFIG_NOSYSTEM", "1")
@@ -246,21 +261,99 @@ fn git_packages_clone_once_and_run_the_declared_commands() {
 fn setup_installs_sources_in_order_and_keeps_progress_out_of_json_stdout() {
     let sandbox = Sandbox::new();
     sandbox.git_recipe();
+    let config = sandbox.app_config("demo");
+    write_json(
+        &sandbox.repository.join("apps/demo/app.conf"),
+        json!({
+            "command": [["/bin/sh", "-c", "printf 'configure\\n' >> \"$FAKE_LOG\""]],
+            "exports": [{"source": "file.conf", "target": "demo/file.conf"}]
+        }),
+    );
     let result = sandbox.success(&["setup", "--json"]);
     assert_eq!(
         result["installed"],
-        json!(["git", "mpv", "yay", "mpvpaper", "rust@stable", "cli"])
+        json!([
+            "git",
+            "mpv",
+            "yay",
+            "mpvpaper",
+            "rust@stable",
+            "cli",
+            "demo"
+        ])
     );
+    assert_eq!(fs::read_to_string(config).unwrap(), "setting = default\n");
     let log = sandbox.log();
     let pacman = log.find("pacman\t").unwrap();
     let git = log.find("fake-build\tyay").unwrap();
     let aur = log.find("yay\t-S").unwrap();
     let mise = log.find("mise\t").unwrap();
     let local = log.find("fake-build\tcli").unwrap();
+    let configure = log.find("configure\n").unwrap();
     assert!(
-        pacman < git && git < aur && aur < mise && mise < local,
+        pacman < git && git < aur && aur < mise && mise < local && local < configure,
         "{log}"
     );
+}
+
+#[test]
+fn package_installs_configure_only_matching_apps_after_success() {
+    for source in ["--pacman", "--local"] {
+        let sandbox = Sandbox::new();
+        let package = if source == "--pacman" { "git" } else { "cli" };
+        let config = sandbox.app_config("demo");
+        let unrelated = sandbox.app_config("other");
+        write_json(
+            &sandbox.repository.join("apps/demo/app.conf"),
+            json!({
+                "package": package,
+                "exports": [{"source": "file.conf", "target": "demo/file.conf"}]
+            }),
+        );
+        let result = sandbox.success(&["install", source, package, "--json"]);
+        assert_eq!(result["installed"], json!([package, "demo"]));
+        assert_eq!(fs::read_to_string(&config).unwrap(), "setting = default\n");
+        assert!(!unrelated.exists());
+    }
+
+    let sandbox = Sandbox::new();
+    let config = sandbox.app_config("cli");
+    let output = sandbox
+        .command()
+        .env("FAKE_FAIL", "fake-build")
+        .args(["install", "--local", "cli", "--json"])
+        .output()
+        .unwrap();
+    assert!(!output.status.success(), "{output:?}");
+    assert!(!config.exists());
+}
+
+#[test]
+fn configure_selects_apps_and_preserves_existing_files_without_installing_packages() {
+    let sandbox = Sandbox::new();
+    let config = sandbox.app_config("demo");
+    let other_config = sandbox.app_config("other");
+    let output = sandbox
+        .command()
+        .current_dir(sandbox.root.path())
+        .args(["configure", "demo", "--json", "--repo"])
+        .arg(&sandbox.repository)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(response["result"]["installed"], json!(["demo"]));
+    assert_eq!(fs::read_to_string(&config).unwrap(), "setting = default\n");
+    assert!(!other_config.exists());
+    fs::write(&config, "# User settings\nsetting = custom\n").unwrap();
+    let output = sandbox.run(&["configure", "demo"]);
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(output.stdout, b"Skipped: demo\n");
+    assert_eq!(
+        fs::read_to_string(config).unwrap(),
+        "# User settings\nsetting = custom\n"
+    );
+    assert!(sandbox.log().is_empty());
 }
 
 #[test]
@@ -381,17 +474,21 @@ fn discovers_repository_from_environment_ancestors_and_standard_source_directory
 
 #[test]
 fn package_failures_return_one_error_response_and_stop() {
-    let sandbox = Sandbox::new();
-    let output = sandbox
-        .command()
-        .env("FAKE_FAIL", "pacman")
-        .args(["setup", "--json"])
-        .output()
-        .unwrap();
-    assert_eq!(output.status.code(), Some(1), "{output:?}");
-    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(response["ok"], false);
-    assert_eq!(sandbox.log().lines().count(), 1);
+    for (tool, commands) in [("pacman", 1), ("fake-build", 4)] {
+        let sandbox = Sandbox::new();
+        let config = sandbox.app_config("demo");
+        let output = sandbox
+            .command()
+            .env("FAKE_FAIL", tool)
+            .args(["setup", "--json"])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1), "{output:?}");
+        let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(response["ok"], false);
+        assert_eq!(sandbox.log().lines().count(), commands);
+        assert!(!config.exists());
+    }
 }
 
 #[test]
@@ -401,6 +498,7 @@ fn help_lists_install_selectors_and_no_build_command() {
     assert!(output.status.success());
     let help = String::from_utf8(output.stdout).unwrap();
     assert!(help.contains("install"));
+    assert!(help.contains("configure"));
     assert!(help.contains("setup"));
     assert!(
         !help

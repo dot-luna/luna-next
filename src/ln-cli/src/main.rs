@@ -35,6 +35,9 @@ fn main() -> ExitCode {
     };
     let result: Result<_, Box<dyn std::error::Error>> = match &cli.command {
         Command::Install(arguments) => install::run(arguments).map_err(Into::into),
+        Command::Configure { names, repo } => {
+            install::configure(repo.as_deref(), names).map_err(Into::into)
+        }
         Command::Setup { repo } => install::setup(repo.as_deref()).map_err(Into::into),
         Command::Wallpaper { command } => wallpaper::run(command, cli.json),
     };

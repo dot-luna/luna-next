@@ -16,7 +16,16 @@ pub(crate) struct Cli {
 pub(crate) enum Command {
     /// Install package groups, named packages, or local applications.
     Install(InstallArgs),
-    /// Install all package groups, tools, and local applications.
+    /// Install app configurations, preserving existing user files.
+    Configure {
+        /// Configure these apps; omit names to configure all apps.
+        #[arg(value_name = "APP")]
+        names: Vec<String>,
+        /// Use this Luna Next checkout.
+        #[arg(long, value_name = "PATH")]
+        repo: Option<PathBuf>,
+    },
+    /// Install all packages and app configurations.
     Setup {
         /// Use this Luna Next checkout.
         #[arg(long, value_name = "PATH")]
