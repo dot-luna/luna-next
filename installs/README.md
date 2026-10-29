@@ -30,14 +30,15 @@ core = [
 arrays. Local `url` paths resolve from this checkout. Keep build/install steps in
 the project and call its task, for example `[["mise", "run", "install:hocon-qml"]]`.
 
-Git recipes receive the selected ref as `$LUNA_PACKAGE_VERSION` (`v1.2.3`, not
-`latest`). Tag filters apply only to `latest`; explicit branches/tags are unchanged.
+Git/local recipes receive the catalog checkout as `$LUNA_NEXT_ROOT`. Git recipes
+also receive the selected ref as `$LUNA_PACKAGE_VERSION` (`v1.2.3`, not `latest`).
+Tag filters apply only to `latest`; explicit branches/tags are unchanged.
 Without a pattern, an untagged remote uses its default branch. No matching or
 eligible tags returns an error. Prerelease detection recognizes SemVer tags with
 an optional `v`; other tag names remain eligible.
 
-The `t3code` recipe installs the official x86_64 Linux AppImage into
-`~/.local/bin/t3code`:
+The [T3 recipe](../apps/t3code/DOCS.md) builds the x86_64 Linux app with Luna's
+boxy UI and defaults, then installs a launcher into `~/.local/bin/t3code`:
 
 ```sh
 lnxt install --git t3code

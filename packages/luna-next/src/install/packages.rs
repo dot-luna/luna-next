@@ -54,6 +54,7 @@ pub fn find_repository(explicit: Option<&Path>) -> Result<PathBuf> {
 /// Empty groups select all lists allowed by `source`; empty names select all matches.
 /// Unlisted names are accepted only for an explicit pacman/AUR source without groups.
 /// Local relative URLs resolve against `repository`, independently of the working directory.
+/// Recipes retain the canonical checkout for commands' `LUNA_NEXT_ROOT` environment variable.
 pub fn get_packages(
     repository: &Path,
     groups: &[&str],
@@ -131,6 +132,7 @@ pub fn get_packages(
     packages.retain(|package| source.is_none_or(|source| package.source == source));
     let mut seen = HashSet::new();
     for package in &mut packages {
+        package.repository = Some(repository.clone());
         identifier(&package.name)?;
         if !seen.insert((package.source, package.name.clone())) {
             return Err(Error::Message(format!(
@@ -175,6 +177,7 @@ pub fn get_packages(
             selected.push(Package {
                 name: name.clone(),
                 source: source.unwrap(),
+                repository: Some(repository.clone()),
                 ..Package::default()
             });
         } else {

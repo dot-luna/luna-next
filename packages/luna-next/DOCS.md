@@ -27,8 +27,9 @@ Git packages shallow-clone into `~/.local/src/<name>` and update existing checko
 Other tag names remain eligible. Filters do not affect explicit branches/tags.
 Without a pattern, untagged remotes use the default branch; no matching or
 eligible tags is an error.
-Git commands receive the selected ref as `LUNA_PACKAGE_VERSION`, unset when no
-ref was selected. Local packages symlink their source into
+Catalog recipes receive their checkout as `LUNA_NEXT_ROOT`. Git commands also
+receive the selected ref as `LUNA_PACKAGE_VERSION`, unset when no ref was selected.
+Local packages symlink their source into
 `~/.local/src/<name>` or `destination` relative to `~/.local`.
 Both run their `command` arrays from the package directory. Local installs refresh
 links and replace destination directories; sources and regular files are protected.

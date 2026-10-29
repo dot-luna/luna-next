@@ -35,6 +35,10 @@ pub struct Report {
 pub struct Package {
     pub name: String,
     pub source: Source,
+    /// Canonical catalog checkout, populated by [`super::get_packages`], never from a manifest.
+    /// Commands receive this as `LUNA_NEXT_ROOT`; `None` preserves the inherited variable.
+    #[serde(skip)]
+    pub repository: Option<PathBuf>,
     /// Git remote URL or local source directory; unused by package-manager sources.
     pub url: Option<String>,
     /// Git branch/tag (`latest` selects the highest eligible remote tag), or mise version.
@@ -444,6 +448,9 @@ fn run_commands(package: &Package, directory: &Path, version: Option<&str>) -> R
     for arguments in &package.command {
         let mut command = Command::new(&arguments[0]);
         command.args(&arguments[1..]).current_dir(directory);
+        if let Some(repository) = &package.repository {
+            command.env("LUNA_NEXT_ROOT", repository);
+        }
         // Recipes need the selected tag, rather than the literal "latest", for release assets.
         if let Some(version) = version {
             command.env(

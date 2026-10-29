@@ -109,6 +109,12 @@ fn repository_manifests_load_with_current_local_sources() {
 fn default_selection_loads_all_catalogs_without_installing() {
     let root = fixture();
     let packages = select(root.path(), &[], None, &[]).unwrap();
+    let repository = root.path().canonicalize().unwrap();
+    assert!(
+        packages
+            .iter()
+            .all(|package| package.repository.as_deref() == Some(repository.as_path()))
+    );
     assert_eq!(
         names(&packages),
         ["git", "kitty", "mpvpaper", "rust", "wallpaper", "yay"]
@@ -169,11 +175,16 @@ fn names_lookup_across_manifests_preserves_order_and_respects_filters() {
 #[test]
 fn explicit_system_sources_allow_unlisted_names_without_a_group() {
     let root = fixture();
+    let repository = root.path().canonicalize().unwrap();
     for source in [Source::Pacman, Source::Aur] {
         let packages = select(root.path(), &[], Some(source), &["unlisted"]).unwrap();
         assert_eq!(packages.len(), 1);
         assert_eq!(packages[0].name, "unlisted");
         assert_eq!(packages[0].source, source);
+        assert_eq!(
+            packages[0].repository.as_deref(),
+            Some(repository.as_path())
+        );
         assert!(packages[0].url.is_none());
         assert!(packages[0].version.is_none());
         assert!(packages[0].command.is_empty());

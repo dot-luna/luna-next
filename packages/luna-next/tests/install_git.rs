@@ -4,7 +4,7 @@ use std::{
     process::{Command, Output},
 };
 
-use luna_next::install::{Package, Source, install, install_via_git};
+use luna_next::install::{Package, Source, get_packages, install, install_via_git};
 
 fn scenario(name: &str) {
     let temp = tempfile::Builder::new()
@@ -39,6 +39,11 @@ fn scenario(name: &str) {
         "GIT_CONFIG_PARAMETERS",
     ] {
         child.env_remove(key);
+    }
+    if matches!(name, "repository" | "inherited_repository") {
+        child
+            .env("LUNA_NEXT_ROOT", temp.path().join("wrong repository"))
+            .current_dir(&home);
     }
     let output = child.output().unwrap();
     assert!(
@@ -102,6 +107,7 @@ impl Fixture {
         Package {
             name: "sample".into(),
             source: Source::Git,
+            repository: None,
             url: Some(
                 url::Url::from_directory_path(&self.remote)
                     .unwrap()
@@ -139,6 +145,16 @@ impl Fixture {
 #[test]
 fn shallow_clone_runs_commands_in_the_checkout_without_shell_argument_expansion() {
     scenario("clone");
+}
+
+#[test]
+fn catalog_commands_use_the_selected_repository_instead_of_cwd_or_inherited_environment() {
+    scenario("repository");
+}
+
+#[test]
+fn direct_recipes_preserve_the_inherited_repository_environment() {
+    scenario("inherited_repository");
 }
 
 #[test]
@@ -233,6 +249,57 @@ fn git_scenario() {
     }
     let fixture = Fixture::new();
     match std::env::var("LUNA_GIT_TEST_SCENARIO").unwrap().as_str() {
+        "repository" => {
+            let repository = fixture.root.join("luna repository");
+            fs::create_dir_all(repository.join("installs")).unwrap();
+            fs::create_dir_all(repository.join("apps/sample/src")).unwrap();
+            fs::write(
+                repository.join("apps/sample/src/build.sh"),
+                "printf '%s' \"$LUNA_NEXT_ROOT\" > recipe-root.txt\npwd -P > recipe-cwd.txt\n",
+            )
+            .unwrap();
+            let manifest = serde_json::json!([{
+                "name": "sample",
+                "source": "git",
+                "url": fixture.package(None).url,
+                "repository": "/not-the-catalog-checkout",
+                "command": [["/bin/sh", "-c", "exec /bin/sh \"$LUNA_NEXT_ROOT/apps/sample/src/build.sh\""]]
+            }]);
+            fs::write(
+                repository.join("installs/packages.git.conf"),
+                serde_json::to_string(&manifest).unwrap(),
+            )
+            .unwrap();
+            let alias = fixture.root.join("repository link");
+            std::os::unix::fs::symlink(&repository, &alias).unwrap();
+            let packages = get_packages(&alias, &[], Some(Source::Git), &[]).unwrap();
+            let canonical = repository.canonicalize().unwrap();
+            assert_eq!(packages[0].repository.as_deref(), Some(canonical.as_path()));
+            install_via_git(&packages).unwrap();
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("recipe-root.txt")).unwrap(),
+                canonical.to_str().unwrap()
+            );
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("recipe-cwd.txt"))
+                    .unwrap()
+                    .trim(),
+                fixture.checkout.to_str().unwrap()
+            );
+        }
+        "inherited_repository" => {
+            let mut package = fixture.package(None);
+            package.command = vec![vec![
+                "/bin/sh".into(),
+                "-c".into(),
+                "printf '%s' \"$LUNA_NEXT_ROOT\" > recipe-root.txt".into(),
+            ]];
+            install_via_git(&[package]).unwrap();
+            assert_eq!(
+                fs::read_to_string(fixture.checkout.join("recipe-root.txt")).unwrap(),
+                std::env::var("LUNA_NEXT_ROOT").unwrap()
+            );
+        }
         "clone" => {
             fixture.commit("second");
             let expected = fixture.commit("third");
