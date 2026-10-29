@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Comments"
+  short_description: "Explain Luna Next contracts and non-obvious code"
+  default_prompt: "Use $code-comments to document the requested Luna Next code with verified contracts and meaningful comments, preserving executable behavior."
+policy:
+  allow_implicit_invocation: true

@@ -22,6 +22,8 @@
 - Keep comments that explain intent, invariants, compatibility constraints, or
   non-obvious tradeoffs. Use API docs for caller-relevant behavior and errors;
   avoid comments that repeat the code or compensate for unclear names.
+- Use `.agents/skills/code-comments/SKILL.md` for code-comment and API-doc work;
+  verify claims against implementations and callers within the requested scope.
 - Keep `packages/hocon` a standalone Rust configuration helper. Preserve includes
   and unrelated source text when editing; never save resolved data over the file.
 - Keep `packages/hocon-qml` a separate, one-shot adapter exposing only
