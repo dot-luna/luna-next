@@ -29,4 +29,3 @@ fn configure() -> luna_next_hocon::Result<()> {
 Opening creates missing files and parent directories. Missing keys return JSON null.
 
 See [DOCS.md](DOCS.md) for API details, file behavior, limitations, and tests.
-For Quickshell, use the [QML adapter](../hocon-qml/README.md).
