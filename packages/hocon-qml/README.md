@@ -23,5 +23,4 @@ cmake --build target/hocon-qml
 QML_IMPORT_PATH="$PWD/target/hocon-qml/qml" quickshell -p /path/to/shell.qml
 ```
 
-Use `config` directly in memory. See [DOCS.md](DOCS.md) for requirements,
-installation, behavior, errors, and tests.
+Use `config` directly in memory. See [DOCS.md](DOCS.md) for setup, behavior, and tests.
