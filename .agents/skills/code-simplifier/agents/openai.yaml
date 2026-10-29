@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Simplifier"
+  short_description: "Simplify code with clean, modular, low-side-effect refactors"
+  default_prompt: "Use $code-simplifier to simplify this code with clean, modular structure and functional-style data flow without changing behavior."

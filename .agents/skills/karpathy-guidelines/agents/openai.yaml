@@ -1,0 +1,4 @@
+interface:
+  display_name: "Karpathy Guidelines"
+  short_description: "Cautious coding rules for cleaner diffs"
+  default_prompt: "Use $karpathy-guidelines while making this code change."
