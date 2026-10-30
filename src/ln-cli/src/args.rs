@@ -42,6 +42,11 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: PolkitCommand,
     },
+    /// Show the application launcher or manage its session service.
+    Menu {
+        #[command(subcommand)]
+        command: Option<MenuCommand>,
+    },
     /// Configure desktop secret storage.
     Keyring {
         #[command(subcommand)]
@@ -152,6 +157,26 @@ pub(crate) enum PolkitCommand {
     /// Print running, unavailable, or stopped.
     Status,
     /// Run the agent in the foreground; used by the user service.
+    Serve,
+}
+
+#[derive(Subcommand)]
+pub(crate) enum MenuCommand {
+    /// Validate, enable session startup, and start hidden; preserve a ready instance.
+    Start,
+    /// Stop the launcher service for this session.
+    Stop,
+    /// Validate, then replace the service with a hidden launcher.
+    Restart,
+    /// Print running or stopped, independent of window visibility.
+    Status,
+    /// Start the service if needed and show the launcher.
+    Show,
+    /// Hide the launcher without starting a stopped service.
+    Hide,
+    /// Start the service if needed and toggle launcher visibility.
+    Toggle,
+    /// Run the hidden launcher in the foreground; used by the user service.
     Serve,
 }
 

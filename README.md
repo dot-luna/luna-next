@@ -1,6 +1,7 @@
 # Luna Next
 
-Rust configuration libraries, shared themes, a wallpaper app, and the `lnxt` CLI.
+Rust configuration libraries, shared themes, wallpaper, an application menu,
+desktop authentication, and the `lnxt` CLI.
 
 On Arch Linux, run as your normal user with sudo access:
 

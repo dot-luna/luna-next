@@ -11,13 +11,13 @@ use std::{
 
 use crate::{Error, Result, io_error};
 
-pub(super) struct Output {
+pub(crate) struct Output {
     pub status: ExitStatus,
     pub stdout: String,
     pub stderr: String,
 }
 
-pub(super) fn quickshell() -> Result<PathBuf> {
+pub(crate) fn quickshell() -> Result<PathBuf> {
     for name in ["qs", "quickshell"] {
         for directory in env::split_paths(&env::var_os("PATH").unwrap_or_default()) {
             let candidate = directory.join(name);
@@ -35,7 +35,7 @@ pub(super) fn quickshell() -> Result<PathBuf> {
 
 /// A separate process group lets a timeout also release validation helpers.
 /// Temporary files avoid deadlock if a command fills an inherited output pipe.
-pub(super) fn run(command: &mut Command, timeout: Duration) -> Result<Output> {
+pub(crate) fn run(command: &mut Command, timeout: Duration) -> Result<Output> {
     let executable = PathBuf::from(command.get_program());
     let mut stdout = tempfile::tempfile()
         .map_err(|error| io_error("capture command output", &executable, error))?;
@@ -96,7 +96,7 @@ fn read(file: &mut File, executable: &Path) -> Result<String> {
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
-pub(super) fn checked(action: &str, output: Output) -> Result<()> {
+pub(crate) fn checked(action: &str, output: Output) -> Result<()> {
     if output.status.success() {
         return Ok(());
     }

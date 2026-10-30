@@ -1,3 +1,6 @@
+-- Layer surfaces need their own blur rule; leave the transparent dismiss area clear.
+hl.layer_rule({ match = { namespace = "^luna-next-menu$" }, blur = true, ignore_alpha = 0 })
+
 -- Match Zen's video overlay without affecting ordinary tabs that mention PiP.
 hl.window_rule({
     match = { class = "^(zen|zen-browser)$", title = "^Picture-in-Picture$" },

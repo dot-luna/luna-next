@@ -43,6 +43,10 @@ lnxt configure luna-wallpaper
 existing destination files, folders, or symlinks without backups. A folder export
 replaces the whole folder, including obsolete files.
 
+The Hyprland export also replaces its active Lua entry under `hypr/hyprland.lua`
+(`HYPRLAND_CONFIG` overrides that path). Its session startup prepares wallpaper,
+polkit, and the hidden application menu; Super+Space toggles the menu.
+
 [Kitty](kitty/DOCS.md), [Zsh](zsh/DOCS.md), and [Starship](starship/DOCS.md) have
 matching package entries in [`installs/`](../installs/README.md). To refresh their
 configs without reinstalling packages:

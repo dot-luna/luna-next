@@ -1,0 +1,18 @@
+[Unit]
+Description=Luna Next application menu
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart="%h/.local/bin/lnxt" menu serve
+UnsetEnvironment=LUNA_NEXT_MENU_VALIDATE LUNA_NEXT_MENU_THEME
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=5
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target

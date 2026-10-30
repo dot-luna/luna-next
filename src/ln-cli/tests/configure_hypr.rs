@@ -3,7 +3,7 @@ use std::{fs, os::unix::fs::symlink, path::Path, process::Command};
 use serde_json::{Value, json};
 
 #[test]
-fn hypr_configure_replaces_exported_modules_and_leaves_personal_config_untouched() {
+fn hypr_configure_replaces_exported_modules_and_managed_startup_entry() {
     let root = tempfile::Builder::new()
         .prefix("lnxt hypr ' ")
         .tempdir()
@@ -53,7 +53,7 @@ fn hypr_configure_replaces_exported_modules_and_leaves_personal_config_untouched
     assert!(exported > 1);
     assert_eq!(
         fs::read_to_string(&personal).unwrap(),
-        "-- personal Lua settings\n"
+        fs::read_to_string(source.join("entry.lua")).unwrap()
     );
     let input = target.join("input.lua");
     fs::write(&input, "-- customized input settings\n").unwrap();
@@ -83,6 +83,6 @@ fn hypr_configure_replaces_exported_modules_and_leaves_personal_config_untouched
     assert!(!obsolete.exists());
     assert_eq!(
         fs::read_to_string(&personal).unwrap(),
-        "-- personal Lua settings\n"
+        fs::read_to_string(source.join("entry.lua")).unwrap()
     );
 }

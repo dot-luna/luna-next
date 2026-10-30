@@ -8,6 +8,7 @@ hl = {
     config = function(settings) calls[#calls + 1] = settings end,
     monitor = function(settings) calls.monitor = settings end,
     window_rule = function() end,
+    layer_rule = function() end,
     gesture = function() end,
     curve = function() end,
     animation = function() end,

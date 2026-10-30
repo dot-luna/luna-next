@@ -6,8 +6,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::{Polkit, Status, UNIT, process};
-use crate::{Error, Result, config_io, io_error, theme::Themes};
+use super::{Polkit, Status, UNIT};
+use crate::{Error, Result, config_io, io_error, process, theme::Themes};
 
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
 const START_TIMEOUT: Duration = Duration::from_secs(12);

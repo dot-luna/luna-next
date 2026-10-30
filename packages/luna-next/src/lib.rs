@@ -3,7 +3,9 @@
 mod config_io;
 pub mod install;
 pub mod keyring;
+pub mod menu;
 pub mod polkit;
+mod process;
 pub mod theme;
 pub mod wallpaper;
 

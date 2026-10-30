@@ -114,6 +114,7 @@ fn repository_manifests_load_with_current_local_sources() {
         ("hocon-qml", "packages/hocon-qml"),
         ("wallpaper", "src/luna-wallpaper/src"),
         ("cli", "src/ln-cli"),
+        ("menu", "src/luna-menu/src"),
         ("polkit", "src/luna-polkit/src"),
     ] {
         let package = packages

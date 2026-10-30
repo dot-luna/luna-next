@@ -7,13 +7,17 @@ Uses Hyprland's Lua API; verified with Hyprland 0.57.0.
 `lnxt configure hypr` installs files under
 `$XDG_CONFIG_HOME/luna-next/hypr` (default `~/.config/luna-next/hypr`). Setup and
 Hyprland package installation also configure these files. Each run replaces the
-exported folder without backups. Your active Hyprland config is unchanged; connect
-it with the `dofile` in [README.md](README.md), then reload Hyprland when ready.
+exported folder and `$XDG_CONFIG_HOME/hypr/hyprland.lua` entry without backups.
+`HYPRLAND_CONFIG` overrides the complete entry path. Reload Hyprland after
+configuration; session startup runs at login.
 
 The configuration needs Kitty, `xdg-terminal-exec`, `flock` (util-linux), and
 `gtk-launch`/`xdg-mime` (gtk3/xdg-utils) for its application shortcuts. Session
-startup runs the installed `~/.local/bin/lnxt wallpaper start` with the local QML
-import path. Install the [wallpaper app](../../src/luna-wallpaper/DOCS.md) first.
+startup starts [wallpaper](../../src/luna-wallpaper/DOCS.md),
+[polkit](../../src/luna-polkit/DOCS.md), and the hidden
+[application menu](../../src/luna-menu/DOCS.md) through the installed
+`~/.local/bin/lnxt`. Wallpaper receives the local QML import path. Install these
+apps before using the startup configuration.
 
 ## Defaults
 
@@ -23,12 +27,13 @@ import path. Install the [wallpaper app](../../src/luna-wallpaper/DOCS.md) first
 - Keyboard repeat 40/250 ms, touchpad tapping, and three-finger workspace swipes.
 - Tokyo Night borders, square corners, gaps, opacity, blur, and spring animations.
 - Zen Picture-in-Picture, portal dialogs, and a dedicated Kitty drop-down rule.
-- Wallpaper starts at login; config reloads do not restart it.
+- Wallpaper, polkit, and the menu start at login; config reloads do not restart them.
 
 ## Shortcuts
 
 | Keys | Action |
 | --- | --- |
+| Super+Space | Toggle the application menu. |
 | Super+Enter / Super+Shift+Enter | Default terminal / browser. |
 | Super+W / Super+Shift+W | Close window / workspace windows. |
 | Super+F / Super+Alt+F | Fullscreen / maximize. |
@@ -58,8 +63,6 @@ reload Hyprland to read the selected theme's semantic `appearance` and palette.
 With no theme selection file, the defaults above apply. Invalid themes are reported;
 personal settings loaded after Luna Next can override its appearance.
 See [theme commands](../../src/ln-cli/DOCS.md#themes).
-
-Session startup also starts the installed [polkit agent](../../src/luna-polkit/README.md).
 
 ## Checks
 

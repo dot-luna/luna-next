@@ -1,4 +1,5 @@
 return function(bind)
+    bind("SUPER + Space", hl.dsp.exec_cmd('"$HOME/.local/bin/lnxt" menu toggle'), "Toggle Luna menu")
     bind("SUPER + Return", hl.dsp.exec_cmd("xdg-terminal-exec"), "Open default terminal")
 
     -- Resolve the browser on each press so changes to the default take effect immediately.

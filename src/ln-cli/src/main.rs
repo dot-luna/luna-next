@@ -1,6 +1,7 @@
 mod args;
 mod install;
 mod keyring;
+mod menu;
 mod output;
 mod polkit;
 mod theme;
@@ -46,6 +47,7 @@ fn main() -> ExitCode {
         Command::Wallpaper { command } => wallpaper::run(command, cli.json),
         Command::Theme { command } => theme::run(command, cli.json),
         Command::Polkit { command } => polkit::run(command, cli.json),
+        Command::Menu { command } => menu::run(command.as_ref(), cli.json),
         Command::Keyring { command } => keyring::run(command).map_err(Into::into),
     };
     match result {

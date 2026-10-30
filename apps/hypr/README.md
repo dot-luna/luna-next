@@ -1,7 +1,7 @@
 # Hyprland
 
 Hyprland Lua configuration for Luna Next: monitors, workspaces, input, appearance,
-animations, shortcuts, and wallpaper startup.
+animations, shortcuts, and session startup.
 
 Install the configuration:
 
@@ -9,14 +9,7 @@ Install the configuration:
 lnxt configure hypr
 ```
 
-Add this before personal settings in your Hyprland Lua config:
-
-```lua
-local config_home = os.getenv("XDG_CONFIG_HOME")
-if not config_home or config_home == "" then
-    config_home = os.getenv("HOME") .. "/.config"
-end
-dofile(config_home .. "/luna-next/hypr/hyprland.lua")
-```
+This replaces the active Hyprland Lua entry. Reload Hyprland to use the new
+shortcuts, including **Super+Space** for the application menu.
 
 See [DOCS.md](DOCS.md) for shortcuts, dependencies, and checks.

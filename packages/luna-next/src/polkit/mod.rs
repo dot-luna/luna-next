@@ -1,7 +1,6 @@
 //! Session-owned authentication agent. Passwords stay inside Quickshell's native
 //! polkit conversation; lifecycle IPC exposes only registration status.
 
-mod process;
 mod service;
 
 use std::{env, path::PathBuf};

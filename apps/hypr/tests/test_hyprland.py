@@ -76,29 +76,41 @@ end
 assert(bindings["SUPER + S"].dispatcher.options == "luna-next-scratchpad")
 for _, entry in pairs(bindings) do
     if type(entry.dispatcher) == "table" and entry.dispatcher.kind == "exec" then
-        assert(entry.dispatcher.options == "xdg-terminal-exec" or
+        assert(entry.dispatcher.options == '"$HOME/.local/bin/lnxt" menu toggle' or
+            entry.dispatcher.options == "xdg-terminal-exec" or
             entry.dispatcher.options:match("^gtk%-launch "), "unsupported application shortcut")
     end
 end
 assert(not bindings["Print"] and not bindings["XF86AudioRaiseVolume"])
-assert(not bindings["SUPER + Space"] and not bindings["SUPER + L"])
+assert(bindings["SUPER + Space"].dispatcher.options == '"$HOME/.local/bin/lnxt" menu toggle')
+assert(not bindings["SUPER + L"])
 bindings["SUPER + grave"].dispatcher()
 assert(#commands == 1 and #timers == 1)
 assert(commands[1].options ==
     'flock -n "${XDG_RUNTIME_DIR:?}/luna-next-dropdown-${HYPRLAND_INSTANCE_SIGNATURE:?}.lock" kitty --class luna-next-dropdown')
 ''')
 
-    def test_only_startup_launches_wallpaper_and_polkit(self):
+    def test_managed_entry_loads_next_modules_from_xdg_config_home(self):
+        self.link.unlink()
+        shutil.copy2(self.installed / "entry.lua", self.link)
+        self.lua('''
+dofile(arg[1])
+assert(bindings["SUPER + Space"].dispatcher.options == '"$HOME/.local/bin/lnxt" menu toggle')
+assert(#commands == 0, "entry loading must not start session apps")
+''', entry=self.link)
+
+    def test_only_startup_launches_wallpaper_polkit_and_menu(self):
         self.lua('''
 dofile(arg[1])
 assert(#commands == 0)
 fire("config.reloaded")
 assert(#commands == 0, "configuration reload must not restart session apps")
 fire("hyprland.start")
-assert(#commands == 2 and commands[1].kind == "exec" and commands[2].kind == "exec")
+assert(#commands == 3 and commands[1].kind == "exec" and commands[2].kind == "exec" and commands[3].kind == "exec")
 assert(commands[1].options ==
     'QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}" "$HOME/.local/bin/lnxt" wallpaper start')
 assert(commands[2].options == '"$HOME/.local/bin/lnxt" polkit start')
+assert(commands[3].options == '"$HOME/.local/bin/lnxt" menu start')
 ''')
 
     def test_shared_theme_appearance_is_loaded_on_configuration_reload(self):

@@ -42,7 +42,8 @@ there, or into `destination` relative to `~/.local`, then run their commands.
 Local installs refresh links and replace existing destination directories.
 The current recipes install `lnxt` into `~/.local/bin`, the QML module into
 `~/.local/lib/qt6/qml`, and link wallpaper into
-`~/.local/share/luna-next/wallpaper`. Keep the checkout available for local links.
+`~/.local/share/luna-next/wallpaper`, plus menu and polkit under the same base.
+Keep the checkout available for local links.
 Set the [QML import path](../../packages/hocon-qml/DOCS.md#build-and-install)
 before launching wallpaper. Package installation does not start desktop apps;
 full setup also starts the keyring socket for Secret Service activation.
@@ -92,6 +93,21 @@ The managed T3 launcher applies Luna's theme on startup. Run
 `lnxt theme apply t3code` to refresh an open app's palette; restart T3 for fonts.
 It honors `T3CODE_HOME` (default `~/.t3`) and retains unrelated preferences.
 See [T3 setup and limitations](../../apps/t3code/DOCS.md).
+
+## Menu
+
+```sh
+lnxt install --local cli menu
+lnxt menu
+lnxt menu toggle
+```
+
+The menu contains only **Apps** and its searchable installed-application list.
+`start` prepares a hidden instance and enables login startup; `show` (the default)
+and `toggle` start it when needed. `hide`, `stop`, `restart`, `status`, and the
+service's foreground `serve` are also available. Restart after changing themes.
+The managed Hyprland configuration starts the menu at login and binds Super+Space
+to toggle it. See [menu setup and behavior](../luna-menu/DOCS.md).
 
 ## Keyring
 

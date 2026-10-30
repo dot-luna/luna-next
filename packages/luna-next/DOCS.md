@@ -90,6 +90,18 @@ atomically, with optimistic checks for external edits. Late failures can leave a
 partial application. T3 fonts need a desktop restart; palette updates use T3's own
 environment-theme support. This method does not change Luna's selection or add watchers.
 
+## Menu
+
+`menu::Menu::from_env()` controls the application menu, or use `Menu::new(Paths)`
+for explicit shell/service files. `start()` validates QML/theme and starts hidden;
+`show()` and `toggle()` ensure a running service before changing visibility.
+`hide()` keeps a stopped menu stopped. `restart()` validates before replacement;
+`stop()` leaves login startup enabled. `status()` reports IPC readiness.
+`serve()` replaces its process with Quickshell and supplies resolved theme values
+once. Calls use bounded subprocesses; failed new starts are stopped. Paths use
+XDG homes and an optional `LUNA_NEXT_MENU_SHELL` override. See
+[menu dependencies and commands](../../src/luna-menu/DOCS.md).
+
 ## Keyring
 
 `keyring::setup()` enables and starts `gnome-keyring-daemon.socket` for the current
