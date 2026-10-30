@@ -1,4 +1,5 @@
 mod args;
+mod chromium;
 mod install;
 mod keyring;
 mod login;
@@ -41,9 +42,11 @@ fn main() -> ExitCode {
     };
     let result: Result<_, Box<dyn std::error::Error>> = match &cli.command {
         Command::Install(arguments) => install::run(arguments).map_err(Into::into),
-        Command::Configure { names, repo } => {
-            install::configure(repo.as_deref(), names).map_err(Into::into)
-        }
+        Command::Configure {
+            names,
+            repo,
+            profile,
+        } => install::configure(repo.as_deref(), names, profile.as_deref()).map_err(Into::into),
         Command::Setup { repo } => install::setup(repo.as_deref()).map_err(Into::into),
         Command::Wallpaper { command } => wallpaper::run(command, cli.json),
         Command::Theme { command } => theme::run(command, cli.json),
@@ -51,6 +54,7 @@ fn main() -> ExitCode {
         Command::Menu { command } => menu::run(command.as_ref(), cli.json),
         Command::Keyring { command } => keyring::run(command).map_err(Into::into),
         Command::Login { command } => login::run(command, cli.json),
+        Command::Chromium { command } => chromium::run(command).map_err(Into::into),
     };
     match result {
         Ok(value) => {

@@ -1,5 +1,6 @@
 //! Shared application operations for Luna's command line and desktop clients.
 
+pub mod chromium;
 mod config_io;
 pub mod install;
 pub mod keyring;

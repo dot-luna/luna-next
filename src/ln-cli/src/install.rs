@@ -4,7 +4,7 @@ use luna_next::{
     Error, Result,
     install::{
         Source, configure_installed_apps, find_repository, get_packages, install_app_configs,
-        install_packages,
+        install_app_configs_for_profile, install_packages,
     },
 };
 use serde_json::Value;
@@ -58,10 +58,15 @@ pub(crate) fn setup(repository: Option<&Path>) -> Result<Value> {
     Ok(serde_json::to_value(report)?)
 }
 
-pub(crate) fn configure(repository: Option<&Path>, names: &[String]) -> Result<Value> {
+pub(crate) fn configure(
+    repository: Option<&Path>,
+    names: &[String],
+    profile: Option<&Path>,
+) -> Result<Value> {
     let repository = find_repository(repository)?;
-    Ok(serde_json::to_value(install_app_configs(
-        &repository,
-        names,
-    )?)?)
+    let report = match profile {
+        Some(profile) => install_app_configs_for_profile(&repository, names, profile)?,
+        None => install_app_configs(&repository, names)?,
+    };
+    Ok(serde_json::to_value(report)?)
 }

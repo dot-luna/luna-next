@@ -90,6 +90,30 @@ atomically, with optimistic checks for external edits. Late failures can leave a
 partial application. T3 fonts need a desktop restart; palette updates use T3's own
 environment-theme support. This method does not change Luna's selection or add watchers.
 
+## Chromium profiles
+
+`chromium::Chromium::from_env()` selects the default managed user-data root and
+launch entries; `Chromium::new(Paths { user_data_dir, launcher, desktop_file })`
+uses explicit paths. `create_profile(profile?)` creates a missing Git-named
+profile without appearance or extensions. `configure_profile(config_dir, profile?)`
+prepares settings for an existing profile; `configure(config_dir)` selects the
+default. `setup(config_dir, profile?)` creates if needed, prepares, and opens the
+native installation page. An explicit profile is its exact directory.
+
+Configuration updates only the selected profile's web font preferences and
+generated `Luna Next` folder, retaining browser data and other profiles.
+`open_installation(&configured)` opens that profile for native extension/theme
+confirmation; preparation alone does not install extensions. Defaults use XDG
+homes, with `luna-chromium` under `~/.local/bin`. Native browser fonts follow
+the desktop; generated website styles use Luna's UI and monospace fonts.
+
+App configuration dispatch supports the `chromium` native configurator.
+`install_app_configs_for_profile(repo, names, profile)` accepts only the
+`chromium` app. `setup_chromium(repo, profile?)` validates its descriptor and
+calls the shared setup operation. Implicit app configuration skips a missing
+default profile and never opens the browser. See
+[Chromium setup and limitations](../../apps/chromium/DOCS.md).
+
 ## Login screen
 
 `login::Login::from_env()` manages the screen library and user configuration;

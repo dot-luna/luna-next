@@ -43,3 +43,15 @@ boxy UI and defaults, then installs a launcher into `~/.local/bin/t3code`:
 ```sh
 luna install --git t3code
 ```
+
+The Chromium provider is the prebuilt AUR `ungoogled-chromium-bin` package:
+
+```sh
+luna install ungoogled-chromium-bin
+luna chromium setup
+```
+
+Its installation runs in a separate package-manager transaction that accepts
+conflicting Chromium/chromedriver replacement. Package-manager dependency checks
+remain active; browser profile files are retained. A missing Luna profile is
+left for the explicit setup step. See [Chromium setup](../apps/chromium/DOCS.md).

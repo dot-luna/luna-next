@@ -25,6 +25,9 @@ pub(crate) enum Command {
         /// Use this Luna Next checkout.
         #[arg(long, value_name = "PATH")]
         repo: Option<PathBuf>,
+        /// Apply Chromium settings to this existing profile directory.
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
     },
     /// Install all packages and app configurations, then enable the keyring socket.
     Setup {
@@ -42,6 +45,11 @@ pub(crate) enum Command {
     Login {
         #[command(subcommand)]
         command: LoginCommand,
+    },
+    /// Create and configure ungoogled Chromium profiles.
+    Chromium {
+        #[command(subcommand)]
+        command: ChromiumCommand,
     },
     /// Manage desktop authentication prompts.
     Polkit {
@@ -62,6 +70,25 @@ pub(crate) enum Command {
     Theme {
         #[command(subcommand)]
         command: ThemeCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub(crate) enum ChromiumCommand {
+    /// Create a profile without applying Luna settings; defaults to the Git-named profile.
+    CreateProfile {
+        /// Create this profile directory instead of the default Luna profile.
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
+    },
+    /// Create a missing profile and apply the Chromium app settings.
+    Setup {
+        /// Use this profile directory instead of the default Luna profile.
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
+        /// Use this Luna Next checkout.
+        #[arg(long, value_name = "PATH")]
+        repo: Option<PathBuf>,
     },
 }
 

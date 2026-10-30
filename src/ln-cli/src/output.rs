@@ -9,11 +9,14 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
     } else {
         match command {
             Command::Install(_) | Command::Configure { .. } | Command::Setup { .. } => {
-                print_install(value)
+                let opened =
+                    matches!(command, Command::Configure { names, .. } if !names.is_empty());
+                print_install(value, opened)
             }
             Command::Wallpaper { command } => print_human(command, value),
             Command::Theme { command } => crate::theme::print(command, value),
             Command::Login { command } => crate::login::print(command, value),
+            Command::Chromium { command } => crate::chromium::print(command, value),
             Command::Polkit { .. } | Command::Menu { .. } | Command::Keyring { .. } => {
                 println!("{}", value.as_str().unwrap_or_default())
             }
@@ -21,9 +24,21 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
     }
 }
 
-fn print_install(value: &Value) {
+fn print_install(value: &Value, opened: bool) {
     for (field, action) in [("installed", "Installed"), ("skipped", "Skipped")] {
         for name in value[field].as_array().into_iter().flatten() {
+            if field == "installed" && name == "chromium" {
+                if opened {
+                    println!(
+                        "Prepared Chromium settings; finish the confirmations in the opened profile."
+                    );
+                } else {
+                    println!(
+                        "Prepared Chromium settings; run luna chromium setup to finish installation."
+                    );
+                }
+                continue;
+            }
             println!("{action}: {}", name.as_str().unwrap_or_default());
         }
     }

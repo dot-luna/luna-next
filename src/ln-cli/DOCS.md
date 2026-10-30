@@ -55,6 +55,28 @@ Locate the checkout with `--repo PATH`, `LUNA_NEXT_ROOT`, the current directory'
 ancestors, `~/.local/src/luna-next`, or the checkout used to build the CLI (checked
 in that order). The build-time fallback works while that checkout stays in place.
 
+## Chromium
+
+```sh
+luna install ungoogled-chromium-bin
+luna chromium setup
+```
+
+The package replaces conflicting regular Chromium through the package manager
+while preserving existing profiles. Setup creates the Git-named Luna profile if
+missing, prepares extensions, theme colors, web fonts and square website corners,
+then opens that profile for native installation confirmations.
+
+Use `luna chromium create-profile` to create it separately, then
+`luna conf chromium` to apply settings to the existing profile. Either command
+accepts `--profile PATH` for an exact profile directory; setup accepts the same
+option. No profile override selects the Git-created profile. Configuration never
+creates a missing profile; setup does.
+
+Close Chromium first. Other profiles and the desktop default-browser choice
+remain unchanged. Rerun configuration to refresh theme values or downloaded
+extensions. See [Chromium details and limitations](../../apps/chromium/DOCS.md).
+
 ## Themes
 
 From the repository root, after installing the CLI:
