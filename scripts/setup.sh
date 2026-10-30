@@ -30,4 +30,5 @@ mise --cd "$HOME" exec rust@stable -- cargo install --locked --force \
 printf 'Running lnxt setup in 5 seconds...\n'
 sleep 5
 cd -- "$repo_dir"
+export PATH="$HOME/.local/bin:$PATH"
 exec "$HOME/.local/bin/lnxt" setup

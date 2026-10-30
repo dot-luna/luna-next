@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "result": {
+    "name": "tokyo-night",
+    "colors": {
+      "accent": "#7aa2f7",
+      "accent_foreground": "#1a1b26",
+      "background": "#1a1b26",
+      "foreground": "#a9b1d6",
+      "bright_foreground": "#c0caf5",
+      "dark_background": "#13141c",
+      "dark_foreground": "#565f89",
+      "error": "#f7768e",
+      "error_emphasis": "#ff7a93",
+      "info": "#449dab",
+      "info_emphasis": "#0db9d7",
+      "light_foreground": "#b4bee6",
+      "lighter_background": "#24283b",
+      "link": "#7aa2f7",
+      "link_emphasis": "#7da6ff",
+      "muted": "#414868",
+      "secondary_accent": "#ad8ee6",
+      "secondary_accent_emphasis": "#bb9af7",
+      "selection": "#292e42",
+      "selection_foreground": "#c0caf5",
+      "success": "#9ece6a",
+      "success_emphasis": "#b9f27c",
+      "warning": "#e0af68",
+      "warning_emphasis": "#ff9e64",
+      "mode": "dark"
+    },
+    "fonts": {
+      "mono": "Iosevka Nerd Font",
+      "ui": "Outfit"
+    }
+  }
+}

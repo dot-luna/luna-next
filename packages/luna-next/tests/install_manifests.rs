@@ -71,6 +71,31 @@ fn repository_manifests_load_with_current_local_sources() {
     assert!(packages.iter().any(|package| package.name == "git"));
     assert!(packages.iter().any(|package| package.name == "yay"));
     assert!(packages.iter().any(|package| package.name == "rust"));
+    for name in [
+        "kitty",
+        "zsh",
+        "starship",
+        "zsh-autosuggestions",
+        "zsh-syntax-highlighting",
+        "zsh-completions",
+        "fzf-tab",
+        "fzf",
+        "zoxide",
+        "bat",
+        "eza",
+        "fd",
+    ] {
+        assert!(
+            packages.iter().any(|package| package.name == name),
+            "missing {name}"
+        );
+    }
+    let python: Vec<_> = packages
+        .iter()
+        .filter(|package| package.name == "python")
+        .collect();
+    assert_eq!(python.len(), 1);
+    assert_eq!(python[0].source, Source::Mise);
     assert!(
         packages
             .iter()

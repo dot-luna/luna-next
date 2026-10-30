@@ -13,6 +13,7 @@ lnxt install --mise              # Declared mise tools
 lnxt install --git yay           # Git package recipe
 lnxt install --local cli         # Local package; --apps is an alias
 lnxt configure luna-wallpaper    # Build and replace app configurations
+lnxt configure kitty zsh starship # Refresh terminal, shell, plugins, and prompt
 lnxt setup                      # Install packages/configs and enable the keyring socket
 ```
 
@@ -32,7 +33,9 @@ setup configures all apps. `lnxt configure [APP...]` runs only this stage.
 Builders generate files in staging, then exported files and folders are replaced
 without backups. Managed HOCON entries are recreated with an include of their
 defaults, resetting local changes. Configs use `XDG_CONFIG_HOME` (default
-`~/.config`); a nonempty `file_env` overrides the user config's full path.
+`~/.config`); descriptors can use `base: "home"` and `directory_env` for startup
+files such as `${ZDOTDIR:-$HOME}/.zshrc`. A nonempty `file_env` overrides the full
+file or folder destination.
 
 Git packages clone into `~/.local/src/<name>`. Local packages symlink their source
 there, or into `destination` relative to `~/.local`, then run their commands.
@@ -74,6 +77,10 @@ Themes use HOCON `.conf` files, with semantic `colors`, `fonts`, `appearance`, a
 `wallpaper` sections. See [theme fields and authoring](../../themes/DOCS.md).
 Selection does not reload apps or change wallpapers. With the installed
 [Hyprland configuration](../../apps/hypr/DOCS.md), reload Hyprland to apply appearance.
+Run `lnxt configure kitty starship` to regenerate terminal colors, its monospace
+font, and the prompt palette from the selection. Restart Kitty and open a new
+shell after configuring; see [Kitty](../../apps/kitty/DOCS.md) and
+[Zsh](../../apps/zsh/DOCS.md) for their native paths and overrides.
 
 System mode needs GSettings and a user desktop session; its dependencies are in
 `lnxt install --main`. Portal apps need a Settings provider such as

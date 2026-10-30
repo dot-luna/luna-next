@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 
@@ -19,6 +18,7 @@ MOCK_COMMAND = r'''
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 
 name = Path(sys.argv[0]).name
@@ -33,6 +33,7 @@ elif name == "mise":
     stage = "install-rust" if "use" in arguments else "install-cli"
 elif name == "lnxt":
     stage = "setup"
+    assert shutil.which("lnxt") == str(Path(os.environ["HOME"]) / ".local/bin/lnxt")
 if stage is not None and stage == os.environ.get("SETUP_TEST_FAIL"):
     sys.exit(17)
 if name == "sudo":
@@ -67,7 +68,7 @@ class SetupTests(unittest.TestCase):
         for name in ("bash", "dirname", "pwd"):
             (self.bin / name).symlink_to(shutil.which(name))
         mock = self.bin / "mock-command"
-        mock.write_text(f"#!{sys.executable}\n" + MOCK_COMMAND)
+        mock.write_text(f"#!{shutil.which('python3')}\n" + MOCK_COMMAND)
         mock.chmod(0o755)
         for name in ("sudo", "pacman", "mise", "sleep"):
             (self.bin / name).symlink_to(mock)

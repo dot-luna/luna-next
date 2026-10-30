@@ -25,6 +25,7 @@ fn scenario(name: &str) {
         .env("HOME", home)
         .env_remove("XDG_CONFIG_HOME")
         .env_remove("LUNA_TEST_APP_CONFIG")
+        .env_remove("LUNA_TEST_APP_DIRECTORY")
         .env("PATH", "")
         .current_dir(repository)
         .output()
@@ -120,6 +121,16 @@ fn config_destinations_honor_xdg_and_explicit_file_environment_overrides() {
 }
 
 #[test]
+fn home_and_directory_exports_replace_only_the_selected_destinations() {
+    scenario("home_exports");
+}
+
+#[test]
+fn home_and_directory_exports_validate_paths_before_publication() {
+    scenario("directory_validation");
+}
+
+#[test]
 fn file_exports_replace_existing_directory_targets() {
     scenario("replace_directory");
 }
@@ -161,6 +172,158 @@ fn app_config_scenario() {
     };
     let fixture = Fixture::new();
     match scenario.as_str() {
+        "home_exports" => {
+            let app = fixture.app(
+                "shell",
+                json!({"exports": [
+                    {"source": "zshrc", "target": ".zshrc", "base": "home",
+                     "directory_env": "LUNA_TEST_APP_DIRECTORY", "file_env": "LUNA_TEST_APP_CONFIG"},
+                    {"source": "modules", "target": "luna-next/zsh"}
+                ]}),
+            );
+            write(app.join("config/zshrc"), "new startup\n");
+            write(app.join("config/modules/tools.zsh"), "new tools\n");
+            let home = fixture.root.join("home");
+            write(home.join(".zshrc"), "old startup\n");
+            write(home.join("unrelated"), "keep\n");
+            let xdg = fixture.root.join("xdg config");
+            unsafe {
+                std::env::set_var("XDG_CONFIG_HOME", &xdg);
+                std::env::set_var("LUNA_TEST_APP_DIRECTORY", "");
+                std::env::set_var("LUNA_TEST_APP_CONFIG", "");
+            }
+            fixture.install(&["shell"]).unwrap();
+            assert_eq!(
+                fs::read_to_string(home.join(".zshrc")).unwrap(),
+                "new startup\n"
+            );
+            assert!(!xdg.join(".zshrc").exists());
+            assert_eq!(
+                fs::read_to_string(xdg.join("luna-next/zsh/tools.zsh")).unwrap(),
+                "new tools\n"
+            );
+
+            let directory = fixture.root.join("custom shell ' directory");
+            let external = fixture.root.join("external startup");
+            write(&external, "external\n");
+            fs::create_dir_all(&directory).unwrap();
+            symlink(&external, directory.join(".zshrc")).unwrap();
+            write(home.join(".zshrc"), "home edits\n");
+            unsafe {
+                std::env::set_var("LUNA_TEST_APP_DIRECTORY", &directory);
+            }
+            fixture.install(&["shell"]).unwrap();
+            assert_eq!(
+                fs::read_to_string(directory.join(".zshrc")).unwrap(),
+                "new startup\n"
+            );
+            assert!(
+                !fs::symlink_metadata(directory.join(".zshrc"))
+                    .unwrap()
+                    .is_symlink()
+            );
+            assert_eq!(fs::read_to_string(&external).unwrap(), "external\n");
+            assert_eq!(
+                fs::read_to_string(home.join(".zshrc")).unwrap(),
+                "home edits\n"
+            );
+
+            unsafe {
+                std::env::set_var("LUNA_TEST_APP_CONFIG", "../relative startup");
+                std::env::set_var("LUNA_TEST_APP_DIRECTORY", "relative directory");
+            }
+            fixture.install(&["shell"]).unwrap();
+            assert_eq!(
+                fs::read_to_string(fixture.root.join("relative startup")).unwrap(),
+                "new startup\n"
+            );
+            assert!(!fixture.repository.join("relative directory").exists());
+            unsafe {
+                std::env::remove_var("LUNA_TEST_APP_CONFIG");
+                std::env::set_var("LUNA_TEST_APP_DIRECTORY", "../relative directory");
+            }
+            fixture.install(&["shell"]).unwrap();
+            assert_eq!(
+                fs::read_to_string(fixture.root.join("relative directory/.zshrc")).unwrap(),
+                "new startup\n"
+            );
+            assert_eq!(
+                fs::read_to_string(home.join("unrelated")).unwrap(),
+                "keep\n"
+            );
+        }
+        "directory_validation" => {
+            let app = fixture.app(
+                "shell",
+                json!({"exports": [
+                    {"source": "zshrc", "target": ".zshrc", "base": "home",
+                     "directory_env": "LUNA_TEST_APP_DIRECTORY"}
+                ]}),
+            );
+            write(app.join("config/zshrc"), "new startup\n");
+            unsafe {
+                std::env::set_var("LUNA_TEST_APP_DIRECTORY", app.join("config"));
+            }
+            assert!(
+                fixture
+                    .install(&["shell"])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("source tree")
+            );
+            assert!(!app.join("config/.zshrc").exists());
+            unsafe {
+                std::env::remove_var("LUNA_TEST_APP_DIRECTORY");
+                std::env::set_var("XDG_CONFIG_HOME", &fixture.config);
+                std::env::set_var("HOME", "relative home");
+            }
+            assert!(
+                fixture
+                    .install(&["shell"])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("absolute")
+            );
+            unsafe {
+                std::env::remove_var("HOME");
+            }
+            assert!(
+                fixture
+                    .install(&["shell"])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("HOME must be set")
+            );
+            for key in ["", "BAD=KEY", "BAD\0KEY"] {
+                fixture.app(
+                    "shell",
+                    json!({"exports": [
+                        {"source": "zshrc", "target": ".zshrc", "directory_env": key}
+                    ]}),
+                );
+                assert!(
+                    fixture
+                        .install(&["shell"])
+                        .unwrap_err()
+                        .to_string()
+                        .contains("environment key")
+                );
+            }
+            fixture.app(
+                "shell",
+                json!({"exports": [
+                    {"source": "zshrc", "target": ".zshrc", "base": "elsewhere"}
+                ]}),
+            );
+            assert!(
+                fixture
+                    .install(&["shell"])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("Invalid app")
+            );
+            assert!(!fixture.config.exists());
+        }
         "package_selection" => {
             let panel = fixture.app(
                 "panel-config",

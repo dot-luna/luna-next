@@ -23,10 +23,15 @@ exports = [
 | `exports` | Files or folders to install after building. |
 | `exports[].source` | File or folder inside the staged config directory; `.` exports the whole directory. |
 | `exports[].defaults` | Optional HOCON defaults file under `$XDG_CONFIG_HOME`; the target is recreated with an include of this file. File exports only. |
-| `exports[].target` | Destination file or folder under `$XDG_CONFIG_HOME`, default `~/.config`. |
-| `exports[].file_env` | Optional environment variable overriding the full destination path. |
+| `exports[].target` | Destination file or folder relative to the export's base directory. |
+| `exports[].base` | `config` (default) for `$XDG_CONFIG_HOME`, normally `~/.config`; `home` for `$HOME`. |
+| `exports[].directory_env` | Optional environment variable overriding the base directory before appending `target`. |
+| `exports[].file_env` | Optional environment variable overriding the full destination path, for files or folders. Takes precedence over `directory_env`. |
 
 Builders receive `$LUNA_APP_DIR` and write generated files into `$LUNA_CONFIG_OUTPUT`.
+Empty environment overrides use the declared base/target. Relative override paths
+resolve against the caller's working directory. Sources and overlapping exports
+are protected from replacement.
 
 Export a folder with `{ source: ".", target: "luna-next/hypr" }`.
 
@@ -37,3 +42,15 @@ lnxt configure luna-wallpaper
 `lnxt setup` and matching package installs also run this stage. Exports replace
 existing destination files, folders, or symlinks without backups. A folder export
 replaces the whole folder, including obsolete files.
+
+[Kitty](kitty/DOCS.md), [Zsh](zsh/DOCS.md), and [Starship](starship/DOCS.md) have
+matching package entries in [`installs/`](../installs/README.md). To refresh their
+configs without reinstalling packages:
+
+```sh
+lnxt configure kitty zsh starship
+```
+
+Kitty and Starship builders use `lnxt theme get --json`; install `lnxt` on `PATH`
+before configuring them. Rerun their configuration after changing themes. Zsh's
+startup export uses `base: "home"` and `directory_env: "ZDOTDIR"` for `.zshrc`.

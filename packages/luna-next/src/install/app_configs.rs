@@ -29,12 +29,35 @@ struct App {
 struct Export {
     source: PathBuf,
     target: PathBuf,
+    #[serde(default)]
+    base: ExportBase,
+    directory_env: Option<String>,
     file_env: Option<String>,
     defaults: Option<PathBuf>,
 }
 
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum ExportBase {
+    #[default]
+    Config,
+    Home,
+}
+
 fn config_directory() -> PathBuf {
     "config".into()
+}
+
+fn environment_path(key: Option<&str>) -> Result<Option<PathBuf>> {
+    match key {
+        Some(key) if key.is_empty() || key.contains(['=', '\0']) => Err(Error::Message(format!(
+            "Invalid configuration environment key '{key}'"
+        ))),
+        Some(key) => Ok(env::var_os(key)
+            .filter(|value| !value.is_empty())
+            .map(PathBuf::from)),
+        None => Ok(None),
+    }
 }
 
 /// Build and replace the selected `apps/<name>/app.conf` exports; empty names select all apps.
@@ -168,21 +191,31 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
                 relative(&export.source)?;
             }
             relative(&export.target)?;
-            let override_path = match &export.file_env {
-                Some(key) if key.is_empty() || key.contains(['=', '\0']) => {
-                    return Err(Error::Message(format!(
-                        "Invalid configuration environment key '{key}'"
-                    )));
-                }
-                Some(key) => env::var_os(key)
-                    .filter(|value| !value.is_empty())
-                    .map(PathBuf::from),
-                None => None,
+            let directory = environment_path(export.directory_env.as_deref())?;
+            let file = environment_path(export.file_env.as_deref())?;
+            let target = if let Some(path) = file {
+                current.join(path)
+            } else {
+                let directory = match directory {
+                    Some(path) => current.join(path),
+                    None => match export.base {
+                        ExportBase::Config => config_home.clone(),
+                        ExportBase::Home => {
+                            let home = env::var_os("HOME")
+                                .filter(|value| !value.is_empty())
+                                .map(PathBuf::from)
+                                .ok_or_else(|| Error::Message("HOME must be set.".into()))?;
+                            if !home.is_absolute() {
+                                return Err(Error::Message(
+                                    "HOME must be an absolute path.".into(),
+                                ));
+                            }
+                            home
+                        }
+                    },
+                };
+                directory.join(&export.target)
             };
-            let target = override_path.map_or_else(
-                || config_home.join(&export.target),
-                |path| current.join(path),
-            );
             if !seen.insert(target.clone()) {
                 return Err(Error::Message(format!(
                     "Duplicate configuration target: {}",

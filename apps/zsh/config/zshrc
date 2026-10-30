@@ -1,0 +1,2 @@
+# Luna Next owns this startup file; configure zsh replaces it.
+source "${XDG_CONFIG_HOME:-$HOME/.config}/luna-next/zsh/zshrc"

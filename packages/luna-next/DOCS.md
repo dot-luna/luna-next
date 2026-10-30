@@ -41,8 +41,11 @@ selects apps by their `package` field, ignoring unmatched packages.
 Optional builders generate files in staging. Exports replace destination files
 or whole folders without backups; `source: "."` exports the config directory.
 File exports with `defaults` refresh that file and recreate the user entry as a
-HOCON include, resetting local changes. Paths follow `XDG_CONFIG_HOME`; nonempty
-`file_env` overrides the user config path, otherwise `target` supplies the default.
+HOCON include, resetting local changes. Paths follow `XDG_CONFIG_HOME`;
+`base: "home"` uses `HOME` instead. A nonempty `directory_env` overrides that base
+before appending `target`; `file_env` overrides the complete file or folder path.
+Relative environment overrides resolve against the working directory. Defaults
+remain under `XDG_CONFIG_HOME` regardless of the export's base.
 
 ## Themes
 

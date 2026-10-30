@@ -1,0 +1,47 @@
+# Shared startup loaded by Luna Next's managed .zshrc.
+() {
+    # Resolve modules beside this file, independent of the shell's working directory.
+    local luna_zsh_dir="${${(%):-%x}:A:h}"
+
+    # Distinguish personal mise completions from registrations added by our compinit.
+    local luna_previous_mise_completion="${_comps[mise]-}"
+
+    # Keep Luna's command and pnpm's installed tools available without duplicate paths.
+    if (( ${path[(Ie)${HOME}/.local/bin]} == 0 )); then
+        path=("$HOME/.local/bin" "${path[@]}")
+    fi
+    export PNPM_HOME="${PNPM_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/pnpm}"
+    local luna_pnpm_bin="$PNPM_HOME/bin"
+    if [[ -d "$luna_pnpm_bin" ]] && (( ${path[(Ie)$luna_pnpm_bin]} == 0 )); then
+        path+=("$luna_pnpm_bin")
+    fi
+    export PATH
+
+    if [[ -o interactive ]]; then
+        HISTFILE="${HISTFILE:-$HOME/.histfile}"
+        HISTSIZE=32768
+        SAVEHIST=32768
+
+        # Append on exit so other terminals keep their commands. Skip consecutive
+        # duplicates and commands starting with a space when saving history.
+        setopt APPEND_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE
+
+        bindkey -e
+
+        # Up/Down search the prefix before the cursor, or all history on an empty
+        # line. Zsh's own widgets also let the arrows move within multiline input.
+        autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+        zle -N up-line-or-beginning-search
+        zle -N down-line-or-beginning-search
+
+        # Cover normal and application cursor sequences used by Kitty and other terminals.
+        bindkey '^[[A' up-line-or-beginning-search
+        bindkey '^[[B' down-line-or-beginning-search
+        bindkey '^[OA' up-line-or-beginning-search
+        bindkey '^[OB' down-line-or-beginning-search
+    fi
+
+    source "$luna_zsh_dir/completion.zsh"
+    source "$luna_zsh_dir/tools.zsh"
+    source "$luna_zsh_dir/plugins.zsh"
+}
