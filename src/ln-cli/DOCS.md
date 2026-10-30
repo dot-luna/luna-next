@@ -17,6 +17,9 @@ luna configure kitty zsh starship # Refresh terminal, shell, plugins, and prompt
 luna setup                      # Install packages/configs and enable the keyring socket
 ```
 
+Use `--pac` for `--pacman` and `luna conf` for `luna configure`.
+Aliases also appear in `--help`.
+
 Names narrow the selected groups or source. Source flags (`--pacman`, `--aur`,
 `--mise`, `--git`, `--local`) are mutually exclusive. Only `--pacman`/`--aur`
 can combine with `--core`/`--main`. Unlisted names need an explicit system source

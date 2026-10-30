@@ -155,13 +155,15 @@ fn git(directory: &Path, arguments: &[&str]) -> String {
 
 #[test]
 fn group_and_source_selectors_install_only_matching_packages() {
-    let sandbox = Sandbox::new();
-    let result = sandbox.success(&["install", "--core", "--main", "--pacman", "--json"]);
-    assert_eq!(result["installed"], json!(["git", "mpv"]));
-    assert_eq!(
-        sandbox.log(),
-        "pacman\t-S\t--needed\t--noconfirm\t--\tgit\tmpv\n"
-    );
+    for source in ["--pacman", "--pac"] {
+        let sandbox = Sandbox::new();
+        let result = sandbox.success(&["install", "--core", "--main", source, "--json"]);
+        assert_eq!(result["installed"], json!(["git", "mpv"]));
+        assert_eq!(
+            sandbox.log(),
+            "pacman\t-S\t--needed\t--noconfirm\t--\tgit\tmpv\n"
+        );
+    }
 }
 
 #[test]
@@ -181,6 +183,11 @@ fn named_packages_can_use_the_catalog_or_an_explicit_system_source() {
         (vec!["install", "git", "--json"], "git", "pacman"),
         (
             vec!["install", "--pacman", "not-in-catalog", "--json"],
+            "not-in-catalog",
+            "pacman",
+        ),
+        (
+            vec!["install", "--pac", "not-in-catalog", "--json"],
             "not-in-catalog",
             "pacman",
         ),
@@ -366,32 +373,34 @@ fn package_installs_configure_only_matching_apps_after_success() {
 
 #[test]
 fn configure_selects_apps_and_replaces_existing_files_without_installing_packages() {
-    let sandbox = Sandbox::new();
-    let config = sandbox.app_config("demo");
-    let other_config = sandbox.app_config("other");
-    let output = sandbox
-        .command()
-        .current_dir(sandbox.root.path())
-        .args(["configure", "demo", "--json", "--repo"])
-        .arg(&sandbox.repository)
-        .output()
-        .unwrap();
-    assert!(output.status.success(), "{output:?}");
-    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(response["result"]["installed"], json!(["demo"]));
-    assert_eq!(fs::read_to_string(&config).unwrap(), "setting = default\n");
-    assert!(!other_config.exists());
-    fs::write(&config, "# User settings\nsetting = custom\n").unwrap();
-    let output = sandbox.run(&["configure", "demo"]);
-    assert!(output.status.success(), "{output:?}");
-    assert_eq!(output.stdout, b"Installed: demo\n");
-    assert_eq!(fs::read_to_string(config).unwrap(), "setting = default\n");
-    assert!(sandbox.log().is_empty());
+    for command in ["configure", "conf"] {
+        let sandbox = Sandbox::new();
+        let config = sandbox.app_config("demo");
+        let other_config = sandbox.app_config("other");
+        let output = sandbox
+            .command()
+            .current_dir(sandbox.root.path())
+            .args([command, "demo", "--json", "--repo"])
+            .arg(&sandbox.repository)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(response["result"]["installed"], json!(["demo"]));
+        assert_eq!(fs::read_to_string(&config).unwrap(), "setting = default\n");
+        assert!(!other_config.exists());
+        fs::write(&config, "# User settings\nsetting = custom\n").unwrap();
+        let output = sandbox.run(&[command, "demo"]);
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(output.stdout, b"Installed: demo\n");
+        assert_eq!(fs::read_to_string(config).unwrap(), "setting = default\n");
+        assert!(sandbox.log().is_empty());
+    }
 }
 
 #[test]
 fn conflicting_sources_are_usage_errors_before_repository_lookup() {
-    let sources = ["--pacman", "--aur", "--mise", "--git", "--local"];
+    let sources = ["--pacman", "--pac", "--aur", "--mise", "--git", "--local"];
     let mut conflicts = Vec::new();
     for (index, left) in sources.iter().enumerate() {
         for right in &sources[index + 1..] {
@@ -533,6 +542,14 @@ fn help_lists_install_selectors_and_no_build_command() {
     assert!(help.contains("install"));
     assert!(help.contains("configure"));
     assert!(help.contains("setup"));
+    for (command, alias) in [("configure", "conf"), ("wallpaper", "w")] {
+        assert!(
+            help.lines()
+                .any(|line| line.trim_start().starts_with(command)
+                    && line.contains(&format!("[alias: {alias}]"))),
+            "{help}"
+        );
+    }
     assert!(
         !help
             .lines()
@@ -546,5 +563,6 @@ fn help_lists_install_selectors_and_no_build_command() {
     ] {
         assert!(help.contains(selector), "{help}");
     }
+    assert!(help.contains("[alias: --pac]"), "{help}");
     assert!(sandbox.log().is_empty());
 }

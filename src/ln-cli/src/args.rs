@@ -17,6 +17,7 @@ pub(crate) enum Command {
     /// Install package groups, named packages, or local applications.
     Install(InstallArgs),
     /// Replace exported app configuration files and folders.
+    #[command(visible_alias = "conf")]
     Configure {
         /// Configure these apps; omit names to configure all apps.
         #[arg(value_name = "APP")]
@@ -32,7 +33,7 @@ pub(crate) enum Command {
         repo: Option<PathBuf>,
     },
     /// Manage wallpapers and their configuration.
-    #[command(alias = "w")]
+    #[command(visible_alias = "w")]
     Wallpaper {
         #[command(subcommand)]
         command: WallpaperCommand,
@@ -133,7 +134,7 @@ pub(crate) struct InstallArgs {
     #[arg(long)]
     pub(crate) aur: bool,
     /// Select packages from the official Arch repositories.
-    #[arg(long)]
+    #[arg(long, visible_alias = "pac")]
     pub(crate) pacman: bool,
     /// Use this Luna Next checkout.
     #[arg(long, value_name = "PATH")]
