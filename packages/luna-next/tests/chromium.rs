@@ -42,7 +42,19 @@ impl Fixture {
             ),
             (
                 "chromium",
-                "[ \"$*\" = --version ] || exit 33\nprintf '%s\\n' 'Chromium 156.0.8078.73'\n",
+                r#"if [ "$*" = --version ]; then
+    printf '%s\n' 'Chromium 156.0.8078.73'
+    exit 0
+fi
+exec /usr/bin/python3 -c '
+import json, os, pathlib, sys
+pathlib.Path(os.environ["LUNA_CHROMIUM_TEST_LAUNCH_ARGS"]).write_text(json.dumps(sys.argv[1:]))
+print("browser stdout must stay detached")
+print("fixture browser diagnostic", file=sys.stderr)
+if pathlib.Path(os.environ["LUNA_CHROMIUM_TEST_LAUNCH_FAIL"]).exists():
+    sys.exit(17)
+' "$@"
+"#,
             ),
             (
                 "git",
@@ -130,6 +142,20 @@ fi
     }
 
     fn operation(&self, action: &str, profile: Option<&Path>, edit_preferences: bool) -> String {
+        self.invoke(action, profile, edit_preferences, None)
+    }
+
+    fn launch(&self, url: &str, profile: Option<&Path>) -> String {
+        self.invoke("launch", profile, false, Some(url))
+    }
+
+    fn invoke(
+        &self,
+        action: &str,
+        profile: Option<&Path>,
+        edit_preferences: bool,
+        url: Option<&str>,
+    ) -> String {
         let mut command = Command::new(std::env::current_exe().unwrap());
         command
             .args(["--exact", "configure_in_child", "--nocapture"])
@@ -147,7 +173,18 @@ fi
                 "LUNA_CHROMIUM_TEST_FIXTURE",
                 self.root().join("fixture.crx"),
             )
-            .env("LUNA_CHROMIUM_TEST_LOG", &self.log);
+            .env("LUNA_CHROMIUM_TEST_LOG", &self.log)
+            .env(
+                "LUNA_CHROMIUM_TEST_LAUNCH_ARGS",
+                self.root().join("launch-arguments.json"),
+            )
+            .env(
+                "LUNA_CHROMIUM_TEST_LAUNCH_FAIL",
+                self.root().join("launch-fail"),
+            );
+        if let Some(url) = url {
+            command.env("LUNA_CHROMIUM_TEST_URL", url);
+        }
         if let Some(profile) = profile {
             command.env("LUNA_CHROMIUM_TEST_PROFILE", profile);
         }
@@ -161,7 +198,9 @@ fi
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
+        assert!(output.stderr.is_empty(), "{:?}", output.stderr);
         let output = String::from_utf8(output.stdout).unwrap();
+        assert!(!output.contains("browser stdout must stay detached"));
         assert!(
             output.contains("CHROMIUM_ERROR:") || output.contains("CHROMIUM_OK:"),
             "{output}"
@@ -175,6 +214,11 @@ fi
             .lines()
             .filter(|line| *line == "curl")
             .count()
+    }
+
+    fn launch_arguments(&self) -> Vec<String> {
+        serde_json::from_slice(&fs::read(self.root().join("launch-arguments.json")).unwrap())
+            .unwrap()
     }
 
     fn snapshot(&self) -> BTreeMap<PathBuf, Entry> {
@@ -642,6 +686,121 @@ fn external_edit_during_download_preserves_the_edit_and_all_other_outputs() {
 }
 
 #[test]
+fn launches_a_visible_app_with_the_managed_profile_without_configuring_it() {
+    let fixture = Fixture::new();
+    fixture.owned();
+    let before = fixture.snapshot();
+    let launched = success(&fixture.launch("https://EXAMPLE.com/app?q=one&next=two", None));
+    assert_eq!(launched["url"], "https://example.com/app?q=one&next=two");
+    assert_eq!(
+        launched["profile"],
+        json!(fixture.paths.user_data_dir.join("Default"))
+    );
+    assert_eq!(launched["profile_name"], "Existing name");
+    assert_eq!(
+        fixture.launch_arguments(),
+        [
+            format!("--user-data-dir={}", fixture.paths.user_data_dir.display()),
+            "--profile-directory=Default".into(),
+            "--no-first-run".into(),
+            "--no-default-browser-check".into(),
+            "--app=https://example.com/app?q=one&next=two".into(),
+        ]
+    );
+    assert_eq!(fixture.downloads(), 0);
+    assert_eq!(fixture.snapshot(), before);
+}
+
+#[test]
+fn launch_hands_off_to_the_exact_profile_when_the_browser_root_is_active() {
+    let fixture = Fixture::new();
+    fixture.owned();
+    let profile = fixture.explicit_profile();
+    let root = profile.parent().unwrap();
+    for name in ["SingletonLock", "SingletonCookie", "SingletonSocket"] {
+        symlink("browser-owned", root.join(name)).unwrap();
+    }
+    let before = fixture.snapshot();
+    let launched = success(&fixture.launch("https://web.whatsapp.com/", Some(&profile)));
+    assert_eq!(launched["profile"], json!(profile));
+    assert_eq!(launched["profile_name"], "Personal");
+    assert_eq!(
+        fixture.launch_arguments()[..2],
+        [
+            format!("--user-data-dir={}", root.display()),
+            "--profile-directory=Profile 2".into(),
+        ]
+    );
+    assert_eq!(fixture.snapshot(), before);
+}
+
+#[test]
+fn app_launch_requires_an_existing_owned_default_or_valid_explicit_profile() {
+    let fixture = Fixture::new();
+    let before = fixture.snapshot();
+    let error = fixture.launch("https://youtube.com/", None);
+    assert!(error.contains("create-profile"), "{error}");
+    assert!(!fixture.log.exists());
+    assert_eq!(fixture.snapshot(), before);
+
+    write(fixture.preferences(), b"{}\n");
+    let before = fixture.snapshot();
+    let error = fixture.launch("https://youtube.com/", None);
+    assert!(error.contains("unowned"), "{error}");
+    assert_eq!(fixture.snapshot(), before);
+
+    let profile = fixture.explicit_profile();
+    write(profile.join("Preferences"), b"[]\n");
+    let before = fixture.snapshot();
+    let error = fixture.launch("https://youtube.com/", Some(&profile));
+    assert!(error.contains("must be a JSON object"), "{error}");
+    assert!(!fixture.log.exists());
+    assert_eq!(fixture.snapshot(), before);
+}
+
+#[test]
+fn app_launch_rejects_unsafe_urls_before_browser_access() {
+    for url in [
+        "file:///tmp/private",
+        "javascript:alert(1)",
+        "--app=https://example.com/",
+        "https://",
+        "https://user:secret@example.com/",
+        "https://user@example.com/",
+        "https://example.com/\n--headless",
+        "https://example.com/%00",
+        "https://example.com/?query=%0d",
+        "https://example.com/#%7F",
+    ] {
+        let fixture = Fixture::new();
+        fixture.owned();
+        let before = fixture.snapshot();
+        let error = fixture.launch(url, None);
+        assert!(error.contains("CHROMIUM_ERROR:"), "{url:?}: {error}");
+        assert!(!fixture.log.exists(), "{url:?}: {error}");
+        assert_eq!(fixture.snapshot(), before);
+    }
+}
+
+#[test]
+fn app_launch_reports_immediate_browser_failure_including_native_diagnostics() {
+    let fixture = Fixture::new();
+    fixture.owned();
+    symlink(
+        "stale-browser",
+        fixture.paths.user_data_dir.join("SingletonLock"),
+    )
+    .unwrap();
+    write(fixture.root().join("launch-fail"), b"");
+    let before = fixture.snapshot();
+    let error = fixture.launch("https://x.com/", None);
+    assert!(error.contains("could not launch the web app"), "{error}");
+    assert!(error.contains("17"), "{error}");
+    assert!(error.contains("fixture browser diagnostic"), "{error}");
+    assert_eq!(fixture.snapshot(), before);
+}
+
+#[test]
 fn configure_in_child() {
     let Some(root) = std::env::var_os("LUNA_CHROMIUM_TEST_ROOT") else {
         return;
@@ -669,6 +828,10 @@ fn configure_in_child() {
                     None => chromium.configure(&config)?,
                 })?)
             }
+            "launch" => Ok(serde_json::to_value(chromium.launch_app(
+                &std::env::var("LUNA_CHROMIUM_TEST_URL").unwrap(),
+                profile.as_deref(),
+            )?)?),
             action => panic!("unknown fixture action: {action}"),
         }
     });

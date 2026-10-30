@@ -47,6 +47,12 @@ Package installs and all-app configuration prepare an already-created default
 profile without opening a browser. They skip a missing profile; run
 `luna chromium setup` to create it and finish the confirmations.
 
+Open websites as app windows with `luna webapp launch https://web.whatsapp.com/`.
+This uses the same default profile; `--profile PATH` selects another existing
+profile. The window has no tab strip or address bar and shares the selected
+profile's sessions and extensions. Launching works with Chromium already open
+and does not create a profile or change its configuration.
+
 ## Extensions and appearance
 
 The [app settings](config/settings.conf) select these exact Web Store listings:

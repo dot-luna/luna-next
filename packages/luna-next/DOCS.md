@@ -114,6 +114,13 @@ calls the shared setup operation. Implicit app configuration skips a missing
 default profile and never opens the browser. See
 [Chromium setup and limitations](../../apps/chromium/DOCS.md).
 
+`launch_app(url, profile?)` opens an HTTP(S) URL in a visible Chromium app window
+using the existing default or exact overridden profile. It shares that profile's
+sessions and extensions, supports Chromium's running-process handoff, and does
+not configure or create profiles. Invalid URLs, missing profiles/providers, and
+immediate browser failures are errors; long-lived browser output is detached
+from the caller's pipes.
+
 ## Login screen
 
 `login::Login::from_env()` manages the screen library and user configuration;

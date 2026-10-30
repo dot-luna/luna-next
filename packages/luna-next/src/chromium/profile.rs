@@ -115,15 +115,19 @@ impl Target {
 
     pub fn existing(&self) -> Result<()> {
         self.idle()?;
+        self.read_existing().map(|_| ())
+    }
+
+    // Launching can hand off to an already-running browser; only configuration needs idle state.
+    pub fn read_existing(&self) -> Result<Value> {
         if !self.exists()? {
             return Err(Error::Message(format!(
                 "Chromium profile does not exist: {}; run luna chromium create-profile or luna chromium setup first",
                 self.directory.display()
             )));
         }
-        files::File::open(&self.preferences())?.json()?;
         files::File::open(&self.root.join("Local State"))?.json()?;
-        Ok(())
+        files::File::open(&self.preferences())?.json()
     }
 }
 

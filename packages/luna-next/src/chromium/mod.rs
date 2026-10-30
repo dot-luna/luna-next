@@ -1,5 +1,6 @@
-//! Profile-scoped configuration for ungoogled Chromium.
+//! Profile-scoped configuration and app windows for ungoogled Chromium.
 
+mod app;
 mod appearance;
 mod browser;
 mod extensions;
@@ -11,6 +12,8 @@ mod profile;
 
 pub use paths::Paths;
 pub use profile::Profile;
+
+pub(crate) use app::validate_url as app_url;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -31,7 +34,15 @@ pub struct Configured {
     pub installation_requires_confirmation: bool,
 }
 
-/// Creates the Git-named default profile and applies configuration to an exact existing profile.
+/// The URL and exact profile used for an accepted browser launch or process handoff.
+#[derive(Debug, Serialize)]
+pub struct Launched {
+    pub url: String,
+    pub profile: PathBuf,
+    pub profile_name: String,
+}
+
+/// Create the Git-named default profile, configure an exact profile, or launch an app window.
 pub struct Chromium {
     paths: Paths,
 }
@@ -91,6 +102,16 @@ impl Chromium {
     pub fn create_profile(&self, directory: Option<&Path>) -> Result<Profile> {
         require_user()?;
         profile::create(&self.paths, directory)
+    }
+
+    /// Open an HTTP(S) URL in a visible Chromium app window using an existing profile.
+    /// Omission selects the Git-created profile. Existing browser processes may handle the
+    /// request; no idle root is required. Luna does not create or configure browser state.
+    /// URLs containing credentials or control characters, missing profiles/providers, and
+    /// immediate browser launch failures return errors. Later window failures are not observed.
+    pub fn launch_app(&self, url: &str, directory: Option<&Path>) -> Result<Launched> {
+        require_user()?;
+        app::launch(&self.paths, url, directory)
     }
 
     /// Apply configuration to the Git-created profile; missing profiles are an error.
