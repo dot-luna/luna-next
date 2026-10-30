@@ -77,6 +77,19 @@ Close Chromium first. Other profiles and the desktop default-browser choice
 remain unchanged. Rerun configuration to refresh theme values or downloaded
 extensions. See [Chromium details and limitations](../../apps/chromium/DOCS.md).
 
+## Web apps
+
+```sh
+luna webapp launch https://web.whatsapp.com/
+```
+
+Web apps open visible Chromium windows without the tab strip or address bar.
+They use the existing Luna profile and share its sessions, extensions, and
+appearance. Use `--profile PATH` to select another existing profile directory.
+Run `luna chromium setup` first if the default profile is missing. Launching also
+works when Chromium is already open; it does not apply configuration or install
+anything. Only HTTP(S) URLs without embedded credentials are accepted.
+
 ## Themes
 
 From the repository root, after installing the CLI:

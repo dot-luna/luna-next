@@ -8,6 +8,7 @@ mod output;
 mod polkit;
 mod theme;
 mod wallpaper;
+mod webapp;
 
 use std::process::ExitCode;
 
@@ -55,6 +56,7 @@ fn main() -> ExitCode {
         Command::Keyring { command } => keyring::run(command).map_err(Into::into),
         Command::Login { command } => login::run(command, cli.json),
         Command::Chromium { command } => chromium::run(command).map_err(Into::into),
+        Command::Webapp { command } => webapp::run(command).map_err(Into::into),
     };
     match result {
         Ok(value) => {

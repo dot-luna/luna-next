@@ -51,6 +51,11 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: ChromiumCommand,
     },
+    /// Launch websites as Chromium app windows.
+    Webapp {
+        #[command(subcommand)]
+        command: WebappCommand,
+    },
     /// Manage desktop authentication prompts.
     Polkit {
         #[command(subcommand)]
@@ -89,6 +94,17 @@ pub(crate) enum ChromiumCommand {
         /// Use this Luna Next checkout.
         #[arg(long, value_name = "PATH")]
         repo: Option<PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+pub(crate) enum WebappCommand {
+    /// Open a website without browser tabs or an address bar, using a Luna profile.
+    Launch {
+        url: String,
+        /// Use this existing profile directory instead of the default Luna profile.
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
     },
 }
 

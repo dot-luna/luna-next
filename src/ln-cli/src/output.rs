@@ -17,6 +17,7 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
             Command::Theme { command } => crate::theme::print(command, value),
             Command::Login { command } => crate::login::print(command, value),
             Command::Chromium { command } => crate::chromium::print(command, value),
+            Command::Webapp { command } => crate::webapp::print(command, value),
             Command::Polkit { .. } | Command::Menu { .. } | Command::Keyring { .. } => {
                 println!("{}", value.as_str().unwrap_or_default())
             }
