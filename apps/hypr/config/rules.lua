@@ -1,3 +1,6 @@
+-- Follow the exact window activated by a URL/file handler, retaining its workspace.
+hl.config({ misc = { focus_on_activate = true } })
+
 -- Layer surfaces need their own blur rule; leave the transparent dismiss area clear.
 hl.layer_rule({ match = { namespace = "^luna-next-menu$" }, blur = true, ignore_alpha = 0 })
 
