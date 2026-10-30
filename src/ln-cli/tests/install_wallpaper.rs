@@ -7,7 +7,7 @@ use std::{
 use serde_json::{Value, json};
 
 fn command(root: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
     command
         .env_clear()
         .env("HOME", root)

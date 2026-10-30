@@ -31,16 +31,16 @@ if name == "pacman":
     stage = "update" if arguments[0] == "-Syu" else "install-packages"
 elif name == "mise":
     stage = "install-rust" if "use" in arguments else "install-cli"
-elif name == "lnxt":
+elif name == "luna":
     stage = "setup"
-    assert shutil.which("lnxt") == str(Path(os.environ["HOME"]) / ".local/bin/lnxt")
+    assert shutil.which("luna") == str(Path(os.environ["HOME"]) / ".local/bin/luna")
 if stage is not None and stage == os.environ.get("SETUP_TEST_FAIL"):
     sys.exit(17)
 if name == "sudo":
     command = Path(os.environ["SETUP_TEST_BIN"]) / arguments[0]
     os.execv(command, arguments)
 elif stage == "install-cli":
-    installed_cli = Path(os.environ["HOME"]) / ".local/bin/lnxt"
+    installed_cli = Path(os.environ["HOME"]) / ".local/bin/luna"
     installed_cli.parent.mkdir(parents=True)
     installed_cli.symlink_to(Path(os.environ["SETUP_TEST_BIN"]) / "mock-command")
 '''
@@ -98,7 +98,7 @@ class SetupTests(unittest.TestCase):
                 ("sleep", ["5"]),
             )
         ]
-        self.expected.append({"name": "lnxt", "args": ["setup"], "cwd": str(self.repo)})
+        self.expected.append({"name": "luna", "args": ["setup"], "cwd": str(self.repo)})
 
     def run_setup(self, success=True):
         result = subprocess.run([str(self.script)], cwd=self.work, env=self.env,
@@ -117,8 +117,8 @@ class SetupTests(unittest.TestCase):
     def test_installs_tools_and_local_cli_then_runs_setup_from_repository(self):
         result = self.run_setup()
         self.assertEqual(self.commands(), self.expected)
-        self.assertIn("Running lnxt setup in 5 seconds...", result.stdout)
-        self.assertTrue((self.home / ".local/bin/lnxt").is_file())
+        self.assertIn("Running luna setup in 5 seconds...", result.stdout)
+        self.assertTrue((self.home / ".local/bin/luna").is_file())
         self.assertEqual(list(self.work.iterdir()), [])
 
     def test_failure_at_each_installation_stage_stops_before_later_actions(self):
@@ -129,7 +129,7 @@ class SetupTests(unittest.TestCase):
                 result = self.run_setup(success=False)
                 self.assertEqual(result.returncode, 17)
                 self.assertEqual(self.commands(), self.expected[:count])
-                self.assertNotIn("Running lnxt setup", result.stdout)
+                self.assertNotIn("Running luna setup", result.stdout)
                 self.assertFalse((self.home / ".local").exists())
                 self.log.unlink()
 

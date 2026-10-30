@@ -67,7 +67,7 @@ fn state(root: &Path) -> Value {
 }
 
 fn run(root: &Path, arguments: &[&str]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_lnxt"))
+    Command::new(env!("CARGO_BIN_EXE_luna"))
         .args(arguments)
         .env_clear()
         .env("HOME", root.join("home"))
@@ -195,7 +195,7 @@ fn missing_service_reports_a_json_error_without_launching_menu() {
         response["error"]
             .as_str()
             .unwrap()
-            .contains("lnxt configure luna-menu")
+            .contains("luna configure luna-menu")
     );
     assert_eq!(state(root.path())["calls"], json!([]));
 }

@@ -23,8 +23,8 @@ Copy [example.conf](example.conf) to your config path. It lists every setting,
 accepted value, and default. The app reads at startup and on explicit reload;
 there is no file watcher. It does not copy the example or rewrite existing files.
 
-The [lnxt CLI](../ln-cli/README.md) applies its config changes automatically.
-After direct file edits, run `lnxt wallpaper reload`. Reload keeps the window and
+The [luna CLI](../ln-cli/README.md) applies its config changes automatically.
+After direct file edits, run `luna wallpaper reload`. Reload keeps the window and
 unchanged media running; `restart` performs a full stop/start.
 
 Missing files and parent directories are created; empty files or omitted settings

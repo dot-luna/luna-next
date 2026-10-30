@@ -23,12 +23,12 @@ printf 'Installing Rust...\n'
 # Use the home context before the repository's mise tasks and Rust toolchain exist.
 mise --cd "$HOME" use --global --yes --fuzzy -- rust@stable
 
-printf 'Building and installing lnxt...\n'
+printf 'Building and installing luna...\n'
 mise --cd "$HOME" exec rust@stable -- cargo install --locked --force \
     --path "$repo_dir/src/ln-cli" --root "$HOME/.local"
 
-printf 'Running lnxt setup in 5 seconds...\n'
+printf 'Running luna setup in 5 seconds...\n'
 sleep 5
 cd -- "$repo_dir"
 export PATH="$HOME/.local/bin:$PATH"
-exec "$HOME/.local/bin/lnxt" setup
+exec "$HOME/.local/bin/luna" setup

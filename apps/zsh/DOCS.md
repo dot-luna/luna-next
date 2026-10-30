@@ -1,6 +1,6 @@
 # Zsh configuration
 
-`lnxt configure zsh` replaces the exported startup file and module folder without
+`luna configure zsh` replaces the exported startup file and module folder without
 backups. A nonempty `ZDOTDIR` selects the startup directory; otherwise it is
 `HOME`. A nonempty `XDG_CONFIG_HOME` selects the module base; otherwise it is
 `~/.config`. Start a new shell to load the result.
@@ -16,7 +16,7 @@ backups. A nonempty `ZDOTDIR` selects the startup directory; otherwise it is
 
 ## Optional integrations
 
-`lnxt install --main` installs the shell tools and packaged plugins below. When
+`luna install --main` installs the shell tools and packaged plugins below. When
 configuring without package installation, missing tools are skipped.
 
 | Tool | Behavior |
@@ -25,7 +25,7 @@ configuring without package installation, missing tools are skipped.
 | zoxide | Provides `cd` through `z`, and `cdi` through `zi`. |
 | fzf | Ctrl+R history, Ctrl+T files, Alt+C directories; fd provides hidden-file searches, bat/eza provide previews. |
 | eza | Adds `ll`, `la`, and `lt`; existing aliases/functions take precedence. |
-| Starship | Initializes once with `$STARSHIP_CONFIG` or `${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml`. Install its config with `lnxt configure starship`. |
+| Starship | Initializes once with `$STARSHIP_CONFIG` or `${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml`. Install its config with `luna configure starship`. |
 
 Packaged `fzf-tab`, `zsh-autosuggestions`, `zsh-syntax-highlighting`, and
 `zsh-completions` load from `/usr/share/zsh`. Plugins load at the first prompt,

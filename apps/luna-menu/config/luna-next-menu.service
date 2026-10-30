@@ -7,7 +7,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart="%h/.local/bin/lnxt" menu serve
+ExecStart="%h/.local/bin/luna" menu serve
 UnsetEnvironment=LUNA_NEXT_MENU_VALIDATE LUNA_NEXT_MENU_THEME
 Restart=on-failure
 RestartSec=2

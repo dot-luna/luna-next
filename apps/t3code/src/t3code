@@ -5,5 +5,5 @@ export T3CODE_DISABLE_AUTO_UPDATE=true
 export T3CODE_DESKTOP_LAUNCHER_PATH="$HOME/.local/bin/t3code"
 # Electron sets these for its parent image; a new AppImage needs its own mount.
 unset APPIMAGE APPDIR
-"$HOME/.local/bin/lnxt" theme apply t3code >/dev/null
+"$HOME/.local/bin/luna" theme apply t3code >/dev/null
 exec "${XDG_DATA_HOME:-$HOME/.local/share}/luna-next/t3code/T3-Code.AppImage" "$@"

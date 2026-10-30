@@ -76,13 +76,13 @@ end
 assert(bindings["SUPER + S"].dispatcher.options == "luna-next-scratchpad")
 for _, entry in pairs(bindings) do
     if type(entry.dispatcher) == "table" and entry.dispatcher.kind == "exec" then
-        assert(entry.dispatcher.options == '"$HOME/.local/bin/lnxt" menu toggle' or
+        assert(entry.dispatcher.options == '"$HOME/.local/bin/luna" menu toggle' or
             entry.dispatcher.options == "xdg-terminal-exec" or
             entry.dispatcher.options:match("^gtk%-launch "), "unsupported application shortcut")
     end
 end
 assert(not bindings["Print"] and not bindings["XF86AudioRaiseVolume"])
-assert(bindings["SUPER + Space"].dispatcher.options == '"$HOME/.local/bin/lnxt" menu toggle')
+assert(bindings["SUPER + Space"].dispatcher.options == '"$HOME/.local/bin/luna" menu toggle')
 assert(not bindings["SUPER + L"])
 bindings["SUPER + grave"].dispatcher()
 assert(#commands == 1 and #timers == 1)
@@ -95,7 +95,7 @@ assert(commands[1].options ==
         shutil.copy2(self.installed / "entry.lua", self.link)
         self.lua('''
 dofile(arg[1])
-assert(bindings["SUPER + Space"].dispatcher.options == '"$HOME/.local/bin/lnxt" menu toggle')
+assert(bindings["SUPER + Space"].dispatcher.options == '"$HOME/.local/bin/luna" menu toggle')
 assert(#commands == 0, "entry loading must not start session apps")
 ''', entry=self.link)
 
@@ -108,14 +108,14 @@ assert(#commands == 0, "configuration reload must not restart session apps")
 fire("hyprland.start")
 assert(#commands == 3 and commands[1].kind == "exec" and commands[2].kind == "exec" and commands[3].kind == "exec")
 assert(commands[1].options ==
-    'QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}" "$HOME/.local/bin/lnxt" wallpaper start')
-assert(commands[2].options == '"$HOME/.local/bin/lnxt" polkit start')
-assert(commands[3].options == '"$HOME/.local/bin/lnxt" menu start')
+    'QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}" "$HOME/.local/bin/luna" wallpaper start')
+assert(commands[2].options == '"$HOME/.local/bin/luna" polkit start')
+assert(commands[3].options == '"$HOME/.local/bin/luna" menu start')
 ''')
 
     def test_shared_theme_appearance_is_loaded_on_configuration_reload(self):
         self.installed.parent.joinpath("theme.conf").write_text('theme { name = "custom" }\n')
-        executable = self.home / ".local/bin/lnxt"
+        executable = self.home / ".local/bin/luna"
         executable.parent.mkdir(parents=True)
         data = self.config / "native-appearance.lua"
         data.write_text('return {general = {gaps_in = 8}, decoration = {rounding = 14}}\n')
@@ -134,7 +134,7 @@ assert(#commands == 0, "theme reads must not launch desktop apps")
 
     def test_invalid_theme_output_is_reported_without_executing_it(self):
         self.installed.parent.joinpath("theme.conf").write_text('theme { name = "custom" }\n')
-        executable = self.home / ".local/bin/lnxt"
+        executable = self.home / ".local/bin/luna"
         executable.parent.mkdir(parents=True)
         executable.write_text('#!/bin/sh\nprintf \'{"ok":false,"error":"invalid theme"}\\n\'\n')
         executable.chmod(0o755)

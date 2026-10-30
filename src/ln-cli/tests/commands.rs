@@ -1,7 +1,10 @@
 use serde_json::{Value, json};
 use std::{
     fs,
-    os::unix::fs::{PermissionsExt, symlink},
+    os::unix::{
+        fs::{PermissionsExt, symlink},
+        process::CommandExt,
+    },
     path::{Path, PathBuf},
     process::{Command, Output, Stdio},
 };
@@ -91,7 +94,7 @@ exit 8
     }
 
     fn command(&self) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
         command
             .env_clear()
             .env("HOME", self.root.path())
@@ -159,13 +162,16 @@ fn json_option_works_at_every_level_and_alias_uses_xdg_paths() {
 #[test]
 fn help_does_not_create_files_and_explicit_configuration_wins() {
     let sandbox = Sandbox::new();
-    let help = sandbox.run(&["--help"]);
+    let help = sandbox
+        .command()
+        .arg0("other-launcher")
+        .arg("--help")
+        .output()
+        .unwrap();
     assert!(help.status.success());
-    assert!(
-        String::from_utf8(help.stdout)
-            .unwrap()
-            .contains("wallpaper")
-    );
+    let help = String::from_utf8(help.stdout).unwrap();
+    assert!(help.contains("Usage: luna "), "{help}");
+    assert!(help.contains("wallpaper"), "{help}");
     assert!(!sandbox.config.exists());
     let custom = sandbox.root.path().join("custom.conf");
     let output = sandbox

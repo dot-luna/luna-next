@@ -6,7 +6,7 @@ description = "Luna commands for terminals and applications"
 license = "MIT"
 
 [[bin]]
-name = "lnxt"
+name = "luna"
 path = "src/main.rs"
 
 [dependencies]

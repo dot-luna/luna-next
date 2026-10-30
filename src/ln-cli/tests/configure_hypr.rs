@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 #[test]
 fn hypr_configure_replaces_exported_modules_and_managed_startup_entry() {
     let root = tempfile::Builder::new()
-        .prefix("lnxt hypr ' ")
+        .prefix("luna hypr ' ")
         .tempdir()
         .unwrap();
     let config_home = root.path().join("config");
@@ -19,7 +19,7 @@ fn hypr_configure_replaces_exported_modules_and_managed_startup_entry() {
     let source = repository.join("apps/hypr/config");
     let target = config_home.join("luna-next/hypr");
     let configure = || {
-        let output = Command::new(env!("CARGO_BIN_EXE_lnxt"))
+        let output = Command::new(env!("CARGO_BIN_EXE_luna"))
             .env_clear()
             .env("HOME", root.path().join("home"))
             .env("XDG_CONFIG_HOME", &config_home)

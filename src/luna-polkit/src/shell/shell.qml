@@ -87,7 +87,7 @@ ShellRoot {
         try {
             theme = loadTheme();
         } catch (error) {
-            console.error("Luna Next polkit theme: " + error.message + ". Start the agent with lnxt polkit serve.");
+            console.error("Luna Next polkit theme: " + error.message + ". Start the agent with luna polkit serve.");
             // Quickshell connects engine exit signals after component creation.
             Qt.callLater(() => Qt.exit(1));
         }

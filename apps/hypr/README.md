@@ -6,7 +6,7 @@ animations, shortcuts, and session startup.
 Install the configuration:
 
 ```sh
-lnxt configure hypr
+luna configure hypr
 ```
 
 This replaces the active Hyprland Lua entry. Reload Hyprland to use the new

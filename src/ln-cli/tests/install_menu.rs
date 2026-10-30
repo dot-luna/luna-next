@@ -9,7 +9,7 @@ fn menu_install_links_native_runtime_and_exports_service_without_starting_it() {
         .join("../..")
         .canonicalize()
         .unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_lnxt"))
+    let output = Command::new(env!("CARGO_BIN_EXE_luna"))
         .env_clear()
         .env("HOME", root.path())
         .env("XDG_CONFIG_HOME", root.path().join("config"))

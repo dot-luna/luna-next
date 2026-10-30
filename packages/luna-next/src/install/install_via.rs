@@ -568,7 +568,7 @@ fn run(source: Source, packages: &[Package], command: &mut Command) -> Result<Re
 fn require_user() -> Result<()> {
     if unsafe { libc::geteuid() } == 0 {
         return Err(Error::Message(
-            "Run lnxt as your normal user, without sudo.".into(),
+            "Run luna as your normal user, without sudo.".into(),
         ));
     }
     Ok(())

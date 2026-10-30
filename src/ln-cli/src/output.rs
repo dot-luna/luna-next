@@ -76,6 +76,6 @@ pub(crate) fn report_error(error: &str, json_output: bool) {
     if json_output {
         println!("{}", json!({ "ok": false, "error": error }));
     } else {
-        eprintln!("lnxt: {error}");
+        eprintln!("luna: {error}");
     }
 }

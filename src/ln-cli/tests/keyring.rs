@@ -34,7 +34,7 @@ fn sandbox(with_systemctl: bool) -> tempfile::TempDir {
 }
 
 fn command(root: &Path, arguments: &[&str]) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
     // Only the fixture can be resolved; no real user manager or keyring is reachable.
     command
         .args(arguments)

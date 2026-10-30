@@ -7,7 +7,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart="%h/.local/bin/lnxt" polkit serve
+ExecStart="%h/.local/bin/luna" polkit serve
 UnsetEnvironment=LUNA_NEXT_POLKIT_VALIDATE LUNA_NEXT_POLKIT_THEME
 Restart=on-failure
 RestartSec=2

@@ -100,7 +100,7 @@ impl Polkit {
         let _lock = config_io::lock(&self.paths.service_file)?;
         if !self.paths.service_file.is_file() {
             return Err(Error::Message(format!(
-                "Polkit user service not found: {}; run lnxt configure luna-polkit",
+                "Polkit user service not found: {}; run luna configure luna-polkit",
                 self.paths.service_file.display()
             )));
         }

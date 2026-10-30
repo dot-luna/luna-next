@@ -1,15 +1,15 @@
 # Kitty configuration
 
-`lnxt configure kitty` replaces `$XDG_CONFIG_HOME/kitty` (default
+`luna configure kitty` replaces `$XDG_CONFIG_HOME/kitty` (default
 `~/.config/kitty`). `KITTY_CONFIG_DIRECTORY` overrides the whole destination
 folder. Existing files inside that folder are replaced without backups.
 
 The generated `generated/theme.conf` supplies terminal colors, ANSI colors,
-selection, tabs, borders, and `fonts.mono` from `lnxt theme get --json`. With no
+selection, tabs, borders, and `fonts.mono` from `luna theme get --json`. With no
 selected theme, Luna Next's defaults apply. A theme resolution error stops the
 export before the installed configuration changes.
 
-After selecting or editing a theme, run `lnxt configure kitty starship` again.
+After selecting or editing a theme, run `luna configure kitty starship` again.
 Restart Kitty to apply the configuration. Theme selection does not regenerate it.
 
 The configuration keeps 14-point text, ligatures, a steady underline cursor,

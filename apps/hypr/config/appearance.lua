@@ -27,12 +27,12 @@ end
 file:close()
 
 -- The CLI resolves HOCON and validates shared appearance before translating it to Lua.
-local executable = "'" .. (home .. "/.local/bin/lnxt"):gsub("'", "'\\''") .. "'"
+local executable = "'" .. (home .. "/.local/bin/luna"):gsub("'", "'\\''") .. "'"
 local pipe = assert(io.popen(executable .. " theme hyprland", "r"))
 local source = pipe:read("*a")
 -- Hyprland can reap subprocesses before pclose; validate the returned data instead.
 pipe:close()
-assert(source and source:match("^return {"), "Cannot resolve Luna Next theme; run lnxt theme get")
+assert(source and source:match("^return {"), "Cannot resolve Luna Next theme; run luna theme get")
 local settings = assert(load(source, "Luna Next theme appearance", "t", {}))()
 assert(type(settings) == "table", "Luna Next theme appearance must be a table")
 hl.config(settings)

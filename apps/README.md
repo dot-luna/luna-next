@@ -36,10 +36,10 @@ are protected from replacement.
 Export a folder with `{ source: ".", target: "luna-next/hypr" }`.
 
 ```sh
-lnxt configure luna-wallpaper
+luna configure luna-wallpaper
 ```
 
-`lnxt setup` and matching package installs also run this stage. Exports replace
+`luna setup` and matching package installs also run this stage. Exports replace
 existing destination files, folders, or symlinks without backups. A folder export
 replaces the whole folder, including obsolete files.
 
@@ -52,9 +52,9 @@ matching package entries in [`installs/`](../installs/README.md). To refresh the
 configs without reinstalling packages:
 
 ```sh
-lnxt configure kitty zsh starship
+luna configure kitty zsh starship
 ```
 
-Kitty and Starship builders use `lnxt theme get --json`; install `lnxt` on `PATH`
+Kitty and Starship builders use `luna theme get --json`; install `luna` on `PATH`
 before configuring them. Rerun their configuration after changing themes. Zsh's
 startup export uses `base: "home"` and `directory_env: "ZDOTDIR"` for `.zshrc`.

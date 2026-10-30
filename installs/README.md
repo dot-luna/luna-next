@@ -41,5 +41,5 @@ The [T3 recipe](../apps/t3code/DOCS.md) builds the x86_64 Linux app with Luna's
 boxy UI and defaults, then installs a launcher into `~/.local/bin/t3code`:
 
 ```sh
-lnxt install --git t3code
+luna install --git t3code
 ```

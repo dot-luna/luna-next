@@ -152,7 +152,7 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
     }
     if unsafe { libc::geteuid() } == 0 {
         return Err(Error::Message(
-            "Run lnxt as your normal user, without sudo.".into(),
+            "Run luna as your normal user, without sudo.".into(),
         ));
     }
     let current = env::current_dir()

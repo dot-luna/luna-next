@@ -3,7 +3,7 @@ use std::{fs, os::unix::fs::PermissionsExt, path::Path, process::Command};
 use serde_json::{Value, json};
 
 fn run(root: &Path, args: &[&str]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_lnxt"))
+    Command::new(env!("CARGO_BIN_EXE_luna"))
         .args(args)
         .env_clear()
         .env("HOME", root.join("home"))

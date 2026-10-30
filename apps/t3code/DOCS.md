@@ -3,12 +3,12 @@
 - [config/boxy.css](config/boxy.css): square corners throughout the main UI.
 - The build patches square controls and desktop entry visibility. Fonts, colors,
   and math rendering use T3's native configuration; they are not compiled patches.
-- The launcher runs `lnxt theme apply t3code` before opening T3. Install the current
-  CLI into `~/.local/bin/lnxt` with `mise run install:ln-cli` first.
-- Updates use `lnxt install --git t3code`. The built-in updater is disabled to
+- The launcher runs `luna theme apply t3code` before opening T3. Install the current
+  CLI into `~/.local/bin/luna` with `mise run install:ln-cli` first.
+- Updates use `luna install --git t3code`. The built-in updater is disabled to
   retain square controls. Restart T3 after installation.
 
-`lnxt theme apply t3code` publishes the resolved Luna palette to
+`luna theme apply t3code` publishes the resolved Luna palette to
 `~/.t3/userdata/themes/luna-next.json` and selects it with T3's environment-theme
 settings. Native JSON is required by T3; Luna theme sources remain `.conf`.
 It also sets interface/composer fonts from `fonts.ui`, code/terminal fonts from
@@ -23,7 +23,7 @@ T3's standard nonempty `T3CODE_HOME` overrides `~/.t3`; state lives in its
 `userdata` directory. A missing Luna selection uses Tokyo Night defaults: Outfit
 UI/composer and Iosevka Nerd Font code/terminal. Fonts must already be installed.
 Palette changes use T3's environment-theme support; font changes need a desktop
-restart. After changing Luna themes, rerun `lnxt theme apply t3code` or reopen T3.
+restart. After changing Luna themes, rerun `luna theme apply t3code` or reopen T3.
 No rebuild is needed for palette/font changes; changing square-control CSS needs one.
 
 The recipe shallow-clones into `~/.local/src/t3code`, builds the selected release,

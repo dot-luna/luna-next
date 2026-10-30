@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{ArgGroup, Args, Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "lnxt", version, about)]
+#[command(name = "luna", bin_name = "luna", version, about)]
 pub(crate) struct Cli {
     /// Return a JSON response for applications.
     #[arg(long, global = true)]

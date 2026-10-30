@@ -94,7 +94,7 @@ impl Sandbox {
     }
 
     fn command(&self) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
         command
             .env_clear()
             .env("HOME", self.root.path().join("home"))

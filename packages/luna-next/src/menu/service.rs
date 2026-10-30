@@ -120,7 +120,7 @@ impl Menu {
         let _lock = config_io::lock(&self.paths.service_file)?;
         if !self.paths.service_file.is_file() {
             return Err(Error::Message(format!(
-                "Menu user service not found: {}; run lnxt configure luna-menu",
+                "Menu user service not found: {}; run luna configure luna-menu",
                 self.paths.service_file.display()
             )));
         }

@@ -1,7 +1,7 @@
 # Luna Next
 
 Rust configuration libraries, shared themes, wallpaper, an application menu,
-desktop authentication, and the `lnxt` CLI.
+desktop authentication, and the `luna` CLI.
 
 On Arch Linux, run as your normal user with sudo access:
 
@@ -9,8 +9,8 @@ On Arch Linux, run as your normal user with sudo access:
 bash scripts/setup.sh
 ```
 
-This updates the system, prepares mise and Rust, installs `lnxt` into
-`~/.local/bin`, then runs `lnxt setup` after five seconds. Setup installs the
+This updates the system, prepares mise and Rust, installs `luna` into
+`~/.local/bin`, then runs `luna setup` after five seconds. Setup installs the
 declared packages, tools, and local apps, then builds and installs app
 configurations, replacing their exported paths without backups, and enables the
 GNOME Keyring user socket.

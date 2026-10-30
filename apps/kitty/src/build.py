@@ -10,7 +10,7 @@ import sys
 
 def build():
     result = subprocess.run(
-        ["lnxt", "theme", "get", "--json"],
+        ["luna", "theme", "get", "--json"],
         check=True,
         capture_output=True,
         text=True,

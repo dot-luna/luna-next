@@ -1,20 +1,20 @@
-# lnxt
+# luna
 
 ## Installation
 
 Run as your normal user; system packages use sudo.
 
 ```sh
-lnxt install --core --main       # Combine package groups
-lnxt install yay                 # Use its declared source
-lnxt install --main --aur        # Filter main by source
-lnxt install --pacman ripgrep    # Official package, even if unlisted
-lnxt install --mise              # Declared mise tools
-lnxt install --git yay           # Git package recipe
-lnxt install --local cli         # Local package; --apps is an alias
-lnxt configure luna-wallpaper    # Build and replace app configurations
-lnxt configure kitty zsh starship # Refresh terminal, shell, plugins, and prompt
-lnxt setup                      # Install packages/configs and enable the keyring socket
+luna install --core --main       # Combine package groups
+luna install yay                 # Use its declared source
+luna install --main --aur        # Filter main by source
+luna install --pacman ripgrep    # Official package, even if unlisted
+luna install --mise              # Declared mise tools
+luna install --git yay           # Git package recipe
+luna install --local cli         # Local package; --apps is an alias
+luna configure luna-wallpaper    # Build and replace app configurations
+luna configure kitty zsh starship # Refresh terminal, shell, plugins, and prompt
+luna setup                      # Install packages/configs and enable the keyring socket
 ```
 
 Names narrow the selected groups or source. Source flags (`--pacman`, `--aur`,
@@ -29,7 +29,7 @@ user socket. Direct AUR installs require yay already installed.
 Failures stop later steps; completed work remains.
 
 Package installs also configure matching [`apps/`](../../apps/README.md) entries;
-setup configures all apps. `lnxt configure [APP...]` runs only this stage.
+setup configures all apps. `luna configure [APP...]` runs only this stage.
 Builders generate files in staging, then exported files and folders are replaced
 without backups. Managed HOCON entries are recreated with an include of their
 defaults, resetting local changes. Configs use `XDG_CONFIG_HOME` (default
@@ -40,7 +40,7 @@ file or folder destination.
 Git packages clone into `~/.local/src/<name>`. Local packages symlink their source
 there, or into `destination` relative to `~/.local`, then run their commands.
 Local installs refresh links and replace existing destination directories.
-The current recipes install `lnxt` into `~/.local/bin`, the QML module into
+The current recipes install `luna` into `~/.local/bin`, the QML module into
 `~/.local/lib/qt6/qml`, and link wallpaper into
 `~/.local/share/luna-next/wallpaper`, plus menu and polkit under the same base.
 Keep the checkout available for local links.
@@ -57,9 +57,9 @@ in that order). The build-time fallback works while that checkout stays in place
 From the repository root, after installing the CLI:
 
 ```sh
-lnxt theme install themes/bundled/tokyo-night
-lnxt theme set tokyo-night
-lnxt theme get appearance --json
+luna theme install themes/bundled/tokyo-night
+luna theme set tokyo-night
+luna theme get appearance --json
 ```
 
 | Command | Action |
@@ -78,28 +78,28 @@ Themes use HOCON `.conf` files, with semantic `colors`, `fonts`, `appearance`, a
 `wallpaper` sections. See [theme fields and authoring](../../themes/DOCS.md).
 Selection does not reload apps or change wallpapers. With the installed
 [Hyprland configuration](../../apps/hypr/DOCS.md), reload Hyprland to apply appearance.
-Run `lnxt configure kitty starship` to regenerate terminal colors, its monospace
+Run `luna configure kitty starship` to regenerate terminal colors, its monospace
 font, and the prompt palette from the selection. Restart Kitty and open a new
 shell after configuring; see [Kitty](../../apps/kitty/DOCS.md) and
 [Zsh](../../apps/zsh/DOCS.md) for their native paths and overrides.
 
 System mode needs GSettings and a user desktop session; its dependencies are in
-`lnxt install --main`. Portal apps need a Settings provider such as
+`luna install --main`. Portal apps need a Settings provider such as
 `xdg-desktop-portal-gtk`. Fixed palettes and legacy GTK overrides may take precedence.
 Failed application attempts source and preference recovery without overwriting
 detected external edits.
 
 The managed T3 launcher applies Luna's theme on startup. Run
-`lnxt theme apply t3code` to refresh an open app's palette; restart T3 for fonts.
+`luna theme apply t3code` to refresh an open app's palette; restart T3 for fonts.
 It honors `T3CODE_HOME` (default `~/.t3`) and retains unrelated preferences.
 See [T3 setup and limitations](../../apps/t3code/DOCS.md).
 
 ## Menu
 
 ```sh
-lnxt install --local cli menu
-lnxt menu
-lnxt menu toggle
+luna install --local cli menu
+luna menu
+luna menu toggle
 ```
 
 The menu contains only **Apps** and its searchable installed-application list.
@@ -112,8 +112,8 @@ to toggle it. See [menu setup and behavior](../luna-menu/DOCS.md).
 ## Keyring
 
 ```sh
-lnxt install --pacman gnome-keyring
-lnxt keyring setup
+luna install --pacman gnome-keyring
+luna keyring setup
 ```
 
 Full setup includes this step. It enables the package's user socket now and for
@@ -127,9 +127,9 @@ No password is saved by Luna, and this does not change sudo or polkit prompts.
 ## Polkit
 
 ```sh
-lnxt install --local cli polkit
-lnxt polkit start
-lnxt polkit status
+luna install --local cli polkit
+luna polkit start
+luna polkit status
 ```
 
 `start` validates the UI, enables session startup, and confirms native registration.
@@ -139,7 +139,7 @@ lnxt polkit status
 
 ## Wallpaper
 
-Use `lnxt wallpaper` (or `lnxt w`):
+Use `luna wallpaper` (or `luna w`):
 
 | Command | Action |
 | --- | --- |
@@ -166,8 +166,8 @@ Removal requires `--yes` or `--dry-run` in JSON mode or without a terminal;
 it never prompts in those cases.
 
 ```sh
-lnxt wallpaper get-config wallpaper.source --json
-lnxt wallpaper update-config '{"wallpaper":{"fit":"fit"}}' --json
+luna wallpaper get-config wallpaper.source --json
+luna wallpaper update-config '{"wallpaper":{"fit":"fit"}}' --json
 ```
 
 Without `--json`, `set` and `random` print the selected path; `update-config`

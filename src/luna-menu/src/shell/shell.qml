@@ -73,7 +73,7 @@ ShellRoot {
         try {
             theme = loadTheme();
         } catch (error) {
-            console.error("Luna Next menu theme: " + error.message + ". Start the menu with lnxt menu serve.");
+            console.error("Luna Next menu theme: " + error.message + ". Start the menu with luna menu serve.");
             Qt.callLater(() => Qt.exit(1));
         }
     }

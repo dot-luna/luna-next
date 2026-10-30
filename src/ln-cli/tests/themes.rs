@@ -12,7 +12,7 @@ struct Sandbox {
 impl Sandbox {
     fn new() -> Self {
         let root = tempfile::Builder::new()
-            .prefix("lnxt theme ' ")
+            .prefix("luna theme ' ")
             .tempdir()
             .unwrap();
         let bin = root.path().join("bin");
@@ -42,7 +42,7 @@ esac
         Self { root }
     }
     fn command(&self) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
         command
             .env_clear()
             .env("HOME", self.root.path().join("home"))

@@ -92,10 +92,10 @@ Keep relative includes inside the theme folder. External absolute includes remai
 external dependencies. Installed copies can be edited directly; subsequent reads
 resolve them again. Reinstall first when editing the original source folder.
 Selection changes do not reload applications. Hyprland reads through the installed
-CLI on startup/reload; other clients can use `lnxt theme get --json` or the Rust API.
+CLI on startup/reload; other clients can use `luna theme get --json` or the Rust API.
 There are no watchers or generated JSON theme files.
 
-`lnxt configure kitty starship` regenerates the terminal's native colors/font and
+`luna configure kitty starship` regenerates the terminal's native colors/font and
 the prompt palette from the selection. Restart Kitty after configuration; Starship
 reads its config at the next prompt. See [Kitty](../apps/kitty/DOCS.md) and
 [Starship](../apps/starship/DOCS.md) for paths and overrides.
@@ -103,7 +103,7 @@ reads its config at the next prompt. See [Kitty](../apps/kitty/DOCS.md) and
 `wallpaper.sources` accepts theme-relative files/directories or public HTTP(S) media
 URLs. Local paths must stay inside the theme folder. Installation imports through
 the wallpaper library without recursion or replacement of conflicting filenames.
-It does not choose a wallpaper; use `lnxt wallpaper set`. Removal keeps imported
+It does not choose a wallpaper; use `luna wallpaper set`. Removal keeps imported
 wallpapers. Sources may be empty. Imports need `file`, plus `curl` for URLs.
 
 ## Checks

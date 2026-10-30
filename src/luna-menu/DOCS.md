@@ -1,6 +1,6 @@
 # Menu
 
-`lnxt menu start` starts the menu hidden. `lnxt menu show` opens it on the focused
+`luna menu start` starts the menu hidden. `luna menu show` opens it on the focused
 Hyprland monitor and resets its view; `hide` dismisses it and `toggle` switches its
 visibility. Hidden menus do not request keyboard focus.
 

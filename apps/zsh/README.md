@@ -4,7 +4,7 @@ Luna Next's managed Zsh startup, completions, history, shell tools, and packaged
 plugins. Requires Zsh; optional tools and plugins are listed in [DOCS.md](DOCS.md).
 
 ```sh
-lnxt configure zsh
+luna configure zsh
 exec zsh
 ```
 

@@ -71,7 +71,7 @@ function build(checkout, version, dependencies = withBuildDependencies) {
   if (process.platform !== "linux" || process.arch !== "x64") {
     throw new Error("The T3 source recipe currently supports x86_64 Linux");
   }
-  if (!version) throw new Error("Run lnxt install --git t3code to select a release");
+  if (!version) throw new Error("Run luna install --git t3code to select a release");
   const home = process.env.HOME;
   if (!home || !path.isAbsolute(home) || home === "/")
     throw new Error("HOME must be an absolute user home");

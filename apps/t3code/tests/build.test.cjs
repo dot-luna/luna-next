@@ -31,7 +31,7 @@ function buildFixture(t) {
   fs.mkdirSync(bin);
   fs.mkdirSync(home);
   fs.mkdirSync(path.join(home, ".local/bin"), { recursive: true });
-  fs.writeFileSync(path.join(home, ".local/bin/lnxt"), '#!/bin/sh\ntest "$1 $2 $3" = "theme apply t3code" || exit 8\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(home, ".local/bin/luna"), '#!/bin/sh\ntest "$1 $2 $3" = "theme apply t3code" || exit 8\n', { mode: 0o755 });
   // pnpm is replaced and package transactions are bypassed; preparation and installation execute.
   fs.writeFileSync(
     path.join(bin, "pnpm"),

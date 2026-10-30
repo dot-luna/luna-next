@@ -4,7 +4,7 @@ Uses Hyprland's Lua API; verified with Hyprland 0.57.0.
 
 ## Installation
 
-`lnxt configure hypr` installs files under
+`luna configure hypr` installs files under
 `$XDG_CONFIG_HOME/luna-next/hypr` (default `~/.config/luna-next/hypr`). Setup and
 Hyprland package installation also configure these files. Each run replaces the
 exported folder and `$XDG_CONFIG_HOME/hypr/hyprland.lua` entry without backups.
@@ -16,7 +16,7 @@ The configuration needs Kitty, `xdg-terminal-exec`, `flock` (util-linux), and
 startup starts [wallpaper](../../src/luna-wallpaper/DOCS.md),
 [polkit](../../src/luna-polkit/DOCS.md), and the hidden
 [application menu](../../src/luna-menu/DOCS.md) through the installed
-`~/.local/bin/lnxt`. Wallpaper receives the local QML import path. Install these
+`~/.local/bin/luna`. Wallpaper receives the local QML import path. Install these
 apps before using the startup configuration.
 
 ## Defaults
@@ -58,7 +58,7 @@ apps before using the startup configuration.
 
 ## Themes
 
-Install the current `lnxt` CLI at `~/.local/bin/lnxt`. After `lnxt theme set NAME`,
+Install the current `luna` CLI at `~/.local/bin/luna`. After `luna theme set NAME`,
 reload Hyprland to read the selected theme's semantic `appearance` and palette.
 With no theme selection file, the defaults above apply. Invalid themes are reported;
 personal settings loaded after Luna Next can override its appearance.

@@ -13,13 +13,13 @@ struct Sandbox {
 impl Sandbox {
     fn new() -> Self {
         let root = tempfile::Builder::new()
-            .prefix("lnxt shell configs ' ")
+            .prefix("luna shell configs ' ")
             .tempdir()
             .unwrap();
         for folder in ["home", "bin"] {
             fs::create_dir(root.path().join(folder)).unwrap();
         }
-        symlink(env!("CARGO_BIN_EXE_lnxt"), root.path().join("bin/lnxt")).unwrap();
+        symlink(env!("CARGO_BIN_EXE_luna"), root.path().join("bin/luna")).unwrap();
         let mise = root.path().join("bin/mise");
         fs::write(&mise, "#!/bin/sh\nprintf '# fixture completion\\n'\n").unwrap();
         fs::set_permissions(mise, fs::Permissions::from_mode(0o755)).unwrap();
@@ -31,7 +31,7 @@ impl Sandbox {
     }
 
     fn command(&self) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_lnxt"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
         command
             .env_clear()
             .env("HOME", self.root.path().join("home"))

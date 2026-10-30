@@ -22,7 +22,7 @@ class KittyBuildTests(unittest.TestCase):
         shutil.copytree(APP / "config", self.output)
         self.theme = json.loads((APP / "tests/fixtures/theme.json").read_text())
         self.response = self.root / "theme.json"
-        binary = self.root / "bin/lnxt"
+        binary = self.root / "bin/luna"
         binary.parent.mkdir()
         binary.write_text(
             f"#!{PYTHON}\n"
