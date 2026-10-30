@@ -30,6 +30,7 @@ struct App {
 #[serde(rename_all = "lowercase")]
 enum Configurator {
     Chromium,
+    Zen,
 }
 
 #[derive(Deserialize)]
@@ -71,24 +72,24 @@ fn environment_path(key: Option<&str>) -> Result<Option<PathBuf>> {
 /// Existing export contents are discarded without backups, including managed user entries.
 /// Builders and source validation finish before publication for each app. Filesystem failures
 /// during publication can leave earlier exports installed; this is not an app-wide transaction.
-/// Chromium applies only to an existing profile. Selecting all apps skips its configuration
-/// when the default Luna profile has not been created yet. Explicit Chromium selection opens
-/// that profile's native installation page; implicit configuration only prepares files.
+/// Browser configuration applies only to existing profiles. Selecting all apps skips a
+/// browser without its default profile. Explicit Chromium selection opens its native
+/// installation page; implicit configuration only prepares files. Zen applies on next start.
 pub fn install_app_configs(repository: &Path, names: &[String]) -> Result<Report> {
     configure(repository, names, None, None)
 }
 
-/// Apply Chromium settings to an existing explicit profile directory.
-/// `names` must select only `chromium`; other apps do not accept profile overrides.
-/// Opens that profile for extension/theme confirmations after preparing its settings.
+/// Apply Chromium or Zen settings to an existing explicit profile directory.
+/// `names` must select exactly one supported browser. Chromium opens its installation page
+/// for extension/theme confirmation; Zen loads its prepared settings on the next start.
 pub fn install_app_configs_for_profile(
     repository: &Path,
     names: &[String],
     profile: &Path,
 ) -> Result<Report> {
-    if names.len() != 1 || names[0] != "chromium" {
+    if names.len() != 1 || !matches!(names[0].as_str(), "chromium" | "zen") {
         return Err(Error::Message(
-            "--profile requires selecting only the chromium app.".into(),
+            "--profile requires selecting only the chromium or zen app.".into(),
         ));
     }
     configure(repository, names, None, Some(profile))
@@ -209,9 +210,14 @@ fn configure(
     }
     let mut report = Report::default();
     for (name, app_dir, app) in selected_apps {
-        if profile.is_some() && !matches!(app.configurator, Some(Configurator::Chromium)) {
+        if profile.is_some()
+            && !matches!(
+                app.configurator,
+                Some(Configurator::Chromium | Configurator::Zen)
+            )
+        {
             return Err(Error::Message(
-                "The chromium app must declare its native Chromium configurator.".into(),
+                "The selected browser app must declare its native configurator.".into(),
             ));
         }
         relative(&app.config)?;
@@ -233,6 +239,17 @@ fn configure(
                     if !names.is_empty() {
                         chromium.open_installation(&configured)?;
                     }
+                }
+                Configurator::Zen => {
+                    let zen = crate::zen::Zen::from_env()?;
+                    if names.is_empty() && profile.is_none() && !zen.default_profile_exists()? {
+                        report
+                            .skipped
+                            .push("zen (open Zen once, then run luna conf zen)".into());
+                        continue;
+                    }
+                    let config = native_source(&name, &app_dir, &app)?;
+                    zen.configure_profile(&config, profile)?;
                 }
             }
             report.installed.push(name);

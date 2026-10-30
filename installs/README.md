@@ -70,3 +70,14 @@ conflicting Chromium/chromedriver replacement. Package-manager dependency checks
 remain active; browser profile files are retained. Package-only installation
 leaves a missing Luna profile for the explicit setup step; full `luna setup`
 creates it when web apps are declared. See [Chromium setup](../apps/chromium/DOCS.md).
+
+Zen uses the prebuilt AUR `zen-browser-bin` package:
+
+```sh
+luna install zen-browser-bin
+```
+
+Installation and full setup configure Zen's existing default profile with Luna's
+appearance, uBlock Origin, and Bitwarden. Close Zen first. A missing profile is
+skipped; open Zen once, close it, then run `luna conf zen`. No Zen profile is
+created by Luna. See [Zen configuration](../apps/zen/DOCS.md).

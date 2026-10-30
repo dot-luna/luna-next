@@ -11,6 +11,7 @@ mod process;
 pub mod theme;
 pub mod wallpaper;
 pub mod webapp;
+pub mod zen;
 
 use std::{
     io,

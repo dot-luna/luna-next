@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["extensions"],
+  "properties": {
+    "extensions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "url"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^(?:[A-Za-z0-9._+-]+@[A-Za-z0-9._-]+|\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\})$"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https://addons\\.mozilla\\.org/firefox/downloads/latest/[A-Za-z0-9._%+@-]+/latest\\.xpi$"
+          }
+        }
+      }
+    }
+  }
+}

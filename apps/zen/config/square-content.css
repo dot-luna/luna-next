@@ -1,0 +1,6 @@
+/* Only ordinary websites receive the square-corner override. */
+@-moz-document url-prefix("http://"), url-prefix("https://") {
+    *, *::before, *::after {
+        border-radius: 0 !important;
+    }
+}

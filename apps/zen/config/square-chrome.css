@@ -1,0 +1,21 @@
+
+    :root {
+        --zen-border-radius: 0px !important;
+        --zen-webview-border-radius: 0px !important;
+        --zen-native-inner-radius: 0px !important;
+        --button-border-radius: 0px !important;
+        --toolbarbutton-border-radius: 0px !important;
+        --tab-border-radius: 0px !important;
+        --arrowpanel-border-radius: 0px !important;
+        --panel-border-radius: 0px !important;
+        --border-radius-small: 0px !important;
+        --border-radius-medium: 0px !important;
+        --border-radius-large: 0px !important;
+        --border-radius-xlarge: 0px !important;
+        --border-radius-circle: 0px !important;
+    }
+
+    /* Leave masks, icons and canvas drawings intact. */
+    *, *::before, *::after {
+        border-radius: 0 !important;
+    }
