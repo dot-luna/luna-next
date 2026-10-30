@@ -54,9 +54,11 @@ Set the [QML import path](../../packages/hocon-qml/DOCS.md#build-and-install)
 before launching wallpaper. Package installation does not start desktop apps;
 full setup also starts the keyring socket for Secret Service activation.
 
-Locate the checkout with `--repo PATH`, `LUNA_NEXT_ROOT`, the current directory's
-ancestors, `~/.local/src/luna-next`, or the checkout used to build the CLI (checked
-in that order). The build-time fallback works while that checkout stays in place.
+Install with the [bootstrap scripts](../../install/DOCS.md) to use
+`~/.local/src/luna-next` independently of your coding folder. Checkout selection
+is `--repo PATH`, nonempty `LUNA_NEXT_ROOT`, then that managed path. Only when
+the managed path is absent are current-directory ancestors considered for
+development. Invalid selected checkouts fail; there is no build-time path fallback.
 
 ## Chromium
 

@@ -15,6 +15,12 @@ and returns `Package` objects. Groups are `core`/`main`; sources are `Pacman`,
 `Aur`, `Git`, `Mise`, and `Local`. Names narrow the selection; empty filters
 return everything. Relative local URLs resolve from the checkout.
 
+`find_repository(path?)` selects an explicit path, nonempty `LUNA_NEXT_ROOT`, or
+`~/.local/src/luna-next`, in that order. Working-directory ancestors are considered
+only when the managed checkout is absent. Invalid selected paths fail; the build
+checkout is never a runtime default. The [installer](../../install/DOCS.md)
+prepares the managed path and shared environment.
+
 `install_packages(&packages)` batches by source: pacman, Git, AUR, mise, local.
 `install(source, &packages)` and `install_via_*(&packages)` run one backend.
 They return `Report { installed, skipped }` and stop on failure; completed work remains.
@@ -185,7 +191,8 @@ failure can leave earlier exports installed.
 
 Configuration uses `LUNA_LOGIN_CONFIG` or `$XDG_CONFIG_HOME/luna-next/login.conf`;
 screens use `$XDG_DATA_HOME/luna-next/login/screens`. The runtime is installed
-under `~/.local/share/luna-next/login/app`, with a checkout fallback for development.
+under `~/.local/share/luna-next/login/app`, with `find_repository(None)` selecting
+the source fallback when the installed greeter is absent.
 There are no watchers or CLI calls inside the greeter. See
 [screen contracts, media dependencies, and setup](../../src/luna-login/DOCS.md).
 

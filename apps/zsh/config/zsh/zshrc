@@ -6,6 +6,8 @@
     # Distinguish personal mise completions from registrations added by our compinit.
     local luna_previous_mise_completion="${_comps[mise]-}"
 
+    export LUNA_NEXT_ROOT="${LUNA_NEXT_ROOT:-$HOME/.local/src/luna-next}"
+
     # Keep Luna's command and pnpm's installed tools available without duplicate paths.
     if (( ${path[(Ie)${HOME}/.local/bin]} == 0 )); then
         path=("$HOME/.local/bin" "${path[@]}")

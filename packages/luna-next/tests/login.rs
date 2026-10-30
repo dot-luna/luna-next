@@ -407,6 +407,17 @@ fn login_scenario() {
             assert_eq!(fs::read(output.join("Settings.js")).unwrap(), before);
         }
         "paths" => {
+            std::env::set_current_dir(&f.root).unwrap();
+            assert!(Paths::from_env().is_err());
+            let repository = f.root.join("home/.local/src/luna-next");
+            write(
+                repository.join("installs/packages.conf"),
+                "core = []\nmain = []\n",
+            );
+            write(
+                repository.join("src/luna-login/src/greeter/Main.qml"),
+                "managed greeter",
+            );
             let paths = Paths::from_env().unwrap();
             assert_eq!(
                 paths.config_file,
@@ -416,7 +427,19 @@ fn login_scenario() {
                 paths.screens_dir,
                 f.root.join("home/.local/share/luna-next/login/screens")
             );
-            assert!(paths.app_dir.join("greeter/Main.qml").is_file());
+            assert_eq!(paths.app_dir, repository.join("src/luna-login/src"));
+            let selected = f.root.join("selected-checkout");
+            write(
+                selected.join("installs/packages.conf"),
+                "core = []\nmain = []\n",
+            );
+            unsafe { std::env::set_var("LUNA_NEXT_ROOT", &selected) };
+            assert_eq!(
+                Paths::from_env().unwrap().app_dir,
+                selected.join("src/luna-login/src")
+            );
+            unsafe { std::env::set_var("LUNA_NEXT_ROOT", f.root.join("missing-checkout")) };
+            assert!(Paths::from_env().is_err());
             let installed = f.root.join("home/.local/share/luna-next/login/app");
             write(installed.join("greeter/Main.qml"), "installed");
             // This test runs in its own child process with no other test threads.

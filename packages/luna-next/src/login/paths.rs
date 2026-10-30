@@ -13,14 +13,15 @@ pub struct Paths {
 }
 
 impl Paths {
-    /// Use XDG homes, with the checkout greeter as a development fallback.
+    /// Use XDG homes and prefer the installed greeter application. Otherwise use
+    /// the checkout selected by [`crate::install::find_repository`].
     /// `LUNA_LOGIN_CONFIG` overrides the complete configuration filename.
     pub fn from_env() -> Result<Self> {
         let data = base("XDG_DATA_HOME", ".local/share")?.join("luna-next/login");
         let app_dir = if data.join("app/greeter/Main.qml").is_file() {
             data.join("app")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src/luna-login/src")
+            crate::install::find_repository(None)?.join("src/luna-login/src")
         };
         let config_file = match env::var_os("LUNA_LOGIN_CONFIG").filter(|value| !value.is_empty()) {
             Some(path) => PathBuf::from(path),
