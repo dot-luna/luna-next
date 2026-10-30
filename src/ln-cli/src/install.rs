@@ -2,9 +2,10 @@ use std::path::Path;
 
 use luna_next::{
     Error, Result,
+    chromium::Chromium,
     install::{
-        Source, configure_installed_apps, find_repository, get_packages, install_app_configs,
-        install_app_configs_for_profile, install_packages,
+        Source, configure_installed_apps, find_repository, get_packages, get_webapps,
+        install_app_configs, install_app_configs_for_profile, install_packages, install_webapps,
     },
 };
 use serde_json::Value;
@@ -48,13 +49,30 @@ pub(crate) fn run(arguments: &InstallArgs) -> Result<Value> {
 pub(crate) fn setup(repository: Option<&Path>) -> Result<Value> {
     let repository = find_repository(repository)?;
     let packages = get_packages(&repository, &[], None, &[])?;
+    let webapps = get_webapps(&repository)?;
+    // Setup can replace the running CLI; resolve its path before Linux appends " (deleted)".
+    let launcher = if webapps.is_empty() {
+        None
+    } else {
+        Some(std::env::current_exe().map_err(|error| {
+            Error::Message(format!("Cannot locate the Luna executable: {error}"))
+        })?)
+    };
     let mut report = install_packages(&packages)?;
-    // Configure only after every installation succeeds, when runtime files are available.
+    if !webapps.is_empty() {
+        Chromium::from_env()?.create_profile(None)?;
+    }
+    // Configure after package installation, when runtime files are available.
     let configurations = install_app_configs(&repository, &[])?;
     report.installed.extend(configurations.installed);
     report.skipped.extend(configurations.skipped);
     luna_next::keyring::setup()?;
     report.installed.push("GNOME Keyring socket".into());
+    if let Some(launcher) = launcher {
+        let installed = install_webapps(&webapps, &launcher)?;
+        report.installed.extend(installed.installed);
+        report.skipped.extend(installed.skipped);
+    }
     Ok(serde_json::to_value(report)?)
 }
 

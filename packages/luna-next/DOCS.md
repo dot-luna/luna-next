@@ -20,6 +20,13 @@ return everything. Relative local URLs resolve from the checkout.
 They return `Report { installed, skipped }` and stop on failure; completed work remains.
 Run as a normal user; pacman uses sudo. Pacman/AUR version pinning is unsupported.
 
+`get_webapps(repo)` reads the required `installs/packages.webapp.conf` array of
+`Webapp { name, url, icon_url? }`, validating all entries and duplicate names.
+`install_webapps(&recipes, launcher)` installs their desktop entries/icons into
+the existing default Luna Chromium profile and returns a `Report`. An empty
+list does nothing. It never creates a profile or opens a browser; full CLI setup
+creates the profile before app configuration and installs web apps after keyring.
+
 Git packages shallow-clone into `~/.local/src/<name>` and update existing checkouts.
 `version` selects a branch/tag; `latest` uses Git's version sorting.
 `git_release_tag_pattern` optionally narrows tags with a glob (e.g. `v*`);

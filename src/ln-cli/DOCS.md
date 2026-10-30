@@ -14,7 +14,7 @@ luna install --git yay           # Git package recipe
 luna install --local cli         # Local package; --apps is an alias
 luna configure luna-wallpaper    # Build and replace app configurations
 luna configure kitty zsh starship # Refresh terminal, shell, plugins, and prompt
-luna setup                      # Install packages/configs and enable the keyring socket
+luna setup                      # Install packages, app configs, keyring, and web apps
 ```
 
 Use `--pac` for `--pacman` and `luna conf` for `luna configure`.
@@ -27,8 +27,11 @@ without a group flag.
 
 The [HOCON lists](../../installs/README.md) supply package objects and commands.
 Setup installs pacman packages, Git recipes (including yay), AUR packages, mise
-tools, then local packages, exports app configs, and enables the GNOME Keyring
-user socket. Direct AUR installs require yay already installed.
+tools, then local packages, exports app configs, enables the GNOME Keyring
+user socket, and finally installs the web apps in `installs/packages.webapp.conf`
+(currently YouTube). A nonempty web app list creates a missing Git-named Luna
+Chromium profile before app configuration; no browser window opens. Direct AUR
+installs require yay already installed.
 Failures stop later steps; completed work remains.
 
 Package installs also configure matching [`apps/`](../../apps/README.md) entries;

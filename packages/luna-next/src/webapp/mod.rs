@@ -107,12 +107,7 @@ impl Webapps {
         profile: Option<&Path>,
         icon_url: Option<&str>,
     ) -> Result<Installed> {
-        let name = name.trim();
-        if name.is_empty() || name.len() > 100 || name.chars().any(char::is_control) {
-            return Err(Error::Message(
-                "Web app name must contain 1–100 UTF-8 bytes without control characters".into(),
-            ));
-        }
+        let name = validated_name(name)?;
         let url = chromium::app_url(url)?;
         let selected = chromium::Chromium::from_env()?.app_profile(profile)?;
         let id = app_id(name);
@@ -188,6 +183,16 @@ impl Webapps {
         }
         Ok(())
     }
+}
+
+pub(crate) fn validated_name(value: &str) -> Result<&str> {
+    let name = value.trim();
+    if name.is_empty() || name.len() > 100 || name.chars().any(char::is_control) {
+        return Err(Error::Message(
+            "Web app name must contain 1–100 UTF-8 bytes without control characters".into(),
+        ));
+    }
+    Ok(name)
 }
 
 // Hex encoding is injective over the bounded UTF-8 name, avoiding collisions between

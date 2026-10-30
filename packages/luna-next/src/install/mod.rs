@@ -2,6 +2,7 @@ mod app_configs;
 mod git_versions;
 mod install_via;
 mod packages;
+mod webapps;
 pub(crate) use app_configs::files::{copy_tree, replace};
 
 pub use app_configs::{
@@ -12,3 +13,4 @@ pub use install_via::{
     install_via_mise, install_via_pacman,
 };
 pub use packages::{find_repository, get_packages, install_packages};
+pub use webapps::{Webapp, get_webapps, install_webapps};

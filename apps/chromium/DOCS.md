@@ -47,6 +47,11 @@ Package installs and all-app configuration prepare an already-created default
 profile without opening a browser. They skip a missing profile; run
 `luna chromium setup` to create it and finish the confirmations.
 
+Full `luna setup` creates a missing Luna profile before app configuration when
+the [web app catalog](../../installs/packages.webapp.conf) is nonempty. It then
+installs those desktop web apps after keyring setup. Run `luna chromium setup`
+afterward to open the prepared extension/theme confirmations.
+
 ## Extensions and appearance
 
 The [app settings](config/settings.conf) select these exact Web Store listings:

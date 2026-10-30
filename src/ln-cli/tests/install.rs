@@ -42,6 +42,7 @@ impl Sandbox {
             }]),
         );
         write_json(&repository.join("installs/packages.git.conf"), json!([]));
+        write_json(&repository.join("installs/packages.webapp.conf"), json!([]));
         let bin = root.path().join("bin");
         fs::create_dir(&bin).unwrap();
         fs::create_dir(root.path().join("home")).unwrap();
