@@ -24,10 +24,18 @@ apps before using the startup configuration.
 - Preferred display modes, automatic positions, scale 1.
 - Workspaces 1–10 split across displays in physical order; hotplug preserves
   focus and personal workspaces.
+- App activation requests focus the receiving window and reveal its existing
+  workspace, including URL/file handoffs to running apps.
 - Keyboard repeat 40/250 ms, touchpad tapping, and three-finger workspace swipes.
 - Tokyo Night borders, square corners, gaps, opacity, blur, and spring animations.
 - Zen Picture-in-Picture, portal dialogs, and a dedicated Kitty drop-down rule.
 - Wallpaper, polkit, and the menu start at login; config reloads do not restart them.
+
+Hyprland honors the window identified by the app's activation request, including
+when the app has multiple windows. It does not move that window to your workspace.
+Apps must send a supported activation request (with a valid token on Wayland).
+This policy also allows activation requests unrelated to opening URLs or files;
+Hyprland's fullscreen, modal, and session-lock focus rules still apply.
 
 ## Shortcuts
 

@@ -90,6 +90,19 @@ assert(commands[1].options ==
     'flock -n "${XDG_RUNTIME_DIR:?}/luna-next-dropdown-${HYPRLAND_INSTANCE_SIGNATURE:?}.lock" kitty --class luna-next-dropdown')
 ''')
 
+    def test_receiving_apps_can_activate_their_existing_window(self):
+        self.lua('''
+dofile(arg[1])
+local focus_on_activate
+for _, settings in ipairs(calls) do
+    if settings.misc and settings.misc.focus_on_activate ~= nil then
+        focus_on_activate = settings.misc.focus_on_activate
+    end
+end
+assert(focus_on_activate == true, "URL/file handlers must be allowed to focus their receiving window")
+assert(#commands == 0, "activation policy must not dispatch focus or move windows while loading")
+''', entry=self.link)
+
     def test_managed_entry_loads_next_modules_from_xdg_config_home(self):
         self.link.unlink()
         shutil.copy2(self.installed / "entry.lua", self.link)
