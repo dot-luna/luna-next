@@ -56,7 +56,7 @@ fn main() -> ExitCode {
         Command::Keyring { command } => keyring::run(command).map_err(Into::into),
         Command::Login { command } => login::run(command, cli.json),
         Command::Chromium { command } => chromium::run(command).map_err(Into::into),
-        Command::Webapp { command } => webapp::run(command).map_err(Into::into),
+        Command::Webapp { command } => webapp::run(command, cli.json).map_err(Into::into),
     };
     match result {
         Ok(value) => {

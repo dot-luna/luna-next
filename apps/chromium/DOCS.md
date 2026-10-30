@@ -47,12 +47,6 @@ Package installs and all-app configuration prepare an already-created default
 profile without opening a browser. They skip a missing profile; run
 `luna chromium setup` to create it and finish the confirmations.
 
-Open websites as app windows with `luna webapp launch https://web.whatsapp.com/`.
-This uses the same default profile; `--profile PATH` selects another existing
-profile. The window has no tab strip or address bar and shares the selected
-profile's sessions and extensions. Launching works with Chromium already open
-and does not create a profile or change its configuration.
-
 ## Extensions and appearance
 
 The [app settings](config/settings.conf) select these exact Web Store listings:
@@ -98,3 +92,28 @@ cargo test -p ln-cli
 
 Tests use temporary profiles and fake package/browser commands. They never
 replace the installed browser or modify the user's live profiles.
+
+## Web apps
+
+```sh
+luna webapp install --name WhatsApp --url https://web.whatsapp.com/
+```
+
+Omit `--name` or `--url` for terminal prompts, or provide both for JSON/scripts.
+The desktop entry uses the existing Luna profile by default; `--profile PATH`
+saves an exact alternative profile directory. Install does not open the browser,
+create a profile, or apply configuration. `luna webapp launch URL` opens the same
+visible app window directly, without tabs or an address bar, including when
+Chromium is already running. Apps share the chosen profile's sessions/extensions.
+
+Icons come from the website's declared touch/favicon links or conventional icon
+paths. Use `--icon-url URL` to download another image. Downloads need `curl` and
+`file`; failed discovery reports an error before replacing the launcher. Actual
+image types are preserved, including PNG, ICO, SVG, and WebP; Luna's Qt image
+plugins support these formats, while other desktop launchers may differ.
+
+Desktop entries live in `$XDG_DATA_HOME/applications`; generated assets live in
+`$XDG_DATA_HOME/luna-next/webapps`. Reinstalling the same name replaces its entry
+and assets. Unrelated files and browser profiles are retained. Each export
+publishes atomically; a late filesystem failure may leave an earlier export
+updated.
