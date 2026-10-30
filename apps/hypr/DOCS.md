@@ -31,6 +31,8 @@ apps before using the startup configuration.
 - Bitwarden floats above tiled windows on its workspace; Zen Picture-in-Picture,
   portal dialogs, and a dedicated Kitty drop-down rule.
 - Wallpaper, polkit, and the menu start at login; config reloads do not restart them.
+- Compositor-launched apps inherit `LUNA_NEXT_ROOT`, defaulting to
+  `~/.local/src/luna-next` unless a nonempty value is already set.
 
 Hyprland honors the window identified by the app's activation request, including
 when the app has multiple windows. It does not move that window to your workspace.

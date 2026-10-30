@@ -87,15 +87,24 @@ _luna_test_mise_completion() { return 0; }
 compdef _luna_test_mise_completion mise
 """)
 
-    def test_loads_modules_from_its_directory_without_old_luna_environment(self):
-        output = self.run_zsh("""
+    def test_loads_modules_and_exports_repository_root_without_old_luna_environment(self):
+        installed = str(self.home / ".local/src/luna-next")
+        custom = str(self.root / "development ' checkout")
+        for override, expected in ((None, installed), ("", installed), (custom, custom)):
+            with self.subTest(override=override):
+                if override is None:
+                    self.env.pop("LUNA_NEXT_ROOT", None)
+                else:
+                    self.env["LUNA_NEXT_ROOT"] = override
+                output = self.run_zsh("""
 source "$LUNA_TEST_CONFIG/zshrc"
 /usr/bin/env
-""")
-        exported = dict(line.split("=", 1) for line in output.splitlines())
-        self.assertNotIn("LUNA_INSTALL_DIR", exported)
-        self.assertNotIn("LUNA_CONFIG_DIR", exported)
-        self.assertEqual(exported["PATH"], f"{self.home}/.local/bin:{self.bin}")
+""", interactive=True)
+                exported = dict(line.split("=", 1) for line in output.splitlines())
+                self.assertNotIn("LUNA_INSTALL_DIR", exported)
+                self.assertNotIn("LUNA_CONFIG_DIR", exported)
+                self.assertEqual(exported["LUNA_NEXT_ROOT"], expected)
+                self.assertEqual(exported["PATH"], f"{self.home}/.local/bin:{self.bin}")
 
     def test_paths_are_not_duplicated_and_existing_order_is_preserved(self):
         original = f"{self.bin}:{self.home}/.local/bin:/another directory"

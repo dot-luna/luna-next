@@ -16,6 +16,24 @@ impl Sandbox {
     fn new() -> Self {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir(root.path().join("bin")).unwrap();
+        let app = root.path().join("data/luna-next/login/app");
+        fs::create_dir_all(app.join("greeter")).unwrap();
+        fs::create_dir_all(app.join("screens/default")).unwrap();
+        fs::write(
+            app.join("greeter/Main.qml"),
+            "import QtQuick\nRectangle {}\n",
+        )
+        .unwrap();
+        fs::write(
+            app.join("greeter/metadata.desktop"),
+            "[SddmGreeterTheme]\nMainScript=Main.qml\nTheme-API=2.0\nQtVersion=6\n",
+        )
+        .unwrap();
+        fs::write(
+            app.join("screens/default/Screen.qml"),
+            "import QtQuick\nItem { required property var settings; required property var login }\n",
+        )
+        .unwrap();
         Self { root }
     }
 

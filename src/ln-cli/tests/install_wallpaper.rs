@@ -46,8 +46,42 @@ fn assert_default_include(config: &Path, defaults: &Path) -> String {
 }
 
 #[test]
-fn configure_uses_compiled_checkout_from_an_unrelated_directory() {
+fn configure_requires_a_runtime_checkout_from_an_unrelated_directory() {
     let root = tempfile::tempdir().unwrap();
+    let output = command(root.path())
+        .args(["configure", "luna-wallpaper", "--json"])
+        .output()
+        .unwrap();
+    assert!(!output.status.success(), "{output:?}");
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        response["error"]
+            .as_str()
+            .unwrap()
+            .contains("Cannot find the Luna Next checkout")
+    );
+    assert!(!root.path().join("config").exists());
+}
+
+#[test]
+fn configure_uses_the_managed_checkout_from_an_unrelated_directory() {
+    let root = tempfile::tempdir().unwrap();
+    let managed = root.path().join(".local/src/luna-next");
+    fs::create_dir_all(managed.join("installs")).unwrap();
+    fs::write(
+        managed.join("installs/packages.conf"),
+        "core = []\nmain = []\n",
+    )
+    .unwrap();
+    let app = managed.join("apps/luna-wallpaper");
+    fs::create_dir_all(app.join("config")).unwrap();
+    for relative in ["app.conf", "config/wallpaper.conf"] {
+        fs::copy(
+            repository().join("apps/luna-wallpaper").join(relative),
+            app.join(relative),
+        )
+        .unwrap();
+    }
     let config = root.path().join("config/luna-next/wallpaper.conf");
     let defaults = root.path().join("config/luna-next/defaults/wallpaper.conf");
     let result = success(command(root.path()).args(["configure", "luna-wallpaper", "--json"]));

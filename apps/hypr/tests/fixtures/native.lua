@@ -1,10 +1,11 @@
-local events, bindings, combinations, calls, commands, timers = {}, {}, {}, {}, {}, {}
+local events, bindings, combinations, calls, commands, timers, environment = {}, {}, {}, {}, {}, {}, {}
 
 local function action(kind)
     return function(options) return { kind = kind, options = options } end
 end
 
 hl = {
+    env = function(name, value) environment[name] = value end,
     config = function(settings) calls[#calls + 1] = settings end,
     monitor = function(settings) calls.monitor = settings end,
     window_rule = function() end,

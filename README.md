@@ -6,13 +6,13 @@ desktop authentication, and the `luna` CLI.
 On Arch Linux, run as your normal user with sudo access:
 
 ```sh
-bash scripts/setup.sh
+bash install/setup.sh
 ```
 
-This updates the system, prepares mise and Rust, installs `luna` into
-`~/.local/bin`, then runs `luna setup` after five seconds. Setup installs the
-declared packages, tools, and local apps, then builds and installs app
-configurations, replacing their exported paths without backups, and enables the
-GNOME Keyring user socket.
+This installs Git and build tools, clones Luna into `~/.local/src/luna-next`,
+installs `luna` into `~/.local/bin`, and runs `luna setup`. The installed checkout
+supplies packages and app sources independently of your development folder.
+Setup replaces declared configuration exports without backups.
 
-See [CLI commands](src/ln-cli/DOCS.md) and the [installation lists](installs/README.md).
+See [installation](install/DOCS.md), [CLI commands](src/ln-cli/DOCS.md), and
+the [package lists](installs/README.md).

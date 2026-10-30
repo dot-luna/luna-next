@@ -113,8 +113,20 @@ assert(#commands == 0, "entry loading must not start session apps")
 ''', entry=self.link)
 
     def test_only_startup_launches_wallpaper_polkit_and_menu(self):
-        self.lua('''
+        for repository in (None, "", str(self.root / "development ' checkout")):
+            with self.subTest(repository=repository):
+                if repository is None:
+                    self.env.pop("LUNA_NEXT_ROOT", None)
+                else:
+                    self.env["LUNA_NEXT_ROOT"] = repository
+                self.lua('''
 dofile(arg[1])
+local inherited = os.getenv("LUNA_NEXT_ROOT")
+if not inherited or inherited == "" then
+    assert(environment.LUNA_NEXT_ROOT == os.getenv("HOME") .. "/.local/src/luna-next")
+else
+    assert(environment.LUNA_NEXT_ROOT == nil, "a supplied checkout must not be overridden")
+end
 assert(#commands == 0)
 fire("config.reloaded")
 assert(#commands == 0, "configuration reload must not restart session apps")

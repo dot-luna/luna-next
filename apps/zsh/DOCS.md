@@ -12,6 +12,8 @@ backups. A nonempty `ZDOTDIR` selects the startup directory; otherwise it is
   and omits leading spaces and consecutive duplicates.
 - `~/.local/bin` and an existing `$PNPM_HOME/bin` join `PATH` without duplicates.
   `PNPM_HOME` defaults to `${XDG_DATA_HOME:-$HOME/.local/share}/pnpm`.
+- `LUNA_NEXT_ROOT` defaults to `~/.local/src/luna-next` and is exported to child
+  commands. A nonempty existing value selects another checkout.
 - Interactive shells initialize completion without creating a `.zcompdump` file.
 
 ## Optional integrations

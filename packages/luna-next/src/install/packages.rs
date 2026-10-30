@@ -9,21 +9,26 @@ use serde_json::Value;
 use super::{Package, Report, Source, install, install_via::identifier};
 use crate::{Error, Result, io_error};
 
-/// Locate package lists via an explicit path, `LUNA_NEXT_ROOT`, the working directory's
-/// ancestors, `~/.local/src/luna-next`, then this build's checkout. An explicit or
-/// environment-selected path must be valid; it does not fall through to another checkout.
+/// Locate package lists via an explicit path, nonempty `LUNA_NEXT_ROOT`, or
+/// `~/.local/src/luna-next`, with working-directory ancestors for development only
+/// when the managed checkout is absent. A selected path must be valid; it does not
+/// fall through to another checkout. The build directory is never a runtime default.
 pub fn find_repository(explicit: Option<&Path>) -> Result<PathBuf> {
-    let configured = env::var_os("LUNA_NEXT_ROOT").map(PathBuf::from);
+    let configured = env::var_os("LUNA_NEXT_ROOT")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
     if let Some(path) = explicit.or(configured.as_deref()) {
-        let repository = fs::canonicalize(path)
-            .map_err(|error| io_error("locate Luna Next checkout", path, error))?;
-        if repository.join("installs/packages.conf").is_file() {
-            return Ok(repository);
+        return validate_repository(path);
+    }
+    if let Some(home) = env::var_os("HOME").filter(|value| !value.is_empty()) {
+        let repository = PathBuf::from(home).join(".local/src/luna-next");
+        match fs::symlink_metadata(&repository) {
+            Ok(_) => return validate_repository(&repository),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(io_error("locate Luna Next checkout", &repository, error));
+            }
         }
-        return Err(Error::Message(format!(
-            "No installs/packages.conf in {}",
-            repository.display()
-        )));
     }
     let current = env::current_dir()
         .map_err(|error| io_error("locate current directory", Path::new("."), error))?;
@@ -32,22 +37,21 @@ pub fn find_repository(explicit: Option<&Path>) -> Result<PathBuf> {
             return Ok(directory.to_owned());
         }
     }
-    if let Some(home) = env::var_os("HOME") {
-        let repository = PathBuf::from(home).join(".local/src/luna-next");
-        if repository.join("installs/packages.conf").is_file() {
-            return fs::canonicalize(&repository)
-                .map_err(|error| io_error("locate Luna Next checkout", &repository, error));
-        }
-    }
-    // Keep installed development builds usable outside the checkout.
-    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    if repository.join("installs/packages.conf").is_file() {
-        return fs::canonicalize(&repository)
-            .map_err(|error| io_error("locate Luna Next checkout", &repository, error));
-    }
     Err(Error::Message(
-        "Cannot find package lists; run inside the Luna Next checkout or use --repo PATH.".into(),
+        "Cannot find the Luna Next checkout; install it in ~/.local/src/luna-next, set LUNA_NEXT_ROOT, or use --repo PATH.".into(),
     ))
+}
+
+fn validate_repository(path: &Path) -> Result<PathBuf> {
+    let repository = fs::canonicalize(path)
+        .map_err(|error| io_error("locate Luna Next checkout", path, error))?;
+    if repository.join("installs/packages.conf").is_file() {
+        return Ok(repository);
+    }
+    Err(Error::Message(format!(
+        "No installs/packages.conf in {}",
+        repository.display()
+    )))
 }
 
 /// Read and select package recipes without running installers.

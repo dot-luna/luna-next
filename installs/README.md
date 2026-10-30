@@ -1,5 +1,8 @@
 # Package lists
 
+The [installer](../install/DOCS.md) prepares Git, the managed checkout, and the
+CLI. This folder supplies the package recipes consumed by `luna setup`.
+
 [packages.conf](packages.conf) groups packages into arrays of objects:
 
 ```hocon
