@@ -80,8 +80,14 @@ extensions. See [Chromium details and limitations](../../apps/chromium/DOCS.md).
 ## Web apps
 
 ```sh
+luna webapp install --name WhatsApp --url https://web.whatsapp.com/
 luna webapp launch https://web.whatsapp.com/
 ```
+
+`install` downloads a site icon and creates a desktop application entry. Omit
+`--name` or `--url` to enter missing values in a terminal; JSON and noninteractive
+calls require both flags. Use `--icon-url URL` when the site has no discoverable
+icon. `--profile PATH` saves another existing profile for the installed app.
 
 Web apps open visible Chromium windows without the tab strip or address bar.
 They use the existing Luna profile and share its sessions, extensions, and
@@ -89,6 +95,11 @@ appearance. Use `--profile PATH` to select another existing profile directory.
 Run `luna chromium setup` first if the default profile is missing. Launching also
 works when Chromium is already open; it does not apply configuration or install
 anything. Only HTTP(S) URLs without embedded credentials are accepted.
+
+Installation requires `curl` and `file`. Reinstalling the same name replaces its
+desktop entry and downloaded icon; unrelated apps and browser data remain in
+place. See [web app behavior](../../apps/chromium/DOCS.md#web-apps) for icon and
+storage details.
 
 ## Themes
 

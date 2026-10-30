@@ -66,5 +66,6 @@
   the PR. Fix the findings, rerun the relevant checks, and push the fixes.
 - Add a follow-up PR comment describing the fixes and validation. Merge after
   the review is addressed and required checks and approvals are satisfied.
-- Include this small credit in every PR description:
+- Include this small credit in every PR description and every GitHub comment,
+  including review findings and follow-up comments. Commit messages do not need it:
   `<sub>🤖 Co-authored by Codex</sub>`.

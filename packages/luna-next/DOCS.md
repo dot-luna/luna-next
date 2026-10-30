@@ -121,6 +121,21 @@ not configure or create profiles. Invalid URLs, missing profiles/providers, and
 immediate browser failures are errors; long-lived browser output is detached
 from the caller's pipes.
 
+`webapp::Webapps::from_env(launcher)` uses XDG applications and Luna web app data
+directories; `new(Paths { applications_dir, data_dir, launcher })` supplies exact
+paths. `install(name, url, profile?, icon_url?)` downloads a site icon and publishes
+a desktop entry invoking the supplied Luna executable's web app launch command.
+The default profile must already exist; an explicit profile is saved in the
+entry. Installation validates the browser/provider without launching it.
+Export/launcher paths must be UTF-8 without control characters. Launcher paths
+cannot contain `=` because desktop execution uses `/usr/bin/env`.
+
+Names select stable destinations; reinstall replaces that app's entry/assets
+without backups. HTTP(S) icon discovery uses bounded `curl` downloads and `file`
+content checks; an icon URL bypasses discovery. Validation/download failures
+precede publication. Exports publish atomically, but later filesystem failures
+can leave earlier exports updated. See [web app usage](../../apps/chromium/DOCS.md#web-apps).
+
 ## Login screen
 
 `login::Login::from_env()` manages the screen library and user configuration;
@@ -236,3 +251,5 @@ cargo test -p luna-next
 ```
 
 Tests use temporary media libraries and fake renderers; they do not change the desktop.
+The web app desktop roundtrip test additionally needs `/usr/bin/python3`,
+`python-gobject`, and the Gio typelib.

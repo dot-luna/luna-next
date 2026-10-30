@@ -114,6 +114,21 @@ impl Chromium {
         app::launch(&self.paths, url, directory)
     }
 
+    /// Inspect an existing app profile and verify the ungoogled Chromium provider.
+    /// Omission selects Luna's default profile. Active browser roots are allowed;
+    /// this does not open a browser window or write browser state.
+    pub fn app_profile(&self, directory: Option<&Path>) -> Result<Profile> {
+        require_user()?;
+        let target = profile::Target::resolve(&self.paths, directory)?;
+        let preferences = target.read_existing()?;
+        browser::locate()?;
+        Ok(Profile {
+            directory: target.directory,
+            name: profile::name(&preferences, &target.basename),
+            launcher: target.managed.then(|| self.paths.launcher.clone()),
+        })
+    }
+
     /// Apply configuration to the Git-created profile; missing profiles are an error.
     pub fn configure(&self, config_dir: &Path) -> Result<Configured> {
         self.configure_profile(config_dir, None)

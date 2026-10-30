@@ -51,7 +51,7 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: ChromiumCommand,
     },
-    /// Launch websites as Chromium app windows.
+    /// Install or launch websites as Chromium app windows.
     Webapp {
         #[command(subcommand)]
         command: WebappCommand,
@@ -99,6 +99,21 @@ pub(crate) enum ChromiumCommand {
 
 #[derive(Subcommand)]
 pub(crate) enum WebappCommand {
+    /// Create a desktop launcher and download the site's icon.
+    Install {
+        /// Display name; prompted when omitted in an interactive terminal.
+        #[arg(long)]
+        name: Option<String>,
+        /// HTTP(S) website URL; prompted when omitted in an interactive terminal.
+        #[arg(long)]
+        url: Option<String>,
+        /// Use this existing profile directory instead of the default Luna profile.
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
+        /// Download this icon instead of discovering one on the website.
+        #[arg(long, value_name = "URL")]
+        icon_url: Option<String>,
+    },
     /// Open a website without browser tabs or an address bar, using a Luna profile.
     Launch {
         url: String,

@@ -10,6 +10,7 @@ pub mod polkit;
 mod process;
 pub mod theme;
 pub mod wallpaper;
+pub mod webapp;
 
 use std::{
     io,
