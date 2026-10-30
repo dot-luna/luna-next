@@ -25,7 +25,7 @@ pub(crate) enum Command {
         /// Use this Luna Next checkout.
         #[arg(long, value_name = "PATH")]
         repo: Option<PathBuf>,
-        /// Apply Chromium settings to this existing profile directory.
+        /// Apply Chromium or Zen settings to this existing profile directory.
         #[arg(long, value_name = "PATH")]
         profile: Option<PathBuf>,
     },

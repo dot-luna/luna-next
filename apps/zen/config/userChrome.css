@@ -1,0 +1,85 @@
+@charset "UTF-8";
+/* Generated from Luna's active theme; rerun luna conf zen to refresh. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+    /* Scope colors and fonts to browser UI; websites keep their own styles. */
+    :root {
+        color-scheme: {{colors.mode}} !important;
+        --toolbar-color-scheme: {{colors.mode}} !important;
+        --luna-ui-font: {{ui_font}}, sans-serif !important;
+        --zen-primary-color: {{colors.accent}} !important;
+        --zen-colors-primary: {{colors.dark_background}} !important;
+        --zen-colors-secondary: {{colors.lighter_background}} !important;
+        --zen-colors-tertiary: {{colors.background}} !important;
+        --zen-colors-hover-bg: {{colors.selection}} !important;
+        --zen-colors-primary-foreground: {{colors.foreground}} !important;
+        --zen-colors-border: {{colors.muted}} !important;
+        --zen-colors-border-contrast: {{colors.muted}} !important;
+        --zen-colors-input-bg: {{colors.dark_background}} !important;
+        --zen-branding-bg: {{colors.background}} !important;
+        --zen-branding-bg-reverse: {{colors.foreground}} !important;
+        --zen-dialog-background: {{colors.lighter_background}} !important;
+        --zen-in-content-dialog-background: {{colors.lighter_background}} !important;
+        --zen-urlbar-background: {{colors.dark_background}} !important;
+        --zen-input-border-color: {{colors.muted}} !important;
+        --zen-toolbar-element-bg: {{colors.lighter_background}} !important;
+        --zen-toolbar-element-bg-hover: {{colors.selection}} !important;
+        --zen-sidebar-notification-bg: {{colors.lighter_background}} !important;
+        --zen-sidebar-themed-icon-fill: {{colors.foreground}} !important;
+        --toolbox-background-color: {{colors.background}} !important;
+        --toolbox-background-color-inactive: {{colors.background}} !important;
+        --toolbox-textcolor: {{colors.foreground}} !important;
+        --toolbar-background-color: {{colors.background}} !important;
+        --toolbar-color: {{colors.foreground}} !important;
+        --toolbar-field-background-color: {{colors.dark_background}} !important;
+        --toolbar-field-color: {{colors.foreground}} !important;
+        --toolbar-field-focus-background-color: {{colors.lighter_background}} !important;
+        --toolbar-field-focus-color: {{colors.foreground}} !important;
+        --toolbarbutton-background-color-hover: {{colors.selection}} !important;
+        --toolbarbutton-background-color-active: {{colors.muted}} !important;
+        --arrowpanel-background: {{colors.lighter_background}} !important;
+        --arrowpanel-color: {{colors.foreground}} !important;
+        --arrowpanel-border-color: {{colors.muted}} !important;
+        --panel-separator-color: {{colors.muted}} !important;
+        --input-color: {{colors.foreground}} !important;
+        --input-bgcolor: {{colors.dark_background}} !important;
+        --input-border-color: {{colors.muted}} !important;
+        --focus-outline-color: {{colors.accent}} !important;
+        --link-color: {{colors.link}} !important;
+        --link-color-hover: {{colors.link_emphasis}} !important;
+        --in-content-primary-button-background: {{colors.accent}} !important;
+        --in-content-primary-button-background-hover: {{colors.accent}} !important;
+        --in-content-primary-button-background-active: {{colors.accent}} !important;
+        --in-content-primary-button-text-color: {{colors.accent_foreground}} !important;
+    }
+
+    /* Zen writes workspace gradients directly on these elements. */
+    :root, .zen-browser-generic-background {
+        --zen-main-browser-background: {{colors.background}} !important;
+        --zen-main-browser-background-old: {{colors.background}} !important;
+        --zen-main-browser-background-toolbar: {{colors.background}} !important;
+        --zen-main-browser-background-toolbar-old: {{colors.background}} !important;
+        --zen-background-opacity: 1 !important;
+    }
+
+    .tabbrowser-tab {
+        --tab-background-color-selected: {{colors.selection}} !important;
+        --zen-essential-tab-selected-bg: {{colors.selection}} !important;
+        --zen-essential-tab-selected-bg-hover: {{colors.selection}} !important;
+    }
+
+    .tabbrowser-tab:is([visuallyselected], [multiselected="true"]) {
+        color: {{colors.selection_foreground}} !important;
+    }
+
+    /* Text controls only: icon fonts and images keep their native appearance. */
+    :root, #navigator-toolbox, #sidebar-box, #urlbar, #searchbar,
+    .tab-label, .toolbarbutton-text, menu, menuitem, menulist,
+    button, input, textarea, select {
+        font-family: var(--luna-ui-font) !important;
+    }
+
+    ::selection {
+        background-color: {{colors.selection}} !important;
+        color: {{colors.selection_foreground}} !important;
+    }
+{{square_chrome}}}

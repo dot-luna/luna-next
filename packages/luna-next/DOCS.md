@@ -114,10 +114,9 @@ confirmation; preparation alone does not install extensions. Defaults use XDG
 homes, with `luna-chromium` under `~/.local/bin`. Native browser fonts follow
 the desktop; generated website styles use Luna's UI and monospace fonts.
 
-App configuration dispatch supports the `chromium` native configurator.
-`install_app_configs_for_profile(repo, names, profile)` accepts only the
-`chromium` app. `setup_chromium(repo, profile?)` validates its descriptor and
-calls the shared setup operation. Implicit app configuration skips a missing
+`install_app_configs_for_profile(repo, names, profile)` accepts exactly one
+browser app: `chromium` or `zen`. `setup_chromium(repo, profile?)` validates its
+descriptor before shared setup. Implicit app configuration skips a missing
 default profile and never opens the browser. See
 [Chromium setup and limitations](../../apps/chromium/DOCS.md).
 
@@ -142,6 +141,28 @@ without backups. HTTP(S) icon discovery uses bounded `curl` downloads and `file`
 content checks; an icon URL bypasses discovery. Validation/download failures
 precede publication. Exports publish atomically, but later filesystem failures
 can leave earlier exports updated. See [web app usage](../../apps/chromium/DOCS.md#web-apps).
+
+## Zen profiles
+
+`zen::Zen::from_env()` reads Zen's native profile registry;
+`Zen::new(zen::Paths { profiles_dir })` supplies an explicit registry directory.
+`default_profile_exists()` checks its selected profile without creating one.
+`configure_profile(config_dir, profile?)` applies app-owned settings to the
+existing default or exact overridden profile and returns `Configured { profile,
+extensions }`. Installation-specific defaults take precedence; ambiguous defaults
+require an explicit profile. Zen must be closed.
+
+Configuration replaces `user.js`, both profile CSS files, and the declared signed
+extension XPIs. It retains browser data, other add-ons, profiles, and registry
+files. New default extensions are uBlock Origin and Bitwarden; Dark Reader is
+excluded. Existing disabled add-ons are not reenabled. Each export publishes
+atomically after validation/downloads and source checks; late filesystem failures
+can leave a partial application. Restart Zen to apply changes.
+
+The native `zen` app configurator runs during matching package installation and
+full setup, skipping absent default profiles. Open Zen once, close it, then
+configure explicitly. It creates no Zen profile and never opens a browser.
+See [Zen appearance, paths, and limitations](../../apps/zen/DOCS.md).
 
 ## Login screen
 

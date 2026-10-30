@@ -28,6 +28,10 @@ pub(crate) fn success(command: &Command, value: &Value, json_output: bool) {
 fn print_install(value: &Value, opened: bool) {
     for (field, action) in [("installed", "Installed"), ("skipped", "Skipped")] {
         for name in value[field].as_array().into_iter().flatten() {
+            if field == "installed" && name == "zen" {
+                println!("Prepared Zen settings; open Zen to apply the UI and extensions.");
+                continue;
+            }
             if field == "installed" && name == "chromium" {
                 if opened {
                     println!(

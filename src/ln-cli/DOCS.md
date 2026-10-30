@@ -80,6 +80,25 @@ Close Chromium first. Other profiles and the desktop default-browser choice
 remain unchanged. Rerun configuration to refresh theme values or downloaded
 extensions. See [Chromium details and limitations](../../apps/chromium/DOCS.md).
 
+## Zen
+
+```sh
+luna install zen-browser-bin
+luna conf zen
+```
+
+Close Zen before configuration and restart it afterward. The default profile
+receives Luna's browser colors, UI/monospace fonts, corner settings, and signed
+uBlock Origin/Bitwarden packages. Dark Reader is excluded; existing add-ons are
+not removed or reenabled. Website colors and declared fonts remain unchanged.
+
+Installation and full setup configure the existing default profile, preferring
+Zen's installation-specific default. If missing, configuration is skipped:
+open Zen once, close it, and run `luna conf zen`. Luna creates no Zen profile.
+Use `luna conf zen --profile PATH` for an exact existing profile directory.
+Rerun configuration after theme changes; see
+[Zen files and limitations](../../apps/zen/DOCS.md).
+
 ## Web apps
 
 ```sh
