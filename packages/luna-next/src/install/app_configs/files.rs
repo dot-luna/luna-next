@@ -169,6 +169,8 @@ pub(crate) fn copy_tree(source: &Path, destination: &Path, root: &Path) -> Resul
             fs::create_dir(&target)
                 .map_err(|error| io_error("stage app configuration directory", &target, error))?;
             copy_tree(&path, &target, root)?;
+            fs::set_permissions(&target, metadata.permissions())
+                .map_err(|error| io_error("copy directory permissions", &target, error))?;
         } else {
             let resolved = fs::canonicalize(&path)
                 .map_err(|error| io_error("locate app configuration source", &path, error))?;
@@ -198,6 +200,11 @@ pub(crate) fn replace(source: &Path, target: &Path, root: &Path) -> Result<()> {
         fs::create_dir(&replacement)
             .map_err(|error| io_error("stage configuration directory", target, error))?;
         copy_tree(source, &replacement, root)?;
+        let permissions = fs::metadata(source)
+            .map_err(|error| io_error("read export permissions", source, error))?
+            .permissions();
+        fs::set_permissions(&replacement, permissions)
+            .map_err(|error| io_error("copy directory permissions", &replacement, error))?;
     } else {
         fs::copy(source, &replacement)
             .map_err(|error| io_error("copy configuration export", target, error))?;

@@ -113,6 +113,7 @@ fn repository_manifests_load_with_current_local_sources() {
     for (name, source) in [
         ("hocon-qml", "packages/hocon-qml"),
         ("wallpaper", "src/luna-wallpaper/src"),
+        ("login", "src/luna-login/src"),
         ("cli", "src/ln-cli"),
         ("menu", "src/luna-menu/src"),
         ("polkit", "src/luna-polkit/src"),

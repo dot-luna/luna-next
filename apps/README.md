@@ -39,6 +39,10 @@ Export a folder with `{ source: ".", target: "luna-next/hypr" }`.
 luna configure luna-wallpaper
 ```
 
+The `luna-login` export supplies its user configuration. Selecting the system
+login screen is a separate `luna login activate` step; see the
+[login screen documentation](../src/luna-login/DOCS.md).
+
 `luna setup` and matching package installs also run this stage. Exports replace
 existing destination files, folders, or symlinks without backups. A folder export
 replaces the whole folder, including obsolete files.

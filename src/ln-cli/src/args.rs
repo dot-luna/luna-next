@@ -38,6 +38,11 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: WallpaperCommand,
     },
+    /// Install, configure, and activate login screens for SDDM.
+    Login {
+        #[command(subcommand)]
+        command: LoginCommand,
+    },
     /// Manage desktop authentication prompts.
     Polkit {
         #[command(subcommand)]
@@ -58,6 +63,41 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: ThemeCommand,
     },
+}
+
+#[derive(Subcommand)]
+pub(crate) enum LoginCommand {
+    /// Copy a Luna-compatible screen folder containing Screen.qml.
+    Install {
+        folder: PathBuf,
+        #[arg(long)]
+        name: Option<String>,
+        #[arg(long)]
+        force: bool,
+    },
+    /// List available screens and mark the saved selection.
+    List,
+    /// Print the saved screen name.
+    Current,
+    /// Save a screen selection; build or activate to export it.
+    Set { name: String },
+    /// Export the selected screen, settings, and assets as a standalone SDDM theme.
+    Build { output: PathBuf },
+    /// Preview the prepared screen in an SDDM test window.
+    Preview,
+    /// Prepare and install the screen for the next login; uses sudo.
+    Activate,
+    /// Read login configuration, optionally at a dot-separated key.
+    GetConfig { key: Option<String> },
+    /// Merge a JSON object into login configuration; activate to apply it.
+    UpdateConfig { changes: String },
+    /// Print the login configuration path.
+    GetConfigFile,
+    /// Print the installed screen library directory.
+    Dir,
+    // Privilege boundary: this helper accepts only a bundle, never destination overrides.
+    #[command(hide = true)]
+    Deploy { bundle: PathBuf },
 }
 
 #[derive(Subcommand)]

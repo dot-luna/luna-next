@@ -161,6 +161,34 @@ starts it. No file watcher is needed. See the
 [library docs](../../packages/luna-next/DOCS.md) for paths, dependencies, and
 failure behavior.
 
+## Login screen
+
+```sh
+luna install --local cli login
+luna login preview
+luna login activate
+```
+
+`login` manages [Luna-compatible SDDM screens](../luna-login/DOCS.md).
+`install <folder> [--name NAME] [--force]` copies a screen containing `Screen.qml`;
+`list`, `current`, and `set <name>` manage the saved selection. The bundled
+`default` screen is available immediately.
+
+`get-config [key]`, `update-config '<JSON>'`, and `get-config-file` read or edit
+`login.conf`. `dir` locates the screen library. Selection/config edits preserve
+HOCON includes and require an explicit build or activation to apply them.
+
+`build <output>` replaces that folder with a self-contained SDDM theme: selected
+QML, resolved Luna colors/fonts, and copied background media. `preview` builds a
+temporary copy and opens SDDM test mode; it does not authenticate or change the
+active theme. It runs in the foreground and rejects `--json`.
+
+`activate` builds as the current user, then uses sudo to publish the theme under
+`/usr/local/share/luna-next/login/active` and select it through
+`/etc/sddm.conf.d/90-luna-next.conf`. It affects the next login screen without
+restarting SDDM. Refresh the snapshot after theme or config changes by activating
+again. Fonts must already be installed system-wide.
+
 ## App integration
 
 `--json` works before or after subcommands. Responses use

@@ -90,6 +90,31 @@ atomically, with optimistic checks for external edits. Late failures can leave a
 partial application. T3 fonts need a desktop restart; palette updates use T3's own
 environment-theme support. This method does not change Luna's selection or add watchers.
 
+## Login screen
+
+`login::Login::from_env()` manages the screen library and user configuration;
+`Login::new(Paths { config_file, screens_dir, app_dir })` supplies explicit paths.
+`install(folder, name?, force)`, `list()`, `current()`, and `set(name)` manage
+Luna-compatible QML screens. `get_config(key?)`, `update_config(changes)`,
+`config_file()`, and `directory()` provide source-preserving configuration access.
+Missing keys return null; schema failures leave the source unchanged.
+
+`build(output)` atomically replaces the output folder with a standalone SDDM
+theme, resolving Luna colors/font names and copying the selected background.
+`preview()` runs a temporary build in SDDM test mode until its window exits.
+`activate(installer)` builds as the caller, then runs the supplied CLI installer
+under sudo with `login deploy BUNDLE`; this installs only Luna's fixed SDDM exports.
+It never restarts the display manager. `deploy(bundle, &DeploymentPaths)` supports
+explicit deployment paths; `deploy_system(bundle)` requires root and uses fixed
+system destinations. Each deployment export publishes atomically; a later I/O
+failure can leave earlier exports installed.
+
+Configuration uses `LUNA_LOGIN_CONFIG` or `$XDG_CONFIG_HOME/luna-next/login.conf`;
+screens use `$XDG_DATA_HOME/luna-next/login/screens`. The runtime is installed
+under `~/.local/share/luna-next/login/app`, with a checkout fallback for development.
+There are no watchers or CLI calls inside the greeter. See
+[screen contracts, media dependencies, and setup](../../src/luna-login/DOCS.md).
+
 ## Menu
 
 `menu::Menu::from_env()` controls the application menu, or use `Menu::new(Paths)`

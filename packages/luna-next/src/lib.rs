@@ -3,6 +3,7 @@
 mod config_io;
 pub mod install;
 pub mod keyring;
+pub mod login;
 pub mod menu;
 pub mod polkit;
 mod process;
