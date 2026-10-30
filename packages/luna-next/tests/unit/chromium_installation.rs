@@ -35,6 +35,7 @@ impl Fixture {
             "mnjggcdmjocbbbhaepdhchncahnbgone",
             "kmfcinojnfabkpndlgomnfjllgeppegb",
             "cmedhionkhpnakcndndgjdbohmhepckk",
+            "nngceckbapebfimnlniiiahkandclblb",
         ]
         .into_iter()
         .map(|id| {
@@ -184,7 +185,7 @@ fn pack_in_child() {
 }
 
 #[test]
-fn stages_six_signed_packages_without_publishing_or_opening_the_profile() {
+fn stages_seven_signed_packages_without_publishing_or_opening_the_profile() {
     let fixture = Fixture::new();
     let before = fs::read(fixture.profile.join("Preferences")).unwrap();
     let source_manifest = fs::read(fixture.appearance.join("theme/manifest.json")).unwrap();
@@ -250,10 +251,11 @@ fn installation_page_escapes_profile_text_and_links_exact_packages() {
     assert!(page.contains("Name &lt;&amp;&quot;&#39; test"));
     assert!(page.contains("Profile &lt;&amp;&quot; name"));
     assert!(!page.contains("<script"));
-    assert_eq!(page.matches(".crx\"").count(), 6);
+    assert_eq!(page.matches(".crx\"").count(), 7);
     assert!(page.contains("href=\"chrome://extensions/\""));
     assert!(page.contains(">uBlock</a>"));
     assert!(!page.contains("uBlock Origin"));
+    assert!(page.contains(">Bitwarden</a>"));
     for extension in &fixture.prepared {
         assert_eq!(
             page.matches(&format!("href=\"extensions/{}.crx\"", extension.id))

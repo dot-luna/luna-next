@@ -674,7 +674,7 @@ fn external_edit_during_download_preserves_the_edit_and_all_other_outputs() {
     let mut before = fixture.snapshot();
     let error = fixture.configure(true);
     assert!(error.contains("changed externally"), "{error}");
-    assert_eq!(fixture.downloads(), 4);
+    assert_eq!(fixture.downloads(), 5);
     assert_eq!(
         fs::read_to_string(fixture.preferences()).unwrap(),
         EXTERNAL_PREFERENCES

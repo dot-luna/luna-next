@@ -418,6 +418,7 @@ fn page(label: &str, profile: &Path, extensions: &[extensions::PreparedExtension
             "mnjggcdmjocbbbhaepdhchncahnbgone" => "SponsorBlock for YouTube",
             "kmfcinojnfabkpndlgomnfjllgeppegb" => "YouTube Custom Speed",
             "cmedhionkhpnakcndndgjdbohmhepckk" => "Adblock for YouTube",
+            "nngceckbapebfimnlniiiahkandclblb" => "Bitwarden",
             _ => "Extension",
         };
         links.push_str(&format!(

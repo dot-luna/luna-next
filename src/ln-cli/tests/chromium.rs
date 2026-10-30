@@ -12,11 +12,12 @@ use std::{
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
-const EXTENSIONS: [&str; 4] = [
+const EXTENSIONS: [&str; 5] = [
     "epcnnfbjfcgphgdmggkamkmgojdagdnn",
     "mnjggcdmjocbbbhaepdhchncahnbgone",
     "kmfcinojnfabkpndlgomnfjllgeppegb",
     "cmedhionkhpnakcndndgjdbohmhepckk",
+    "nngceckbapebfimnlniiiahkandclblb",
 ];
 
 struct Sandbox {
@@ -136,7 +137,7 @@ else:
         assert path.is_file(), path
         assert (path.parent / 'theme.crx').is_file()
         assert (path.parent / 'websites.crx').is_file()
-        assert len(list((path.parent / 'extensions').glob('*.crx'))) == 4
+        assert len(list((path.parent / 'extensions').glob('*.crx'))) == 5
         preferences = json.loads((path.parent.parent / 'Preferences').read_text())
         assert preferences['webkit']['webprefs']['fonts']['fixed']['Zyyy'] == 'CLI Mono'
     (root / 'launched.json').write_text(json.dumps(args))
@@ -314,16 +315,10 @@ with (root / 'commands.jsonl').open('a') as log:
             );
         }
         let page = fs::read_to_string(bundle.join("install.html")).unwrap();
-        for filename in [
-            "theme.crx",
-            "websites.crx",
-            EXTENSIONS[0],
-            EXTENSIONS[1],
-            EXTENSIONS[2],
-            EXTENSIONS[3],
-        ] {
+        for filename in ["theme.crx", "websites.crx"].into_iter().chain(EXTENSIONS) {
             assert!(page.contains(filename), "missing {filename} in {page}");
         }
+        assert!(page.contains(">Bitwarden</a>"), "{page}");
         let packed = json_lines(&self.root.path().join("packing.jsonl"));
         assert!(
             packed

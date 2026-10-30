@@ -60,6 +60,7 @@ The [app settings](config/settings.conf) select these exact Web Store listings:
 - [SponsorBlock for YouTube](https://chromewebstore.google.com/detail/sponsorblock-for-youtube/mnjggcdmjocbbbhaepdhchncahnbgone)
 - [YouTube Custom Speed](https://chromewebstore.google.com/detail/youtube-custom-speed/kmfcinojnfabkpndlgomnfjllgeppegb)
 - [Adblock for YouTube](https://chromewebstore.google.com/detail/adblock-for-youtube/cmedhionkhpnakcndndgjdbohmhepckk)
+- [Bitwarden](https://chromewebstore.google.com/detail/bitwarden-password-manager/nngceckbapebfimnlniiiahkandclblb)
 
 Luna also prepares a browser color theme and a website appearance extension from
 the selected Luna theme. Website corners are square; body text and form controls

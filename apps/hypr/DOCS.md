@@ -28,7 +28,8 @@ apps before using the startup configuration.
   workspace, including URL/file handoffs to running apps.
 - Keyboard repeat 40/250 ms, touchpad tapping, and three-finger workspace swipes.
 - Tokyo Night borders, square corners, gaps, opacity, blur, and spring animations.
-- Zen Picture-in-Picture, portal dialogs, and a dedicated Kitty drop-down rule.
+- Bitwarden floats above tiled windows on its workspace; Zen Picture-in-Picture,
+  portal dialogs, and a dedicated Kitty drop-down rule.
 - Wallpaper, polkit, and the menu start at login; config reloads do not restart them.
 
 Hyprland honors the window identified by the app's activation request, including

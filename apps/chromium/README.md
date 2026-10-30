@@ -1,7 +1,7 @@
 # Ungoogled Chromium
 
 Create a Git-named browser profile and apply Luna colors, web fonts, square
-website corners, and the four configured extensions.
+website corners, and the configured extensions, including Bitwarden.
 
 ```sh
 luna install ungoogled-chromium-bin
