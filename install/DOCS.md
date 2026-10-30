@@ -1,30 +1,38 @@
 # Installation and setup
 
-Requires Arch Linux, Bash, sudo access, and a normal user account. The installer
+Requires Arch Linux, Bash, curl, sudo access, and a normal user account. The installer
 updates system packages and installs Git, GCC, mise, and stable Rust.
 
 ## Commands
 
-From an existing checkout:
+Install and configure a fresh system without cloning anything first:
 
 ```sh
-bash install/install.sh # Install checkout, environment, and CLI
-bash install/setup.sh   # Install, then run the installed luna setup
+curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install/setup.sh | bash
 ```
 
-To install without a checkout, fetch the standalone installer with `curl`:
+To install only the checkout, environment, and CLI:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install/install.sh | bash
-"$HOME/.local/bin/luna" setup
 ```
 
 Installation clones `https://github.com/dot-luna/luna-next.git` into
 `~/.local/src/luna-next` and builds `~/.local/bin/luna` from there. It does not
-run full setup. The setup script installs first, then calls `luna setup --repo`
+run full setup. The standalone setup script downloads the installer, then calls `luna setup --repo`
 with that managed checkout. Full setup installs the
 [package lists](../installs/README.md), replaces app exports, enables keyring,
 and installs declared web apps. Completed steps remain if a later step fails.
+
+Both entry points accept `--ref BRANCH_OR_TAG` (default `master`):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install/setup.sh | bash -s -- --ref master
+```
+
+Setup passes other arguments, such as `--json`, to `luna setup`. When using an
+existing checkout, the same scripts can also be run with `bash install/install.sh`
+or `bash install/setup.sh`.
 
 ## Environment and repository selection
 
@@ -44,9 +52,12 @@ to work on another checkout deliberately.
 
 ## Reruns and checks
 
-Reruns fast-forward the clean managed `master` checkout and reinstall the CLI.
-Linked paths, unrelated repositories, another branch, and local changes are
-rejected without deleting them. The managed checkout must remain available:
+Reruns reuse the managed checkout and fetch the selected branch or tag. Branches
+fast-forward; tags use a detached checkout. A branch takes precedence when a tag
+has the same name. Selecting another ref switches the clean checkout.
+Linked paths, unrelated repositories, local changes, diverged branches, and
+unreferenced detached commits are rejected without deleting user work.
+The managed checkout must remain available:
 installed local app sources link into it. The environment file is replaced
 without backups; shell startup files outside Luna's exports are not edited.
 
