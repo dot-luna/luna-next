@@ -30,6 +30,20 @@ core = [
 arrays. Local `url` paths resolve from this checkout. Keep build/install steps in
 the project and call its task, for example `[["mise", "run", "install:hocon-qml"]]`.
 
+[packages.webapp.conf](packages.webapp.conf) is a separate array of desktop web
+apps, currently YouTube. Entries use `name` and `url`, with optional `icon_url`
+to override website icon discovery:
+
+```hocon
+[{ name: "YouTube", url: "https://www.youtube.com/" }]
+```
+
+`luna setup` validates this list before installing packages. When it is nonempty,
+setup creates a missing Luna Chromium profile before configuring apps, then
+installs the web apps after enabling keyring. It never opens a browser. Entries
+share the default Luna profile; reruns replace their desktop entries and icons.
+An empty array disables this stage. Missing or invalid lists stop setup.
+
 Git/local recipes receive the catalog checkout as `$LUNA_NEXT_ROOT`. Git recipes
 also receive the selected ref as `$LUNA_PACKAGE_VERSION` (`v1.2.3`, not `latest`).
 Tag filters apply only to `latest`; explicit branches/tags are unchanged.
@@ -53,5 +67,6 @@ luna chromium setup
 
 Its installation runs in a separate package-manager transaction that accepts
 conflicting Chromium/chromedriver replacement. Package-manager dependency checks
-remain active; browser profile files are retained. A missing Luna profile is
-left for the explicit setup step. See [Chromium setup](../apps/chromium/DOCS.md).
+remain active; browser profile files are retained. Package-only installation
+leaves a missing Luna profile for the explicit setup step; full `luna setup`
+creates it when web apps are declared. See [Chromium setup](../apps/chromium/DOCS.md).

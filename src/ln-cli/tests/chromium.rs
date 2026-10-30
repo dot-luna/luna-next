@@ -43,6 +43,7 @@ impl Sandbox {
             "packages.mise.conf",
             "packages.git.conf",
             "packages.local.conf",
+            "packages.webapp.conf",
         ] {
             write_json(repository.join("installs").join(file), json!([]));
         }
@@ -141,19 +142,41 @@ else:
     (root / 'launched.json').write_text(json.dumps(args))
     (root / 'launched-args-hex.json').write_text(json.dumps([os.fsencode(arg).hex() for arg in args]))
 "#);
-        sandbox.tool("curl", r#"import io, struct, zipfile
+        sandbox.tool("curl", r#"import base64, io, struct, zipfile
 destination = pathlib.Path(args[args.index('--output') + 1])
 url = args[args.index('--url') + 1]
-assert url.startswith('https://clients2.google.com/service/update2/crx?'), url
 if os.environ.get('CHROMIUM_TEST_DOWNLOAD_FAIL', '!') in url:
     print('fixture download failed', file=sys.stderr)
     sys.exit(23)
-archive = io.BytesIO()
-with zipfile.ZipFile(archive, 'w') as package:
-    package.writestr('manifest.json', json.dumps({'manifest_version': 3, 'name': 'Fixture', 'version': '1.2.3'}))
-# Chromium verifies real package signatures when the user accepts each install.
-destination.write_bytes(b'Cr24' + struct.pack('<II', 3, 2) + b'\x0a\x00' + archive.getvalue())
+if url.startswith('https://clients2.google.com/service/update2/crx?'):
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, 'w') as package:
+        package.writestr('manifest.json', json.dumps({'manifest_version': 3, 'name': 'Fixture', 'version': '1.2.3'}))
+    # Chromium verifies real package signatures when the user accepts each install.
+    destination.write_bytes(b'Cr24' + struct.pack('<II', 3, 2) + b'\x0a\x00' + archive.getvalue())
+else:
+    assert args[args.index('--write-out') + 1] == '%{url_effective}', args
+    if url.endswith('.png'):
+        data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=')
+    else:
+        data = b'<html><head><link rel="icon" href="/site-icon.png"></head></html>'
+    destination.write_bytes(data)
+    sys.stdout.write(url)
 "#);
+        sandbox.tool(
+            "file",
+            r#"assert args[:3] == ['--brief', '--mime-type', '--'], args
+assert pathlib.Path(args[3]).is_file()
+print('image/png')
+"#,
+        );
+        sandbox.tool(
+            "systemctl",
+            r#"assert args == ['--user', 'enable', '--now', 'gnome-keyring-daemon.socket'], args
+if os.environ.get('CHROMIUM_TEST_KEYRING_FAIL'):
+    sys.exit(17)
+"#,
+        );
         sandbox.tool(
             "yay",
             r#"print('fixture yay progress')
@@ -166,7 +189,11 @@ if os.environ.get('CHROMIUM_TEST_INSTALL_FAIL'):
     }
 
     fn command(&self) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_luna"));
+        self.command_at(Path::new(env!("CARGO_BIN_EXE_luna")))
+    }
+
+    fn command_at(&self, executable: &Path) -> Command {
+        let mut command = Command::new(executable);
         command
             .env_clear()
             .env("HOME", self.root.path().join("home"))
@@ -211,6 +238,34 @@ if os.environ.get('CHROMIUM_TEST_INSTALL_FAIL'):
 
     fn calls(&self) -> Vec<Value> {
         json_lines(&self.root.path().join("commands.jsonl"))
+    }
+
+    fn youtube_catalog(&self) {
+        write_json(
+            self.repository.join("installs/packages.webapp.conf"),
+            json!([{"name": "YouTube", "url": "https://www.youtube.com/"}]),
+        );
+    }
+
+    fn webapp_entries(&self) -> Vec<PathBuf> {
+        let applications = self.root.path().join("home/.local/share/applications");
+        if !applications.exists() {
+            return Vec::new();
+        }
+        fs::read_dir(applications)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .starts_with("luna-webapp-")
+                    && path
+                        .extension()
+                        .is_some_and(|extension| extension == "desktop")
+            })
+            .collect()
     }
 
     fn tool(&self, name: &str, source: &str) {
@@ -719,6 +774,225 @@ fn implicit_package_configuration_skips_missing_profiles_and_prepares_existing_o
             assert!(!sandbox.launcher().exists());
         }
     }
+}
+
+#[test]
+fn full_setup_configures_the_default_before_installing_webapps_after_keyring_and_reuses_it() {
+    let sandbox = Sandbox::new();
+    sandbox.youtube_catalog();
+    let normal = snapshot(&sandbox.normal());
+    let result = sandbox.success(&["setup", "--json"]);
+    assert_eq!(
+        result["installed"],
+        json!([
+            "ungoogled-chromium-bin",
+            "chromium",
+            "GNOME Keyring socket",
+            "YouTube"
+        ])
+    );
+    sandbox.assert_fonts_and_bundle(&sandbox.profile(), "Luna Test");
+    assert!(!sandbox.root.path().join("launched.json").exists());
+    let calls = sandbox.calls();
+    assert_eq!(calls[0]["tool"], "yay");
+    let created = calls.iter().position(|call| call["tool"] == "git").unwrap();
+    let keyring = calls
+        .iter()
+        .position(|call| call["tool"] == "systemctl")
+        .unwrap();
+    let downloads: Vec<_> = calls
+        .iter()
+        .enumerate()
+        .filter_map(|(index, call)| {
+            (call["tool"] == "curl").then(|| {
+                let args = call["args"].as_array().unwrap();
+                let url = args
+                    .iter()
+                    .position(|argument| argument == "--url")
+                    .unwrap();
+                (index, args[url + 1].as_str().unwrap())
+            })
+        })
+        .collect();
+    assert_eq!(downloads.len(), EXTENSIONS.len() + 2);
+    assert!(created < downloads[0].0);
+    assert!(downloads[EXTENSIONS.len() - 1].0 < keyring);
+    assert_eq!(downloads[EXTENSIONS.len()].1, "https://www.youtube.com/");
+    assert!(keyring < downloads[EXTENSIONS.len()].0);
+    assert_eq!(
+        downloads.last().unwrap().1,
+        "https://www.youtube.com/site-icon.png"
+    );
+    let entries = sandbox.webapp_entries();
+    assert_eq!(entries.len(), 1);
+    let entry = fs::read_to_string(&entries[0]).unwrap();
+    assert!(entry.contains("Name=YouTube\n"), "{entry}");
+    assert!(
+        entry.contains("webapp launch \"https://www.youtube.com/\""),
+        "{entry}"
+    );
+    assert!(!entry.contains(" --profile "), "{entry}");
+    let assets = sandbox
+        .root
+        .path()
+        .join("home/.local/share/luna-next/webapps");
+    assert_eq!(fs::read_dir(&assets).unwrap().count(), 1);
+    let keys = snapshot(&sandbox.profile().join("Luna Next/keys"));
+    let mut preferences = read_json(sandbox.profile().join("Preferences"));
+    preferences["profile"]["name"] = json!("Personal");
+    preferences["keep"] = json!([1, 2, 3]);
+    write_json(sandbox.profile().join("Preferences"), preferences);
+    write(sandbox.profile().join("Bookmarks"), "my bookmarks");
+    write(sandbox.profile().join("Network/Cookies"), b"my cookies\0");
+    let output = sandbox
+        .command()
+        .env("CHROMIUM_TEST_MISSING_GIT", "1")
+        .args(["setup", "--json"])
+        .output()
+        .unwrap();
+    success(output);
+    assert_eq!(sandbox.webapp_entries(), entries);
+    assert_eq!(fs::read_dir(assets).unwrap().count(), 1);
+    assert_eq!(fs::read_to_string(&entries[0]).unwrap(), entry);
+    sandbox.assert_fonts_and_bundle(&sandbox.profile(), "Personal");
+    assert_eq!(
+        read_json(sandbox.profile().join("Preferences"))["keep"],
+        json!([1, 2, 3])
+    );
+    assert_eq!(
+        fs::read(sandbox.profile().join("Bookmarks")).unwrap(),
+        b"my bookmarks"
+    );
+    assert_eq!(
+        fs::read(sandbox.profile().join("Network/Cookies")).unwrap(),
+        b"my cookies\0"
+    );
+    assert_eq!(snapshot(&sandbox.profile().join("Luna Next/keys")), keys);
+    assert_eq!(snapshot(&sandbox.normal()), normal);
+    assert!(!sandbox.root.path().join("launched.json").exists());
+}
+
+#[test]
+fn full_setup_with_an_empty_webapp_catalog_keeps_missing_chromium_profiles_uncreated() {
+    let sandbox = Sandbox::new();
+    let result = sandbox.success(&["setup", "--json"]);
+    assert_eq!(
+        result["installed"],
+        json!(["ungoogled-chromium-bin", "GNOME Keyring socket"])
+    );
+    assert_eq!(
+        result["skipped"],
+        json!(["chromium (run luna chromium setup)"])
+    );
+    assert!(!sandbox.managed().exists());
+    assert!(!sandbox.launcher().exists());
+    assert!(!sandbox.root.path().join("launched.json").exists());
+    assert!(sandbox.webapp_entries().is_empty());
+    assert_eq!(
+        sandbox
+            .calls()
+            .iter()
+            .map(|call| call["tool"].clone())
+            .collect::<Vec<_>>(),
+        vec![json!("yay"), json!("systemctl")]
+    );
+}
+
+#[test]
+fn full_setup_rejects_invalid_or_missing_webapp_catalogs_before_installing_packages() {
+    for invalid in [true, false] {
+        let sandbox = Sandbox::new();
+        let catalog = sandbox.repository.join("installs/packages.webapp.conf");
+        if invalid {
+            write_json(
+                catalog,
+                json!([{"name": "YouTube", "url": "file:///tmp/youtube"}]),
+            );
+        } else {
+            fs::remove_file(catalog).unwrap();
+        }
+        let message = error(sandbox.run(&["setup", "--json"]));
+        assert!(!message.is_empty());
+        assert!(sandbox.calls().is_empty());
+        assert!(!sandbox.managed().exists());
+        assert!(sandbox.webapp_entries().is_empty());
+    }
+}
+
+#[test]
+fn full_setup_stops_before_webapps_when_package_configuration_or_keyring_fails() {
+    for (variable, value, profile_created, configured) in [
+        ("CHROMIUM_TEST_INSTALL_FAIL", "1", false, false),
+        ("CHROMIUM_TEST_DOWNLOAD_FAIL", EXTENSIONS[2], true, false),
+        ("CHROMIUM_TEST_KEYRING_FAIL", "1", true, true),
+    ] {
+        let sandbox = Sandbox::new();
+        sandbox.youtube_catalog();
+        let output = sandbox
+            .command()
+            .env(variable, value)
+            .args(["setup", "--json"])
+            .output()
+            .unwrap();
+        assert!(!error(output).is_empty());
+        assert_eq!(sandbox.profile().exists(), profile_created);
+        assert_eq!(sandbox.profile().join("Luna Next").exists(), configured);
+        assert!(sandbox.webapp_entries().is_empty());
+        assert!(!sandbox.root.path().join("launched.json").exists());
+        assert!(sandbox.calls().iter().all(|call| {
+            call["tool"] != "file"
+                && (call["tool"] != "curl"
+                    || !call["args"]
+                        .as_array()
+                        .unwrap()
+                        .contains(&json!("https://www.youtube.com/")))
+        }));
+    }
+}
+
+#[test]
+fn full_setup_captures_its_launcher_before_reinstalling_the_running_cli() {
+    let sandbox = Sandbox::new();
+    sandbox.youtube_catalog();
+    let running = sandbox.root.path().join("running-luna");
+    fs::copy(env!("CARGO_BIN_EXE_luna"), &running).unwrap();
+    write(
+        sandbox.root.path().join("binary-source"),
+        env!("CARGO_BIN_EXE_luna"),
+    );
+    sandbox.tool(
+        "replace-cli",
+        r#"import shutil
+destination = root / 'running-luna'
+# Replacing the live inode makes a late current_exe() resolve to a deleted path.
+destination.unlink()
+shutil.copy2((root / 'binary-source').read_text(), destination)
+"#,
+    );
+    write_json(
+        sandbox.repository.join("installs/packages.local.conf"),
+        json!([{
+            "name": "cli", "source": "local", "url": "src/ln-cli", "command": [["replace-cli"]]
+        }]),
+    );
+    let output = sandbox
+        .command_at(&running)
+        .args(["setup", "--json"])
+        .output()
+        .unwrap();
+    success(output);
+    let entries = sandbox.webapp_entries();
+    assert_eq!(entries.len(), 1);
+    let entry = fs::read_to_string(&entries[0]).unwrap();
+    assert!(entry.contains(running.to_str().unwrap()), "{entry}");
+    assert!(!entry.contains(" (deleted)"), "{entry}");
+    assert!(
+        sandbox
+            .calls()
+            .iter()
+            .any(|call| call["tool"] == "replace-cli")
+    );
+    assert!(!sandbox.root.path().join("launched.json").exists());
 }
 
 #[test]

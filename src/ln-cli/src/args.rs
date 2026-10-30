@@ -29,7 +29,7 @@ pub(crate) enum Command {
         #[arg(long, value_name = "PATH")]
         profile: Option<PathBuf>,
     },
-    /// Install all packages and app configurations, then enable the keyring socket.
+    /// Install packages, configure apps, enable keyring, and install desktop web apps.
     Setup {
         /// Use this Luna Next checkout.
         #[arg(long, value_name = "PATH")]
