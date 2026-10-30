@@ -20,6 +20,7 @@ exports = [
 | `package` | Package name that automatically configures this app after installation; defaults to the app folder name. |
 | `config` | Config directory relative to the app folder; defaults to `config`. |
 | `command` | Optional builder argument arrays, e.g. `[["sh", "build.sh"]]`; runs from the app folder. |
+| `configurator` | Optional native operation; `chromium` configures one browser profile and cannot be combined with commands or exports. |
 | `exports` | Files or folders to install after building. |
 | `exports[].source` | File or folder inside the staged config directory; `.` exports the whole directory. |
 | `exports[].defaults` | Optional HOCON defaults file under `$XDG_CONFIG_HOME`; the target is recreated with an include of this file. File exports only. |
@@ -46,6 +47,13 @@ login screen is a separate `luna login activate` step; see the
 `luna setup` and matching package installs also run this stage. Exports replace
 existing destination files, folders, or symlinks without backups. A folder export
 replaces the whole folder, including obsolete files.
+
+The [Chromium configurator](chromium/DOCS.md) uses ungoogled Chromium and edits
+only the selected profile. It preserves browser data instead of exporting a
+replacement profile folder. Create the Git-named profile with
+`luna chromium create-profile`, or use `luna chromium setup` to create and
+configure it together. `luna conf chromium --profile PATH` targets another
+existing profile; omitting the option uses the Git-created profile.
 
 The Hyprland export also replaces its active Lua entry under `hypr/hyprland.lua`
 (`HYPRLAND_CONFIG` overrides that path). Its session startup prepares wallpaper,

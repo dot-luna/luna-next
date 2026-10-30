@@ -80,12 +80,16 @@ pub fn install_via_pacman(packages: &[Package]) -> Result<Report> {
 }
 
 /// Run an existing `yay` with `--aur --needed --noconfirm` for nonempty, unversioned names.
+/// Ungoogled Chromium runs separately, accepting package conflicts so pacman can
+/// replace stock Chromium in the installation transaction without removing user data.
 pub fn install_via_aur(packages: &[Package]) -> Result<Report> {
-    run(
-        Source::Aur,
-        packages,
-        Command::new("yay").args(["-S", "--aur", "--needed", "--noconfirm", "--"]),
-    )
+    run(Source::Aur, packages, aur_command().arg("--"))
+}
+
+fn aur_command() -> Command {
+    let mut command = Command::new("yay");
+    command.args(["-S", "--aur", "--needed", "--noconfirm"]);
+    command
 }
 
 /// Run `mise install --yes` for selected tools; an empty slice uses mise's own configuration.
@@ -558,7 +562,23 @@ fn run(source: Source, packages: &[Package], command: &mut Command) -> Result<Re
     }
 
     require_user()?;
-    execute(command.args(&names))?;
+    if source == Source::Aur
+        && let Some(index) = names
+            .iter()
+            .position(|name| name == "ungoogled-chromium-bin")
+    {
+        if index > 0 {
+            execute(command.args(&names[..index]))?;
+        }
+        // ALPM_QUESTION_CONFLICT_PKG is 1 << 2. Limit that answer override to the
+        // browser transaction; ordinary AUR targets retain their existing defaults.
+        execute(aur_command().args(["--ask", "4", "--"]).arg(&names[index]))?;
+        if index + 1 < names.len() {
+            execute(aur_command().arg("--").args(&names[index + 1..]))?;
+        }
+    } else {
+        execute(command.args(&names))?;
+    }
     Ok(Report {
         installed: names,
         skipped: Vec::new(),

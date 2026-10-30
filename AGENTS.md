@@ -57,3 +57,14 @@
 - Add regression coverage for bugs and meaningful behavior changes. Reuse
   existing coverage for structural refactors; documentation-only changes need
   link, example, and instruction checks rather than unrelated runtime suites.
+
+## Pull request delivery
+
+- Deliver changes on a feature branch through a pull request. Run the relevant
+  checks, commit and push the intended files, then open the PR.
+- Get an independent review of the pushed PR and post its findings briefly in
+  the PR. Fix the findings, rerun the relevant checks, and push the fixes.
+- Add a follow-up PR comment describing the fixes and validation. Merge after
+  the review is addressed and required checks and approvals are satisfied.
+- Include this small credit in every PR description:
+  `<sub>🤖 Co-authored by Codex</sub>`.

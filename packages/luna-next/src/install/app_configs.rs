@@ -18,11 +18,18 @@ use crate::{Error, Result, io_error};
 #[derive(Deserialize)]
 struct App {
     package: Option<String>,
+    configurator: Option<Configurator>,
     #[serde(default = "config_directory")]
     config: PathBuf,
     #[serde(default)]
     command: Vec<Vec<String>>,
     exports: Vec<Export>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Configurator {
+    Chromium,
 }
 
 #[derive(Deserialize)]
@@ -64,8 +71,46 @@ fn environment_path(key: Option<&str>) -> Result<Option<PathBuf>> {
 /// Existing export contents are discarded without backups, including managed user entries.
 /// Builders and source validation finish before publication for each app. Filesystem failures
 /// during publication can leave earlier exports installed; this is not an app-wide transaction.
+/// Chromium applies only to an existing profile. Selecting all apps skips its configuration
+/// when the default Luna profile has not been created yet. Explicit Chromium selection opens
+/// that profile's native installation page; implicit configuration only prepares files.
 pub fn install_app_configs(repository: &Path, names: &[String]) -> Result<Report> {
-    configure(repository, names, None)
+    configure(repository, names, None, None)
+}
+
+/// Apply Chromium settings to an existing explicit profile directory.
+/// `names` must select only `chromium`; other apps do not accept profile overrides.
+/// Opens that profile for extension/theme confirmations after preparing its settings.
+pub fn install_app_configs_for_profile(
+    repository: &Path,
+    names: &[String],
+    profile: &Path,
+) -> Result<Report> {
+    if names.len() != 1 || names[0] != "chromium" {
+        return Err(Error::Message(
+            "--profile requires selecting only the chromium app.".into(),
+        ));
+    }
+    configure(repository, names, None, Some(profile))
+}
+
+/// Create a missing Chromium profile and apply the checkout's Chromium app settings.
+/// App descriptor and source containment checks complete before profile creation.
+pub fn setup_chromium(
+    repository: &Path,
+    profile: Option<&Path>,
+) -> Result<crate::chromium::Configured> {
+    let apps = repository.join("apps");
+    let root = fs::canonicalize(&apps)
+        .map_err(|error| io_error("locate app configurations", &apps, error))?;
+    let (app_dir, app) = load_app(&apps.join("chromium"), &root)?;
+    if !matches!(app.configurator, Some(Configurator::Chromium)) {
+        return Err(Error::Message(
+            "The chromium app must declare its native Chromium configurator.".into(),
+        ));
+    }
+    let config = native_source("chromium", &app_dir, &app)?;
+    crate::chromium::Chromium::from_env()?.setup(&config, profile)
 }
 
 /// Replace configs whose descriptor's `package` matches an installed package name.
@@ -75,10 +120,15 @@ pub fn configure_installed_apps(repository: &Path, packages: &[String]) -> Resul
     if packages.is_empty() {
         return Ok(Report::default());
     }
-    configure(repository, &[], Some(packages))
+    configure(repository, &[], Some(packages), None)
 }
 
-fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -> Result<Report> {
+fn configure(
+    repository: &Path,
+    names: &[String],
+    packages: Option<&[String]>,
+    profile: Option<&Path>,
+) -> Result<Report> {
     let mut selected = HashSet::new();
     for name in names {
         identifier(name)?;
@@ -123,21 +173,7 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
     for path in directories {
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
         identifier(&name)?;
-        let app_dir = fs::canonicalize(&path)
-            .map_err(|error| io_error("locate app directory", &path, error))?;
-        if !app_dir.starts_with(&root) {
-            return Err(Error::Message(format!(
-                "App directory escapes apps/: {name}"
-            )));
-        }
-        let descriptor = path.join("app.conf");
-        let app: App =
-            serde_json::from_value(luna_next_hocon::load(&descriptor)?).map_err(|error| {
-                Error::Message(format!("Invalid app '{}': {error}", descriptor.display()))
-            })?;
-        if let Some(package) = &app.package {
-            identifier(package)?;
-        }
+        let (app_dir, app) = load_app(&path, &root)?;
         if packages.is_some_and(|packages| {
             !packages
                 .iter()
@@ -173,7 +209,35 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
     }
     let mut report = Report::default();
     for (name, app_dir, app) in selected_apps {
+        if profile.is_some() && !matches!(app.configurator, Some(Configurator::Chromium)) {
+            return Err(Error::Message(
+                "The chromium app must declare its native Chromium configurator.".into(),
+            ));
+        }
         relative(&app.config)?;
+        if let Some(configurator) = &app.configurator {
+            match configurator {
+                Configurator::Chromium => {
+                    let chromium = crate::chromium::Chromium::from_env()?;
+                    if names.is_empty()
+                        && profile.is_none()
+                        && !chromium.default_profile_exists()?
+                    {
+                        report
+                            .skipped
+                            .push(format!("{name} (run luna chromium setup)"));
+                        continue;
+                    }
+                    let config = native_source(&name, &app_dir, &app)?;
+                    let configured = chromium.configure_profile(&config, profile)?;
+                    if !names.is_empty() {
+                        chromium.open_installation(&configured)?;
+                    }
+                }
+            }
+            report.installed.push(name);
+            continue;
+        }
         if app.command.iter().any(|command| {
             command
                 .first()
@@ -315,4 +379,34 @@ fn configure(repository: &Path, names: &[String], packages: Option<&[String]>) -
         }
     }
     Ok(report)
+}
+
+fn load_app(path: &Path, root: &Path) -> Result<(PathBuf, App)> {
+    let app_dir =
+        fs::canonicalize(path).map_err(|error| io_error("locate app directory", path, error))?;
+    if !app_dir.starts_with(root) {
+        return Err(Error::Message(format!(
+            "App directory escapes apps/: {}",
+            path.display()
+        )));
+    }
+    let descriptor = path.join("app.conf");
+    let app: App =
+        serde_json::from_value(luna_next_hocon::load(&descriptor)?).map_err(|error| {
+            Error::Message(format!("Invalid app '{}': {error}", descriptor.display()))
+        })?;
+    if let Some(package) = &app.package {
+        identifier(package)?;
+    }
+    Ok((app_dir, app))
+}
+
+fn native_source(name: &str, app_dir: &Path, app: &App) -> Result<PathBuf> {
+    if !app.command.is_empty() || !app.exports.is_empty() {
+        return Err(Error::Message(format!(
+            "Native configurator '{name}' cannot also declare commands or exports"
+        )));
+    }
+    relative(&app.config)?;
+    validate_source(&app_dir.join(&app.config), app_dir)
 }

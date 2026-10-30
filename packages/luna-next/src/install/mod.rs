@@ -4,7 +4,9 @@ mod install_via;
 mod packages;
 pub(crate) use app_configs::files::{copy_tree, replace};
 
-pub use app_configs::{configure_installed_apps, install_app_configs};
+pub use app_configs::{
+    configure_installed_apps, install_app_configs, install_app_configs_for_profile, setup_chromium,
+};
 pub use install_via::{
     Package, Report, Source, install, install_via_aur, install_via_git, install_via_local,
     install_via_mise, install_via_pacman,

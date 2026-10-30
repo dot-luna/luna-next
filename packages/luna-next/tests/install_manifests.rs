@@ -139,6 +139,19 @@ fn repository_manifests_load_with_current_local_sources() {
 }
 
 #[test]
+fn main_catalog_uses_ungoogled_chromium_as_the_chromium_provider() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let packages = select(&repository, &["main"], None, &[]).unwrap();
+    let browser = packages
+        .iter()
+        .find(|package| package.name == "ungoogled-chromium-bin")
+        .unwrap();
+    assert_eq!(browser.source, Source::Aur);
+    let all = select(&repository, &[], None, &[]).unwrap();
+    assert!(all.iter().all(|package| package.name != "chromium"));
+}
+
+#[test]
 fn default_selection_loads_all_catalogs_without_installing() {
     let root = fixture();
     let packages = select(root.path(), &[], None, &[]).unwrap();
