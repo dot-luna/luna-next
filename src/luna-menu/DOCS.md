@@ -45,9 +45,10 @@ The menu has a compact search header; the row spacing, selection, and font scali
 follow that menu. UI icons use the free Hugeicons set, documented in
 [icons/README.md](src/shell/icons/README.md), with its MIT notice.
 
-`luna install luna-menu` installs Quickshell, `xdg-terminal-exec`, and `xdg-utils`, then exports the QML
+`luna install luna-menu` installs Quickshell and `xdg-terminal-exec`, then exports the QML
 to Luna's menu configuration directory. Configuration replaces that owned directory without
 backups and restarts an already-running menu hidden; a stopped menu stays stopped.
+Opening links and searches requires `xdg-utils`, included in a full Luna installation.
 No separate systemd service is required. Hyprland starts it hidden at login, and
 the shortcut can start it on demand.
 
