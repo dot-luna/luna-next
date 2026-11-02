@@ -1,0 +1,34 @@
+{
+  // Signed Mozilla packages installed into the existing default Zen profile.
+  // Rerunning setup refreshes these packages; other installed add-ons stay untouched.
+  "extensions": [
+    {
+      // uBlock Origin — content and advertisement blocker.
+      "id": "uBlock0@raymondhill.net",
+      "url": "https://addons.mozilla.org/firefox/downloads/latest/uBlock0@raymondhill.net/latest.xpi"
+    },
+    {
+      // Bitwarden — password manager.
+      "id": "{446900e4-71c2-419f-a6a7-df9c091e268b}",
+      "url": "https://addons.mozilla.org/firefox/downloads/latest/%7B446900e4-71c2-419f-a6a7-df9c091e268b%7D/latest.xpi"
+    }
+  ],
+
+  // Written to user.js; prefs.js and other browser-owned files are never rewritten.
+  "preferences": {
+    // Load the profile's userChrome.css and userContent.css files.
+    "toolkit.legacyUserProfileCustomizations.stylesheets": true,
+
+    // Honor fonts chosen by websites; Luna supplies only the generic fallback fonts.
+    "browser.display.use_document_fonts": 1,
+
+    // Allow signed profile-local extensions while retaining other scopes' protections.
+    "extensions.autoDisableScopes": 14,
+
+    // Scan the profile extension directory when Zen starts.
+    "extensions.startupScanScopes": 1,
+
+    // Keep Zen's cryptographic extension signature checks enabled.
+    "xpinstall.signatures.required": true
+  }
+}

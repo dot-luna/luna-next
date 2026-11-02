@@ -1,0 +1,17 @@
+{
+  "name": "codex",
+  "source": "mise",
+
+  "exports": [
+    {
+      "source": "config/config.toml",
+      "target": "codex/config.toml",
+
+      "user_config": {
+        "dest": ["$CODEX_HOME/config.toml", "$HOME/.codex/config.toml", "~/.codex/config.toml"],
+        // Merge Luna's defaults; existing user settings take precedence.
+        "dest_mode": "merge",
+      },
+    },
+  ],
+}

@@ -1,0 +1,5 @@
+# Run commands without filesystem or network sandbox restrictions.
+sandbox_mode = "danger-full-access"
+
+# Run commands without approval prompts.
+approval_policy = "never"

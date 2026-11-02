@@ -1,0 +1,32 @@
+{
+  "name": "glow",
+  "source": "pacman",
+  "alias": ["md"],
+
+  "hooks": {
+    "before_configure": ["scripts/configure.ts"],
+  },
+
+  "exports": [
+    {
+      // Glow's native JSON stylesheet, generated from the resolved Luna theme.
+      "source": "generated/style.json",
+      "target": "glow/style.json",
+    },
+    {
+      "source": "generated/glow.yml",
+      "target": "glow/glow.yml",
+
+      "user_config": {
+        "dest": [
+          "$GLOW_CONFIG_HOME/glow.yml",
+          "$XDG_CONFIG_HOME/glow/glow.yml",
+          "$HOME/.config/glow/glow.yml",
+          "~/.config/glow/glow.yml",
+        ],
+        // Glow has no native config includes; existing user settings take precedence.
+        "dest_mode": "merge",
+      },
+    },
+  ],
+}

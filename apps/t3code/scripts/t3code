@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Launch the Luna-built T3 Code app.
+# 1. Keep updates under Luna's Git build hooks and use this launcher for URL handling.
+# 2. Apply Luna's current native theme; stop if theme resolution or publication fails.
+# 3. Start the installed AppImage with the original arguments and a fresh AppImage mount.
+set -euo pipefail
+
+export T3CODE_DISABLE_AUTO_UPDATE=true
+export T3CODE_DESKTOP_LAUNCHER_PATH="$HOME/.local/bin/t3code"
+unset APPIMAGE APPDIR
+"$HOME/.local/bin/luna" theme apply t3code >/dev/null
+data="${LUNA_DATA_HOME_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/luna}"
+install="${LUNA_GIT_APP_INSTALL_DIR:-$data/apps/git}"
+exec "$install/t3code/T3-Code.AppImage" "$@"

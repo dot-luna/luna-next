@@ -7,8 +7,9 @@ local function bind(keys, action, description, options)
     return hl.bind(keys, action, options)
 end
 
-return function(config_dir)
-    for _, name in ipairs({ "apps", "windows", "workspaces", "display", "appearance" }) do
+return function(config_dir, appearance)
+    for _, name in ipairs({ "apps", "windows", "workspaces", "display" }) do
         dofile(config_dir .. "/bindings/" .. name .. ".lua")(bind)
     end
+    dofile(config_dir .. "/bindings/appearance.lua")(bind, appearance)
 end

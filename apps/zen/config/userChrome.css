@@ -1,5 +1,5 @@
 @charset "UTF-8";
-/* Generated from Luna's active theme; rerun luna conf zen to refresh. */
+/* Generated from Luna's active theme; rerun Zen's setup-profile.ts hook to refresh. */
 @-moz-document url("chrome://browser/content/browser.xhtml") {
     /* Scope colors and fonts to browser UI; websites keep their own styles. */
     :root {

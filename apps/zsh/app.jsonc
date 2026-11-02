@@ -1,0 +1,30 @@
+{
+  "name": "zsh",
+  "source": "pacman",
+
+  "hooks": {
+    "before_configure": ["scripts/configure.ts"],
+  },
+
+  "exports": [
+    {
+      "source": "config/",
+      "target": "zsh/",
+      "exclude": ["zshrc"],
+    },
+    {
+      "source": "config/zshrc",
+      "target": "zsh/zshrc",
+
+      "user_config": {
+        "dest": ["$ZDOTDIR/.zshrc", "$HOME/.zshrc", "~/.zshrc"],
+        // Source Luna's entry before personal settings so user overrides win.
+        "dest_mode": "include",
+      },
+    },
+    {
+      "source": "generated/",
+      "target": "zsh/generated/",
+    },
+  ],
+}

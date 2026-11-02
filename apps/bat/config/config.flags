@@ -1,0 +1,9 @@
+# Follow the terminal's color palette.
+--theme=ansi
+
+# Show line numbers, Git changes, and filenames without a grid.
+--style=numbers,changes,header
+
+--paging=auto
+--wrap=auto
+--tabs=2

@@ -1,0 +1,17 @@
+{
+  "name": "starship",
+  "source": "pacman",
+
+  "exports": [
+    {
+      "source": "config/starship.toml",
+      "target": "starship/starship.toml",
+
+      "user_config": {
+        "dest": ["$STARSHIP_CONFIG", "$HOME/.config/starship.toml", "~/.config/starship.toml"],
+        // Starship has no native includes; existing user settings take precedence.
+        "dest_mode": "merge",
+      },
+    },
+  ],
+}

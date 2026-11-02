@@ -1,12 +1,16 @@
 # Ungoogled Chromium
 
-Create a Git-named browser profile and apply Luna colors, web fonts, square
-website corners, and the configured extensions, including Bitwarden.
+Luna uses **Ungoogled Chromium**, not standard Chromium or Google Chrome.
+I don't fucking want Google's bundled shit on this desktop.
 
-```sh
-luna install ungoogled-chromium-bin
-luna chromium setup
-```
+One installation and one Chromium desktop entry. A **Luna** profile holds our PWA
+customizations; Default and other profiles keep their own settings. New Luna
+profiles take their display name from global Git `user.name`; existing profiles
+are not recreated or renamed.
 
-Approve the extension and theme installations in the profile that opens.
-See [DOCS.md](DOCS.md) for separate commands, existing profiles, and limitations.
+This whole Chromium setup exists because fucking Zen doesn't support the native
+PWA workflow I need on Linux.
+
+Firefox's [built-in web apps are Windows-only](https://support.mozilla.org/en-US/kb/web-apps-firefox-windows).
+[Native PWA support in Zen](https://github.com/zen-browser/desktop/discussions/14454)
+remains a feature request.
