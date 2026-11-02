@@ -111,6 +111,45 @@ test("terminal defaults require a terminal emulator, not a terminal application"
   expect(existsSync(join(f.config, "xdg-terminals.list"))).toBe(false);
 });
 
+test("terminal selection rejects entries without an execution argument before changing preferences", async () => {
+  f.command("xdg-terminal-exec");
+  f.entry("compat-only.desktop", "Categories=TerminalEmulator;\n");
+  const path = join(f.config, "xdg-terminals.list");
+  const previous = "/execarg_strict\nexisting.desktop\n";
+  f.write(path, previous);
+  expect(await Luna.defaults.set("terminal", "compat-only.desktop", options())).toMatchObject({
+    succes: false,
+    err: "INVALID_ARGUMENT",
+  });
+  expect(f.read(path)).toBe(previous);
+});
+
+const nativeTerminal = Bun.which("xdg-terminal-exec");
+for (const mode of ["directive", "environment"]) {
+  test.skipIf(!nativeTerminal)(
+    `native terminal selection stays effective in strict ${mode} mode`,
+    async () => {
+      f.env.PATH = `${f.bin}:/usr/bin:/bin`;
+      if (mode === "environment") f.env.XTE_EXECARG_COMPAT = "false";
+      else f.write(join(f.config, "xdg-terminals.list"), "/execarg_strict\n");
+      f.entry("valid-terminal.desktop", "Categories=TerminalEmulator;\nX-TerminalArgExec=--\n");
+      f.entry("compat-only.desktop", "Categories=TerminalEmulator;\n");
+      expect(
+        await Luna.defaults.set("terminal", "valid-terminal.desktop", options()),
+      ).toMatchObject({ succes: true });
+      expect(await Luna.defaults.set("terminal", "compat-only.desktop", options())).toMatchObject({
+        succes: false,
+        err: "INVALID_ARGUMENT",
+      });
+      const result = Bun.spawnSync([nativeTerminal!, "--print-id"], {
+        env: { ...f.env, XTE_CACHE_ENABLED: "0" },
+      });
+      expect(result.exitCode, result.stderr.toString()).toBe(0);
+      expect(result.stdout.toString().trim()).toBe("valid-terminal.desktop");
+    },
+  );
+}
+
 test("media defaults ignore invalid advertised types and support fully overridden groups", async () => {
   f.entry(
     "images.desktop",

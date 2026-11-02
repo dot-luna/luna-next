@@ -36,12 +36,18 @@ test("desktop IDs use XDG priority and nested paths; overrides mask usable syste
 test("terminal emulators use their category; NoDisplay and visibility hints do not forbid explicit selection", async () => {
   f.entry(
     "terminal.desktop",
-    "Categories=System;TerminalEmulator;\nNoDisplay=true\nOnlyShowIn=KDE;\n",
+    "Categories=System;TerminalEmulator;\nX-TerminalArgExec=--\nNoDisplay=true\nOnlyShowIn=KDE;\n",
   );
   f.entry("terminal-app.desktop", "Terminal=true\n");
+  f.entry("compat-only.desktop", "Categories=TerminalEmulator;\n");
+  f.entry("empty-argument.desktop", "Categories=TerminalEmulator;\nX-TerminalArgExec=\n");
+  f.entry("standard-argument.desktop", "Categories=TerminalEmulator;\nTerminalArgExec=--\n");
   const entries = await desktopEntries(f.context());
   expect(entries.get("terminal.desktop")).toMatchObject({ terminal: true, available: true });
   expect(entries.get("terminal-app.desktop")).toMatchObject({ terminal: false, available: true });
+  expect(entries.get("compat-only.desktop")?.terminal).toBe(false);
+  expect(entries.get("empty-argument.desktop")?.terminal).toBe(true);
+  expect(entries.get("standard-argument.desktop")?.terminal).toBe(true);
 });
 
 test("Exec unescapes desktop strings and complete quoted arguments without running applications", async () => {

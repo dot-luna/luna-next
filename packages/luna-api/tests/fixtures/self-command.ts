@@ -67,7 +67,7 @@ if (name === "xdg-mime") {
   if (args[0] === "-Qq") process.exit(installed.includes(args.at(-1)!) ? 0 : 1);
   if (args[0] === "-S")
     writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
-  if (args[0] === "-S" && packages.includes(env.SELF_DESKTOP_PACKAGE!)) {
+  if (args[0] === "-S" && packages.includes(env.LUNA_TEST_DESKTOP_PACKAGE!)) {
     const applications = join(env.XDG_DATA_HOME!, "applications");
     mkdirSync(applications, { recursive: true });
     writeFileSync(

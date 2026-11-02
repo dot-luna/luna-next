@@ -93,7 +93,9 @@ Keys are `terminal`, `shell`, exact MIME/URI-handler types, or `image/*`, `audio
 and `video/*`. Desktop choices require an installed `.desktop` ID. Wildcards
 expand only advertised MIME types; exact manifest entries override them, including
 during a scoped wildcard reset. Shells use executable names or absolute paths;
-changes require registration and take effect on the next login.
+changes require registration and take effect on the next login. Terminal desktop
+entries require `TerminalEmulator` and `[X-]TerminalArgExec`, including an empty
+execution argument when none is needed.
 
 List returns `{key, value, current, available}` entries; `current` maps exact types
 to active IDs or null, and uses `terminal`/`shell` for those roles. Set/reset return

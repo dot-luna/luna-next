@@ -250,7 +250,7 @@ test("AUR selection validates provider order before running its hooks", async ()
 
 test("self install applies defaults after themes, ordered apps, later packages and web apps", async () => {
   f.browser();
-  f.env.SELF_DESKTOP_PACKAGE = "zed";
+  f.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
   f.write(f.repository, "installs/defaults.jsonc", '{"application/pdf":"fixture-viewer.desktop"}');
   f.app("desktop", { name: "desktop", source: "local" }, [
     "before_install",
@@ -308,7 +308,7 @@ test("self install applies defaults after themes, ordered apps, later packages a
 
 test("skipFailed retains app failures while applying defaults after later packages", async () => {
   f.app("broken", { name: "broken", source: "local" }, ["build"]);
-  f.env.SELF_DESKTOP_PACKAGE = "zed";
+  f.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
   f.write(f.repository, "installs/defaults.jsonc", '{"application/pdf":"fixture-viewer.desktop"}');
   const result = data(
     await Luna.self.install({

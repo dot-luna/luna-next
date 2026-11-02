@@ -73,7 +73,10 @@ async function applyChoices(
           );
         if (key === "terminal") {
           if (!entry.terminal)
-            throw new ApiError("INVALID_ARGUMENT", `${value} is not a terminal emulator`);
+            throw new ApiError(
+              "INVALID_ARGUMENT",
+              `${value} must declare TerminalEmulator and [X-]TerminalArgExec`,
+            );
           if (!Bun.which("xdg-terminal-exec", { PATH: context.env.PATH }))
             throw new ApiError(
               "INVALID_ENVIRONMENT",

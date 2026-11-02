@@ -237,7 +237,7 @@ userTests("self operations", () => {
 
   test("defaults resolve applications installed in the later package stage", async () => {
     value.env.SELF_INSTALLED_JSON = join(value.root, "installed.json");
-    value.env.SELF_DESKTOP_PACKAGE = "zed";
+    value.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
     const source = '{"application/pdf":"fixture-viewer.desktop"}';
     value.write(value.repository, "installs/defaults.jsonc", source);
     expect(

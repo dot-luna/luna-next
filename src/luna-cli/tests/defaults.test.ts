@@ -96,7 +96,7 @@ beforeEach(() => {
   }
   write(
     join(env.XDG_DATA_HOME!, "applications", "terminal.desktop"),
-    "[Desktop Entry]\nType=Application\nName=Terminal\nExec=viewer\nCategories=TerminalEmulator;\n",
+    "[Desktop Entry]\nType=Application\nName=Terminal\nExec=viewer\nCategories=TerminalEmulator;\nX-TerminalArgExec=--\n",
   );
   write(
     join(env.PATH!, "xdg-terminal-exec"),

@@ -8,6 +8,7 @@ export interface DesktopEntry {
   path: string;
   name: string;
   mimeTypes: string[];
+  /** Eligible even when the native selector disables compatibility execution arguments. */
   terminal: boolean;
   available: boolean;
 }
@@ -85,6 +86,7 @@ function parseEntry(
   const mimeTypes = desktopString(values.get("MimeType") ?? "");
   const tryExec = values.has("TryExec") ? desktopString(values.get("TryExec")!) : undefined;
   const exec = values.has("Exec") ? execProgram(values.get("Exec")!) : undefined;
+  const terminalArgument = values.get("TerminalArgExec") ?? values.get("X-TerminalArgExec");
   for (const key of ["Hidden", "DBusActivatable", "Terminal"])
     if (values.has(key) && !["true", "false"].includes(values.get(key)!)) valid = false;
   return {
@@ -92,7 +94,10 @@ function parseEntry(
     path,
     name: name || id,
     mimeTypes: mimeTypes?.split(";").filter(Boolean) ?? [],
-    terminal: categories?.split(";").includes("TerminalEmulator") ?? false,
+    terminal:
+      Boolean(categories?.split(";").includes("TerminalEmulator")) &&
+      terminalArgument !== undefined &&
+      desktopString(terminalArgument) !== null,
     available:
       valid &&
       found &&
