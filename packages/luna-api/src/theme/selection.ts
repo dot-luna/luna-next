@@ -2,8 +2,9 @@ import { validate } from "../lib/validation.ts";
 import { mkdir, open, readFile } from "node:fs/promises";
 import { dirname, join } from "pathe";
 import { ApiError } from "../lib/response.ts";
-import { command, type ThemeContext } from "./context.ts";
+import { type ThemeContext } from "./context.ts";
 import { metadata, parse, writeFile } from "../lib/files.ts";
+import { gsettings } from "./gsettings.ts";
 import { themeModeSchema, themeSelectionSchema, validateName } from "./schema.ts";
 import type { ThemeMode } from "./types.ts";
 import { readTheme, resolveTheme } from "./values.ts";
@@ -45,7 +46,7 @@ export async function currentTheme(context: ThemeContext) {
 
 async function preference(context: ThemeContext) {
   const value = (
-    await command(context, ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"])
+    await gsettings(context, ["get", "org.gnome.desktop.interface", "color-scheme"])
   ).replace(/^'|'$/gu, "");
   if (!["default", "prefer-dark", "prefer-light"].includes(value))
     throw new ApiError("COMMAND_FAILED", `Unknown desktop appearance preference: ${value}`);
@@ -53,13 +54,7 @@ async function preference(context: ThemeContext) {
 }
 
 async function applyPreference(context: ThemeContext, value: string) {
-  await command(context, [
-    "gsettings",
-    "set",
-    "org.gnome.desktop.interface",
-    "color-scheme",
-    value,
-  ]);
+  await gsettings(context, ["set", "org.gnome.desktop.interface", "color-scheme", value]);
   if ((await preference(context)) !== value)
     throw new ApiError("COMMAND_FAILED", "Desktop appearance preference was not saved");
 }

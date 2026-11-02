@@ -333,3 +333,71 @@ test("already installed theme fonts do not require Yay or sudo", async () => {
   expect(commands).toHaveLength(4);
   expect(commands.every((c) => c.name === "pacman" && c.args[0] === "-Qq")).toBe(true);
 });
+
+test.skipIf(!Bun.which("gsettings") || !Bun.which("dbus-run-session"))(
+  "headless theme selection persists through real dconf without touching desktop settings",
+  async () => {
+    unlinkSync(join(f.bin, "gsettings"));
+    symlinkSync(Bun.which("gsettings")!, join(f.bin, "gsettings"));
+    const env = {
+      HOME: f.home,
+      PATH: `${f.bin}:/usr/bin:/bin`,
+      XDG_CONFIG_HOME: join(f.home, ".config"),
+      XDG_DATA_HOME: join(f.home, ".local/share"),
+      XDG_CACHE_HOME: join(f.home, ".cache"),
+      GSETTINGS_BACKEND: "dconf",
+    };
+    const options = { ...f.options, env };
+    data(await Luna.theme.install(f.source("headless"), options));
+    data(await Luna.theme.set("headless", options));
+    expect(data(await Luna.theme.mode(undefined, options))).toBe("dark");
+    data(await Luna.theme.mode("light", options));
+    expect(data(await Luna.theme.mode(undefined, options))).toBe("light");
+    expect(existsSync(join(env.XDG_CONFIG_HOME, "dconf/user"))).toBe(true);
+  },
+);
+
+test.skipIf(!Bun.which("gsettings") || !Bun.which("dbus-daemon"))(
+  "theme commands reuse a runtime bus whose path needs D-Bus escaping",
+  async () => {
+    unlinkSync(join(f.bin, "gsettings"));
+    symlinkSync(Bun.which("gsettings")!, join(f.bin, "gsettings"));
+    const runtime = join(f.home, "runtime,percent%quote'!()界");
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(runtime, { mode: 0o700 });
+    const env = {
+      HOME: f.home,
+      PATH: `${f.bin}:/usr/bin:/bin`,
+      XDG_CONFIG_HOME: join(f.home, ".config"),
+      XDG_DATA_HOME: join(f.home, ".local/share"),
+      XDG_CACHE_HOME: join(f.home, ".cache"),
+      XDG_RUNTIME_DIR: runtime,
+      GIO_USE_VFS: "local",
+      GSETTINGS_BACKEND: "dconf",
+    };
+    const address = `unix:path=${encodeURIComponent(join(runtime, "bus")).replace(/[!'()*]/gu, (character) => "%" + character.charCodeAt(0).toString(16))}`;
+    const daemon = Bun.spawn(
+      [
+        Bun.which("dbus-daemon")!,
+        "--session",
+        "--nofork",
+        `--address=${address}`,
+        "--print-address=1",
+      ],
+      { env, stdin: "ignore", stdout: "pipe", stderr: "pipe" },
+    );
+    const reader = daemon.stdout.getReader();
+    try {
+      expect((await reader.read()).done).toBe(false);
+      reader.releaseLock();
+      const options = { ...f.options, env };
+      data(await Luna.theme.install(f.source("runtime"), options));
+      data(await Luna.theme.set("runtime", options));
+      expect(data(await Luna.theme.mode(undefined, options))).toBe("dark");
+      expect(existsSync(join(env.XDG_CONFIG_HOME, "dconf/user"))).toBe(true);
+    } finally {
+      daemon.kill();
+      await daemon.exited;
+    }
+  },
+);

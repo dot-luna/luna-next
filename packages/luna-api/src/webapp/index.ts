@@ -66,10 +66,13 @@ export async function installWebapp(context: WebappContext, name: string, url: s
     const source = await readOptional(config);
     const entry = await readOptional(desktop);
     const title = app.name.replaceAll("\\", "\\\\");
-    // env also lets desktop clients expand %% in executable paths as an argument.
+    // A constant shell command forwards data arguments, including executable paths with % or =.
     // Desktop sessions need not inherit the install process's environment or API overrides.
     const launchArgs = [
-      "/usr/bin/env",
+      "/usr/bin/bash",
+      "-c",
+      'exec "$@"',
+      "luna-webapp",
       context.launcher,
       "webapp",
       "launch",

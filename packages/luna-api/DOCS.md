@@ -68,7 +68,8 @@ accepts an explicit `userdata` directory. `mode` accepts dark/light/toggle.
 Validation uses the feature-owned Zod schemas in `src/theme/schema.ts`.
 
 See [theme fields and storage](../../themes/DOCS.md). Selection changes apply
-GSettings but do not restart apps. Source JSONC stays intact; selection writes
+GSettings but do not restart apps. Headless shells use a private D-Bus session
+when no session address or runtime bus is supplied; setup installs `dbus` for this. Source JSONC stays intact; selection writes
 normalize its owned document. Mutations can return `CONFLICT` for locks, external
 edits, existing copies, or wallpaper filename conflicts.
 

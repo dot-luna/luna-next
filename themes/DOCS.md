@@ -77,6 +77,9 @@ JSONC. Defaults stay in memory. Reads create a missing selection as `{}`. Mutati
 use a shared `flock` lock; conflicting writers fail. Atomic file writes preserve
 modes and refuse detected external changes. GSettings failures attempt exact
 selection and preference recovery without overwriting detected external edits.
+Appearance commands reuse the supplied session bus or its XDG runtime socket.
+Without one, `dbus-run-session` starts a private bus so dconf can persist settings
+from TTY/SSH sessions. This requires the `dbus` package, installed during setup.
 
 `self install` installs all bundled themes after shared dependencies, before apps.
 It selects Tokyo Night only when no theme is selected. Selection applies the system
