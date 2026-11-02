@@ -6,8 +6,8 @@
 
 All operations return `{ succes: true, data }` or
 `{ succes: false, err, errMessage }`. The `succes` spelling is the API contract.
-The API does not print; self operations capture command output, returning failed
-command diagnostics and optionally calling `onProgress(message)`.
+The API does not print. Installation commands save full stdout/stderr to private
+run logs and optionally call `onProgress(message)`; failed commands return diagnostics.
 
 ## Self options and behavior
 
@@ -17,6 +17,8 @@ command diagnostics and optionally calling `onProgress(message)`.
   an absolute non-root home. The caller's environment and cwd remain unchanged.
 - `ref`: branch, tag, or `latest` (remote default branch). Defaults to `latest`.
 - `onProgress`: optional synchronous progress callback.
+- `skipFailed`: continue after individual app/web-app failures (default false).
+- `closeApps`: close declared app processes before installation/configuration (default true).
 
 Self operations require an existing standalone Luna checkout and a normal Arch
 Linux user with Git, pacman, Bash, and sudo available. Updates preserve local edits
@@ -37,11 +39,33 @@ in the before-CLI dependencies. Unrelated global Git settings are retained.
 
 Success returns `completed: true`, `installedApps`, `installedWebapps`, and an empty
 `pending` array; `cliRebuilt` reports whether CLI publication ran. No completion is
-returned after a failed stage. An early AUR recipe requires an already installed
+returned after a failed required stage. With `skipFailed`, individual app failures
+return a report with `completed: false` and `failed` entries containing the app, error,
+retry command and `logDirectory`. Later packages and web apps are still attempted. An early AUR recipe requires an already installed
 Yay; theme and app stages can install the catalog’s Yay provider. Update requires mise and
 changes only the checkout and CLI. Both publish to `$HOME/.local/bin/luna`.
 
 Completed steps remain after failure. Build/copy failures keep the previous CLI.
+Logs live under `$LUNA_STATE_HOME_DIR/install-logs` (otherwise
+`$XDG_STATE_HOME/luna/install-logs`, then `~/.local/state/luna/install-logs`).
+Each private run directory contains `events.jsonl`, full command stdout/stderr files,
+and `summary.json`. Build diagnostics shown to callers use bounded tails; full output
+remains on disk. Bootstrap keeps a separate `bootstrap.log`, including CLI handoff.
+Subprocess output can contain private information; logs are restricted to the user.
+
+Declared app processes receive a five-second warning, SIGTERM, then SIGKILL after
+three seconds if still running. Only matching executables owned by the current user
+are targeted; PID identity is rechecked. An app hosting setup cannot be closed: run
+from a separate terminal. `closeApps: false` leaves process/profile checks to hooks.
+
+Mise tools use global selections and refreshed shims, including already installed
+versions. Managed Bash/Zsh startup blocks activate Mise in new interactive shells.
+Zsh data-root defaults are set in `.zshenv` before app includes can activate Mise;
+`ZDOTDIR` is honored when supplied.
+Explicit runtime Mise data paths and personal startup content are retained. Zsh's
+app hook selects Zsh as the login shell only when the account uses another shell;
+this takes effect on the next login. Sudo authentication is refreshed during long
+self/app installs without repeatedly prompting.
 Self errors include `INVALID_ENVIRONMENT`, `INVALID_ARGUMENT`, `INVALID_PATH`,
 `INVALID_METADATA`, `INPUT_REQUIRED`, `COMMAND_FAILED`, and `IO_ERROR`.
 
@@ -77,10 +101,11 @@ edits, existing copies, or wallpaper filename conflicts.
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.
 `Luna.apps.configure(names?, options?)` runs configuration only. Omit names to
-select all; names match directory IDs, package names, or aliases. Both return
-selected IDs in `apps/apps.jsonc` order, irrespective of argument order.
+select all; names match directory IDs, package names, or aliases. Installation returns `{ installed, failed, completed, logDirectory }`; configuration
+returns selected IDs. Both preserve `apps/apps.jsonc` order, irrespective of argument order.
 Options: `repository`, `env`, `onProgress`, and install-only `force` to rerun
-installation/build hooks even for installed apps. Run installation as a normal user.
+installation/build hooks even for installed apps. Install also accepts `skipFailed`;
+both operations accept `closeApps`. Run installation as a normal user.
 
 See [app manifests and lifecycle](../../apps/DOCS.md) for hooks, exports, settings,
 Git refs, build cleanup, and retry behavior. Invalid catalogs fail before package

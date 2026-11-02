@@ -5,7 +5,7 @@ A Hyprland desktop setup with shared themes, app configurations, and the `luna` 
 On Arch Linux, run as your normal user with sudo access:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/dev/install.sh | bash -s -- --ref=dev
 ```
 
 This installs Git, mise, and Bun, clones Luna into `~/.local/src/luna-next`,

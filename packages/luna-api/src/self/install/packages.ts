@@ -1,4 +1,5 @@
 import { join } from "pathe";
+import { setupMise } from "./mise.ts";
 import { z } from "zod";
 import { ApiError } from "../../lib/response.ts";
 import type { InstallContext } from "./command.ts";
@@ -84,4 +85,5 @@ export async function installPackages(context: InstallContext, packages: Package
       ]);
     }
   }
+  if (packages.some((item) => item.source === "mise")) await setupMise(context);
 }

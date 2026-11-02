@@ -47,7 +47,10 @@ test("selected apps follow catalog order; dependencies and installation precede 
     stages.filter((stage) => !stage.includes("build")),
   );
   f.app("second", { name: "second-package", source: "local" }, stages);
-  expect(data(await Luna.apps.install(["second", "one"], options()))).toEqual(["first", "second"]);
+  expect(data(await Luna.apps.install(["second", "one"], options())).installed).toEqual([
+    "first",
+    "second",
+  ]);
   expect(f.hooks().map((h) => h.app + ":" + h.stage)).toEqual([
     "first:before_install",
     "first:after_install",
@@ -332,7 +335,13 @@ test("CLI install and configure aliases share app APIs and preserve JSON respons
     ]);
     expect(code, stdout + stderr).toBe(0);
     expect(stderr).toBe("");
-    expect(JSON.parse(stdout)).toEqual({ succes: true, data: ["cli-app"] });
+    expect(JSON.parse(stdout)).toMatchObject({
+      succes: true,
+      data:
+        args[0] === "install"
+          ? { installed: ["cli-app"], failed: [], completed: true }
+          : ["cli-app"],
+    });
   }
   expect(f.commands().filter((c) => c.name === "pacman" && c.args[0] === "-S")).toHaveLength(1);
 });
@@ -386,7 +395,7 @@ test("explicit mise versions require a matching installed version; partial reque
   const before = f.hooks().length;
   data(await Luna.apps.install([], { ...options(), env }));
   expect(f.hooks()).toHaveLength(before);
-  expect(f.commands().at(-1)?.args).toContain("tool@1");
+  expect(f.commands().some((c) => c.args.includes("tool@1"))).toBe(true);
 });
 
 test("self install does not bootstrap Yay for already installed theme fonts", async () => {

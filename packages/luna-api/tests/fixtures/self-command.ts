@@ -13,7 +13,13 @@ const [name, ...args] = Bun.argv.slice(2);
 const env = process.env;
 appendFileSync(
   env.SELF_LOG!,
-  JSON.stringify({ name, args, cwd: process.cwd(), repository: env.LUNA_ROOT }) + "\n",
+  JSON.stringify({
+    name,
+    args,
+    cwd: process.cwd(),
+    repository: env.LUNA_ROOT,
+    miseData: env.MISE_DATA_DIR,
+  }) + "\n",
 );
 const command = name === "git" && args[0] === "-C" ? args.slice(2) : args;
 if (env.SELF_FAIL === `${name}:${command[0]}`) {
@@ -47,6 +53,9 @@ if (name === "gsettings") {
   if (args[0] === "-Qq") process.exit(installed.includes(args.at(-1)!) ? 0 : 1);
   if (args[0] === "-S")
     writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
+  process.exit(0);
+} else if (name === "mise" && args[0] === "activate") {
+  console.log("export LUNA_TEST_MISE_ACTIVE=1\n_mise_hook() { :; }");
   process.exit(0);
 } else if (name === "mise" && args.includes("latest")) {
   const requested = args.at(-1)!.split("@")[1];

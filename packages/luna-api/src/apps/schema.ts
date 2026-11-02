@@ -22,6 +22,15 @@ export const appSchema = packageRecipeSchema
     version: z.string().min(1).regex(printable).nullable().optional(),
     url: z.string().min(1).regex(printable).nullable().optional(),
     alias: z.array(appNameSchema).optional(),
+    processes: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .regex(printable)
+          .refine((value) => !value.includes("/")),
+      )
+      .optional(),
     deps: z.array(packageRecipeSchema).optional(),
     git_include_prereleases: z.boolean().optional(),
     git_release_tag_pattern: z.string().min(1).regex(printable).optional(),

@@ -13,6 +13,7 @@ export interface CommandRecord {
   args: string[];
   cwd: string;
   repository: string;
+  miseData?: string;
 }
 
 export class SelfFixture {

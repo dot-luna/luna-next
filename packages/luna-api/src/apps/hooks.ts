@@ -6,6 +6,6 @@ import type { HookStage } from "./schema.ts";
 export async function runHooks(context: InstallContext, app: CatalogApp, stage: HookStage) {
   for (const path of app.manifest.hooks?.[stage] ?? []) {
     const script = await inside(app.directory, path);
-    await context.execute([script], false, app.directory);
+    await context.execute([script], false, app.directory, true);
   }
 }

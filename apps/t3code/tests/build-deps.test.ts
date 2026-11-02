@@ -3,15 +3,33 @@ import { test } from "bun:test";
 import { withBuildDependencies, type Runner } from "../scripts/build-deps.ts";
 
 type Package = { explicit: boolean; requires: string[] };
-type Fixture = { installed: Map<string, Package>; calls: string[][]; installError: boolean; removeError: boolean; snapshotError: boolean; run: Runner };
+type Fixture = {
+  installed: Map<string, Package>;
+  calls: string[][];
+  installError: boolean;
+  removeError: boolean;
+  snapshotError: boolean;
+  run: Runner;
+};
 
 const buildDependencies = ["base-devel", "libsecret", "pkgconf", "imagemagick", "libxcrypt-compat"];
 const withoutImageTools = ["base-devel", "libsecret", "pkgconf", "libxcrypt-compat"];
 
 function fixture(preinstalled = buildDependencies) {
-  const installed = new Map<string, Package>(preinstalled.map((name) => [name, { explicit: true, requires: [] }]));
+  const installed = new Map<string, Package>(
+    preinstalled.map((name) => [name, { explicit: true, requires: [] }]),
+  );
   const calls: string[][] = [];
-  const state: Fixture = { installed, calls, installError: false, removeError: false, snapshotError: false, run: () => { throw new Error("Runner not initialized"); } };
+  const state: Fixture = {
+    installed,
+    calls,
+    installError: false,
+    removeError: false,
+    snapshotError: false,
+    run: () => {
+      throw new Error("Runner not initialized");
+    },
+  };
   state.run = (program, args) => {
     calls.push([program, ...args]);
     if (program === "/usr/bin/pacman") {
@@ -185,4 +203,21 @@ test("failed package snapshots stop the build and do not guess cleanup targets",
   );
   assert.equal(built, false);
   assert.deepEqual(transactions(state, "-R"), []);
+});
+
+test("desktop builds use sudo rather than switching to PolicyKit authentication", () => {
+  const previous = Bun.env.DISPLAY;
+  Bun.env.DISPLAY = ":fixture";
+  try {
+    const state = fixture(withoutImageTools);
+    withBuildDependencies(() => {}, state.run);
+    assert(
+      state.calls
+        .filter((call) => call[0] !== "/usr/bin/pacman")
+        .every((call) => call[0] === "/usr/bin/sudo"),
+    );
+  } finally {
+    if (previous === undefined) delete Bun.env.DISPLAY;
+    else Bun.env.DISPLAY = previous;
+  }
 });

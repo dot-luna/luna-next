@@ -2,7 +2,7 @@
 
 `luna` shows project information; `-v` prints the version. `--json` returns the
 API response unchanged and suppresses progress and identity prompts. Success
-exits with 0, operation failures with 1, and argument errors with 2.
+exits with 0, operation failures (including partial install reports) with 1, and argument errors with 2.
 
 ## Self commands
 
@@ -32,6 +32,23 @@ Missing values are requested through the terminal, including after a piped
 bootstrap. Without a terminal, supply the flags or configure global Git identity
 first. Git defaults use branch `master` and editor `nvim`; unrelated global
 settings remain. Neovim is installed in `before_cli` so the editor is available.
+
+Use `--skip-failed` with `self install` or `install` to continue after individual
+app failures. The final report lists each error, its retry command and log directory;
+a partial run exits 1 and reports `completed: false`, including in JSON mode.
+Required checkout/package/theme failures still stop setup. Logs are retained under
+`~/.local/state/luna/install-logs` by default; each run contains full command output
+and a JSON summary. Bootstrap prints its retained `bootstrap.log` path.
+
+Setup closes declared Chromium/Zen/T3 processes when needed. It warns for five
+seconds, sends SIGTERM, then force-kills stragglers after three seconds. Save work
+before setup, and run it from a terminal outside any app it needs to close.
+`--no-close-apps` disables automatic shutdown for install/configure commands.
+
+Mise tools are selected globally, shims are refreshed, and new Bash/Zsh sessions
+activate Mise automatically. Existing terminal sessions need restarting. Zsh
+configuration also sets the account's default shell to Zsh when needed; log in
+again for the new login shell.
 
 Successful setup reports completion after every stage. Early AUR recipes require
 an existing Yay; theme and app stages can install the catalog’s Yay provider.

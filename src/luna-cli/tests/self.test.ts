@@ -55,6 +55,8 @@ userTests("CLI self commands", () => {
         executable: value.executable,
         cliRebuilt: false,
         completed: true,
+        failed: [],
+        logDirectory: expect.any(String),
         installedApps: [],
         installedWebapps: [],
         pending: [],

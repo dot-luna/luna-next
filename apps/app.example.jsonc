@@ -8,6 +8,9 @@
   // Optional command aliases for this app.
   "alias": ["example"],
 
+  // Optional executable basenames closed before installation/configuration.
+  "processes": ["example-app"],
+
   // Optional packages directly tied to this app, such as its plugins.
   // Use the same package objects as installs/. General tools and runtimes stay there.
   // Omit packages already declared in installs/ or any app manifest (name or deps).

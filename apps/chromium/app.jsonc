@@ -1,6 +1,7 @@
 {
   "name": "ungoogled-chromium-bin",
   "source": "aur",
+  "processes": ["chromium"],
 
   // Scripts run directly through their shebangs. Settings stay here; no exports are needed.
   "hooks": {

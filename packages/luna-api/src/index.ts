@@ -26,3 +26,5 @@ export type {
 export type { AppOptions } from "./apps/context.ts";
 export type { WebappOptions } from "./webapp/context.ts";
 export type { WebappRecord } from "./webapp/schema.ts";
+
+export type { AppInstallResult, InstallFailure } from "./install/report.ts";
