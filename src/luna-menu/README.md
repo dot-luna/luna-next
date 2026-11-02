@@ -9,4 +9,5 @@ luna install menu
 luna menu
 ```
 
-Installation provides Quickshell. See [DOCS.md](DOCS.md) for controls and testing.
+Installation provides Quickshell and the terminal launcher. See [DOCS.md](DOCS.md)
+for controls and testing.

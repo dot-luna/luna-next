@@ -59,6 +59,9 @@ else process.exit(2);
     expect(readFileSync(join(destination, "icons/LICENSE.md"), "utf8")).toContain("Hugeicons");
     expect(readFileSync(qsLog, "utf8")).not.toContain("--daemonize");
     expect(f.commands().some((c) => c.name === "sudo" && c.args.includes("quickshell"))).toBe(true);
+    expect(
+      f.commands().some((c) => c.name === "sudo" && c.args.includes("xdg-terminal-exec")),
+    ).toBe(true);
     f.write(f.home, ".config/luna/menu/stale.qml", "remove");
     writeFileSync(running, "running");
     expect(await Luna.apps.configure(["menu"], options)).toMatchObject({

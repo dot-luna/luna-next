@@ -32,8 +32,8 @@ The header, fixed-height body, row spacing, selection, and font scaling follow
 that menu. UI icons use the free Hugeicons set, documented in
 [icons/README.md](src/shell/icons/README.md), with its MIT notice.
 
-`luna install menu` installs Quickshell and exports the QML to Luna's menu
-configuration directory. Configuration replaces that owned directory without
+`luna install menu` installs Quickshell and `xdg-terminal-exec`, then exports the QML
+to Luna's menu configuration directory. Configuration replaces that owned directory without
 backups and restarts an already-running menu hidden; a stopped menu stays stopped.
 No separate systemd service is required. Hyprland starts it hidden at login, and
 the shortcut can start it on demand.
