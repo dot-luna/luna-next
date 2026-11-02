@@ -1,6 +1,6 @@
 # Luna API
 
-Shared Luna operations for Bun, including self setup, themes, app installation/configuration, and Chromium web apps.
+Shared Luna operations for Bun: setup, themes, apps, default applications, and Chromium web apps.
 From the workspace, call the API with an existing checkout:
 
 ```ts

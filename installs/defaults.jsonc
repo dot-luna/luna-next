@@ -1,27 +1,33 @@
 {
-  // Planned roles only. Luna does not read or apply these defaults yet.
+  // Applied after setup; use luna defaults list, set, or reset to manage active choices.
+
+  // Terminal: Kitty (desktop entry for xdg-terminal-exec).
+  "terminal": "kitty.desktop",
+
+  // Shell: Zsh (executable name).
+  "shell": "zsh",
+
+  // Browser: Zen (web links and HTML files).
+  "x-scheme-handler/http": "zen.desktop",
+  "x-scheme-handler/https": "zen.desktop",
+  "text/html": "zen.desktop",
+  "application/xhtml+xml": "zen.desktop",
+
   // PDF viewer: Document Viewer (evince).
+  "application/pdf": "org.gnome.Evince.desktop",
+
   // Image viewer: imv for every image MIME type it supports.
+  "image/*": "imv.desktop",
+
   // Video player: mpv for every video MIME type it supports.
+  "video/*": "mpv.desktop",
+
   // File manager and directory handler: Files (nautilus).
-  // File picker: Nautilus-backed chooser; TODO configure and verify Hyprland portal routing.
-  // File previews: Sushi in Nautilus, opened with Space.
-  // Disk management: GNOME Disks (gnome-disk-utility).
-  // Screen color picker: hyprpicker.
-  // Terminal: Kitty (kitty).
-  // Terminal sessions and panes: tmux; configuration and shortcuts come later.
-  // Manual pages: man-db. Concise command examples: tldr.
-  // JSON processing: jq. Media conversion: ffmpeg. QR generation: qrencode.
-  // Firewall: ufw; TODO define rules and service setup before enabling it.
+  "inode/directory": "org.gnome.Nautilus.desktop",
+
   // Bluetooth controls: bluetoothctl (bluez-utils), backed by bluez; service setup is TODO.
   // Backlight controls: brightnessctl; hardware detection and bindings are TODO.
   // Audio controls: wpctl (wireplumber) is a candidate; confirm session integration before making it default.
-  // Wayland clipboard commands: wl-copy and wl-paste (wl-clipboard).
-  // GitHub workflows: gh (github-cli), already declared in packages.jsonc.
-  // Coding agent: Codex, already owned by apps/codex/app.jsonc.
-  // Cloudflare workflows: cf, installed through the cloudflare-cf mise recipe.
-  // Native messaging apps: Discord and Telegram; no protocol defaults selected yet.
-  // Recording and streaming app: OBS Studio; no capture shortcuts selected yet.
   // TODO: Choose our screenshot tool and define its capture/edit actions.
   // TODO: Decide whether Pinta should be included for image editing.
   // TODO: Choose a minimal Markdown editor for simple edits without a vault/plugin workflow.

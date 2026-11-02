@@ -27,7 +27,11 @@ if (env.SELF_FAIL === `${name}:${command[0]}`) {
   process.exit(17);
 }
 
-if (name === "gsettings") {
+if (name === "xdg-mime") {
+  if (args[0] !== "query" || args[1] !== "default")
+    throw new Error(`Unexpected xdg-mime arguments: ${args.join(" ")}`);
+  process.exit(0);
+} else if (name === "gsettings") {
   const key = args[2];
   if (key !== "color-scheme" && key !== "gtk-theme")
     throw new Error(`Unexpected GSettings key: ${key}`);
@@ -63,6 +67,14 @@ if (name === "gsettings") {
   if (args[0] === "-Qq") process.exit(installed.includes(args.at(-1)!) ? 0 : 1);
   if (args[0] === "-S")
     writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
+  if (args[0] === "-S" && packages.includes(env.SELF_DESKTOP_PACKAGE!)) {
+    const applications = join(env.XDG_DATA_HOME!, "applications");
+    mkdirSync(applications, { recursive: true });
+    writeFileSync(
+      join(applications, "fixture-viewer.desktop"),
+      "[Desktop Entry]\nType=Application\nName=Fixture Viewer\nExec=fixture-viewer %f\nMimeType=application/pdf;\n",
+    );
+  }
   process.exit(0);
 } else if (name === "mise" && args[0] === "activate") {
   console.log("export LUNA_TEST_MISE_ACTIVE=1\n_mise_hook() { :; }");

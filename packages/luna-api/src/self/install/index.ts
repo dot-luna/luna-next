@@ -11,13 +11,15 @@ import { readCatalog } from "../../apps/catalog.ts";
 import { installLaterPackages } from "./later.ts";
 import { installWebApps, readWebapps } from "./webapps.ts";
 import { installThemes } from "./themes.ts";
+import { applyDefaults, readDefaults } from "../../defaults/index.ts";
+import { attempt, quote } from "../../install/report.ts";
 import type { InstallOptions, InstallResponse } from "./types.ts";
 
 /**
- * Install an existing Arch Linux Luna checkout through apps, later packages and web apps.
+ * Install a Luna checkout through apps, later packages, web apps, then system defaults.
  * Bootstrap skips checkout updates and CLI publication, but still reconciles prerequisites.
  * Completed steps remain on failure; completion is reported only after every stage succeeds.
- * Commands run as the caller, using sudo only for system packages; the API never prompts.
+ * Commands run as the caller; sudo handles packages and login-shell selection.
  */
 export function install(options: InstallOptions = {}): Promise<InstallResponse> {
   return respond(async () => {
@@ -29,6 +31,7 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
       await readPackages(context);
       await readCatalog(await appContext({ repository, env: context.env }, context.log));
       await readWebapps(context);
+      await readDefaults(context);
       if (!options.fromBootstrap) {
         context.progress("Updating Luna checkout...");
         await updateCheckout(context, ref);
@@ -37,6 +40,7 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
       const packages = await readPackages(context);
       await readCatalog(await appContext({ repository, env: context.env }, context.log));
       await readWebapps(context);
+      await readDefaults(context);
       await context.execute(["sudo", "-v"]);
       stopSudo = context.keepSudoAlive();
       if (!options.fromBootstrap)
@@ -75,6 +79,15 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
       await installLaterPackages(appsContext, packages.later);
       context.progress("Installing web apps...");
       const installedWebapps = await installWebApps(appsContext, options.skipFailed, failed);
+      context.progress("Applying application defaults...");
+      await attempt(
+        appsContext,
+        "defaults",
+        `${quote(executable)} defaults reset --install-dir ${quote(repository)}`,
+        options.skipFailed ?? false,
+        failed,
+        () => applyDefaults(appsContext),
+      );
       const result = {
         repository,
         executable,
