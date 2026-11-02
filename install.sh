@@ -13,6 +13,7 @@
 #   bash install.sh
 #   bash install.sh --install-dir="$HOME/projects/luna-next" --ref=master
 #   bash install.sh --install-dir=./luna-next --ref=latest
+#   curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install.sh | bash
 #
 # Source: https://github.com/dot-luna/luna-next.git
 # CLI source: src/luna-cli inside the selected checkout.
