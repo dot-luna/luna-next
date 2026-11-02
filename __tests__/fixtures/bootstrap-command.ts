@@ -1,11 +1,21 @@
-import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 // Each wrapper names the command explicitly, so symlink resolution cannot change
 // which fake tool runs. No package manager, download, or desktop command is real.
 const [name, ...args] = Bun.argv.slice(2);
 const env = process.env;
-appendFileSync(env.BOOTSTRAP_LOG!, JSON.stringify({ name, args, cwd: process.cwd(), repo: env.LUNA_ROOT }) + "\n");
+appendFileSync(
+  env.BOOTSTRAP_LOG!,
+  JSON.stringify({ name, args, cwd: process.cwd(), repo: env.LUNA_ROOT }) + "\n",
+);
 const command = name === "git" && args[0] === "-C" ? args.slice(2) : args;
 const operation = name === "mise" && args.includes("use") ? "use" : command[0];
 
@@ -29,9 +39,18 @@ if (name === "sudo" && args[0] !== "-v") {
   // repository. Local origin validation still sees the declared Luna URL.
   if (env.BOOTSTRAP_REAL_GIT) {
     const forwarded = ["ls-remote", "fetch", "pull"].includes(command[0]!)
-      ? ["-c", `url.${env.BOOTSTRAP_REAL_REMOTE}.insteadOf=https://github.com/dot-luna/luna-next.git`, ...args]
+      ? [
+          "-c",
+          `url.${env.BOOTSTRAP_REAL_REMOTE}.insteadOf=https://github.com/dot-luna/luna-next.git`,
+          ...args,
+        ]
       : args;
-    const child = Bun.spawnSync([env.BOOTSTRAP_REAL_GIT, ...forwarded], { env, stdin: "ignore", stdout: "inherit", stderr: "inherit" });
+    const child = Bun.spawnSync([env.BOOTSTRAP_REAL_GIT, ...forwarded], {
+      env,
+      stdin: "ignore",
+      stdout: "inherit",
+      stderr: "inherit",
+    });
     process.exit(child.exitCode);
   }
   const state = JSON.parse(env.BOOTSTRAP_GIT ?? "{}");
@@ -40,16 +59,17 @@ if (name === "sudo" && args[0] !== "-v") {
     case "clone": {
       const root = args.at(-1)!;
       mkdirSync(join(root, ".git"), { recursive: true });
-      if (!args.at(-2)!.includes("yay.git")) {
-        mkdirSync(join(root, "src/luna-cli"), { recursive: true });
-        if (env.BOOTSTRAP_RACE_DEST) writeFileSync(join(env.BOOTSTRAP_RACE_DEST, ".personal"), "keep me");
-      }
+      mkdirSync(join(root, "src/luna-cli"), { recursive: true });
+      if (env.BOOTSTRAP_RACE_DEST)
+        writeFileSync(join(env.BOOTSTRAP_RACE_DEST, ".personal"), "keep me");
       break;
     }
     case "rev-parse":
-      console.log(command.includes("--verify")
-        ? state[command.at(-1) === "HEAD^{commit}" ? "head" : "selected"] ?? "a".repeat(40)
-        : state.root ?? args[1]);
+      console.log(
+        command.includes("--verify")
+          ? (state[command.at(-1) === "HEAD^{commit}" ? "head" : "selected"] ?? "a".repeat(40))
+          : (state.root ?? args[1]),
+      );
       break;
     case "remote":
       console.log(state.origin ?? "https://github.com/dot-luna/luna-next.git");
@@ -59,7 +79,8 @@ if (name === "sudo" && args[0] !== "-v") {
       break;
     case "ls-remote":
       if (command.includes("--symref")) {
-        if (!state.missing_default) console.log(`ref: refs/heads/${state.default ?? "master"}\tHEAD`);
+        if (!state.missing_default)
+          console.log(`ref: refs/heads/${state.default ?? "master"}\tHEAD`);
       } else {
         for (const ref of command.slice(3)) {
           const [, kind, ...parts] = ref.split("/");
@@ -75,7 +96,10 @@ if (name === "sudo" && args[0] !== "-v") {
       process.stdout.write((state.retained_refs ?? []).join("\n"));
       break;
     case "show-ref":
-      if (!(state.local_branches ?? ["master"]).includes(command.at(-1)!.replace("refs/heads/", ""))) process.exit(1);
+      if (
+        !(state.local_branches ?? ["master"]).includes(command.at(-1)!.replace("refs/heads/", ""))
+      )
+        process.exit(1);
       break;
   }
 } else if (name === "mise" && args.includes("which")) {
@@ -83,11 +107,7 @@ if (name === "sudo" && args[0] !== "-v") {
 } else if (name === "bun" && args[0] === "run") {
   const pkg = args[args.indexOf("--cwd") + 1]!;
   if (pkg === env.BOOTSTRAP_BUILD_FAIL) fail("simulated dependency build failure");
-  if (pkg === "packages/luna-api") {
-    mkdirSync("packages/luna-api/dist", { recursive: true });
-    writeFileSync("packages/luna-api/dist/index.js", "export {};\n");
-  } else if (pkg === "src/luna-cli") {
-    if (!existsSync("packages/luna-api/dist/index.js")) fail("API must build before CLI");
+  if (pkg === "src/luna-cli") {
     mkdirSync("target", { recursive: true });
     copyFileSync(env.BOOTSTRAP_LUNA_WRAPPER!, "target/luna-bun");
     chmodSync("target/luna-bun", 0o755);

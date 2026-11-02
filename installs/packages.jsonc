@@ -1,0 +1,176 @@
+{
+  // Before building and installing the CLI: bootstrap tools and mise.
+  "before_cli": [
+    {
+      "name": "coreutils",
+      "source": "pacman",
+      "purpose": "Basic file and shell utilities",
+    },
+    {
+      "name": "curl",
+      "source": "pacman",
+      "purpose": "Transfer files over HTTP and other protocols",
+    },
+    {
+      "name": "mise",
+      "source": "pacman",
+      "purpose": "Manage development tools and runtime versions",
+    },
+  ],
+  // After the CLI is ready, before installing apps/: shared build tools, setup helpers, and runtimes.
+  "after_cli": [
+    {
+      "name": "gcc",
+      "source": "pacman",
+      "purpose": "C and C++ compiler toolchain",
+    },
+    {
+      "name": "cmake",
+      "source": "pacman",
+      "purpose": "Configure, build, and install native projects",
+    },
+    {
+      "name": "ninja",
+      "source": "pacman",
+      "purpose": "Fast build runner",
+    },
+    {
+      "name": "util-linux",
+      "source": "pacman",
+      "purpose": "System utilities and process locking",
+    },
+    {
+      "name": "unzip",
+      "source": "pacman",
+      "purpose": "Extract ZIP archives from the terminal",
+    },
+    {
+      "name": "gtk3",
+      "source": "pacman",
+      "purpose": "GTK applications and desktop-entry launching",
+    },
+    {
+      "name": "glib2",
+      "source": "pacman",
+      "purpose": "Read and apply system appearance preferences with GSettings",
+    },
+    {
+      "name": "gsettings-desktop-schemas",
+      "source": "pacman",
+      "purpose": "Desktop appearance preference schema",
+    },
+    {
+      "name": "dconf",
+      "source": "pacman",
+      "purpose": "Persist per-user desktop preferences",
+    },
+    {
+      "name": "xdg-desktop-portal-gtk",
+      "source": "pacman",
+      "purpose": "Expose system appearance preferences to portal applications",
+    },
+    {
+      "name": "libsecret",
+      "source": "pacman",
+      "purpose": "Store application credentials in the desktop keyring",
+    },
+    {
+      "name": "gnome-keyring",
+      "source": "pacman",
+      "purpose": "Desktop secret storage and login-keyring unlocking",
+    },
+    {
+      "name": "nss",
+      "source": "pacman",
+      "purpose": "Network security libraries for desktop applications",
+    },
+    {
+      "name": "libnotify",
+      "source": "pacman",
+      "purpose": "Desktop notifications",
+    },
+    {
+      "name": "libxss",
+      "source": "pacman",
+      "purpose": "X11 idle-state support for desktop applications",
+    },
+    {
+      "name": "libxtst",
+      "source": "pacman",
+      "purpose": "X11 input support for desktop applications",
+    },
+    {
+      "name": "base-devel",
+      "source": "pacman",
+      "purpose": "Build packages from source",
+    },
+  ],
+  // After apps/: shared desktop helpers and standalone utilities. Web apps run last.
+  "later": [
+    {
+      "name": "xdg-utils",
+      "source": "pacman",
+      "purpose": "Open files and URLs with desktop applications",
+    },
+    {
+      "name": "xdg-terminal-exec",
+      "source": "pacman",
+      "purpose": "Run commands in the preferred terminal",
+    },
+    {
+      "name": "zip",
+      "source": "pacman",
+      "purpose": "Create ZIP archives from the terminal",
+    },
+    {
+      "name": "7zip",
+      "source": "pacman",
+      "purpose": "Create 7z archives and extract additional formats, including RAR",
+    },
+    {
+      "name": "zed",
+      "source": "pacman",
+      "purpose": "Code editor",
+    },
+    {
+      "name": "github-cli",
+      "source": "pacman",
+      "purpose": "GitHub repository workflows",
+    },
+    {
+      "name": "neovim",
+      "source": "pacman",
+      "purpose": "Terminal text editor",
+    },
+    {
+      "name": "fuse2",
+      "source": "pacman",
+      "purpose": "Run AppImage applications",
+    },
+    {
+      "name": "fuse3",
+      "source": "pacman",
+      "purpose": "Run AppImages using the FUSE 3 runtime",
+    },
+    {
+      "name": "fzf",
+      "source": "pacman",
+      "purpose": "Search shell history, files, and directories interactively",
+    },
+    {
+      "name": "zoxide",
+      "source": "pacman",
+      "purpose": "Jump to frequently used directories with cd",
+    },
+    {
+      "name": "eza",
+      "source": "pacman",
+      "purpose": "List files with colors, icons, and Git status",
+    },
+    {
+      "name": "fd",
+      "source": "pacman",
+      "purpose": "Find files and directories for fuzzy selection",
+    },
+  ],
+}

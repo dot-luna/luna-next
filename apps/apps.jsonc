@@ -2,6 +2,7 @@
   // App manifests using the new architecture, in configuration order.
   "packages": [
     "git/app.jsonc",
+    "yay/app.jsonc",
 
     // Export Hyprland's empty include collector before apps register their fragments.
     "hypr/app.jsonc",

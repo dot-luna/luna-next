@@ -1,0 +1,11 @@
+{
+  "name": "yay",
+  "source": "git",
+  "version": null,
+  "url": "https://aur.archlinux.org/yay.git",
+  "purpose": "Install and update AUR packages",
+
+  "hooks": {
+    "build": ["scripts/install.sh"],
+  },
+}

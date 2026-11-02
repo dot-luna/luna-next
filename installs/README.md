@@ -1,85 +1,40 @@
 # Package lists
 
-The [installer](../install.sh) prepares Git, the managed checkout, and the
-CLI. This folder supplies the package recipes consumed by `luna setup`.
+Package recipes for Luna's installer, written in JSONC (JSON with comments and
+trailing commas). Package installation from these lists is not implemented in
+the current CLI yet.
 
-[packages.conf](packages.conf) groups packages into arrays of objects:
+Packages installed by [install.sh](../install.sh) may also appear in these lists.
+Packages declared in [apps/](../apps/README.md), as an app's `name` or in its `deps`,
+must never appear in these lists.
+Keep general tools, editors, and shared runtimes here. Only packages directly
+tied to an app, such as its plugins, belong in that app's `deps`.
+Dependencies for inactive local desktop apps are omitted; add them when enabling
+those apps.
 
-```hocon
-core = [
-    {
-        name: "git",
-        source: "pacman",
-        version: null,
-        url: null,
-        purpose: "Version control"
-    }
-]
+| File                                           | Contents                                               |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| [packages.jsonc](packages.jsonc)               | Pacman and AUR packages grouped by installation stage. |
+| [packages.mise.jsonc](packages.mise.jsonc)     | Array of development tools and runtime versions.       |
+| [packages.webapp.jsonc](packages.webapp.jsonc) | Array of desktop web apps with only `name` and `url`.  |
+
+Add system packages to the appropriate group in `packages.jsonc`:
+
+- `before_cli`: before building and installing the CLI.
+- `after_cli`: after the CLI is ready, before installing apps.
+- `later`: after apps are installed. Web apps run last.
+
+```jsonc
+{
+  "before_cli": [{ "name": "mise", "source": "pacman", "purpose": "Manage runtimes" }],
+  "after_cli": [{ "name": "unzip", "source": "pacman", "purpose": "Extract browser extensions" }],
+  "later": [{ "name": "zed", "source": "pacman", "purpose": "Code editor" }],
+}
 ```
 
-| Field                     | Meaning                                                                                                                                                                      |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                    | Package, app, or tool name.                                                                                                                                                  |
-| `source`                  | `pacman` for official Arch packages, `aur` for AUR packages, `git` for a Git repository, `local` for a local app/package, or `mise` for a development tool.                  |
-| `version`                 | Optional mise version or Git branch/tag. Git `latest` selects the highest eligible tag using Git's version sorting. Omitted/`null` uses Git's default branch on first clone. |
-| `git_include_prereleases` | Include SemVer prerelease tags with `latest`; defaults to `false`.                                                                                                           |
-| `git_release_tag_pattern` | Optional tag-name glob for `latest`, e.g. `v*` or `release/*`. Omit to consider all tags.                                                                                    |
-| `url`                     | Repository URL for `git`, a source path for `local`, or `null` for other sources.                                                                                            |
-| `purpose`                 | A short explanation of why the package is included.                                                                                                                          |
-| `destination`             | Optional local link path relative to `~/.local`; defaults to `src/<name>`.                                                                                                   |
-| `command`                 | Argument arrays run in the Git checkout or local source directory. Empty for a local package needing only a link.                                                            |
+Each package recipe has a `name` and `source` (`pacman`, `aur`, or `mise`).
+Use `purpose` for a short description and `version` to select a mise version.
 
-`packages.git.conf`, `packages.mise.conf`, and `packages.local.conf` contain bare
-arrays. Local `url` paths resolve from this checkout. Keep build/install steps in
-the project and call its task, for example `[["mise", "run", "install:hocon-qml"]]`.
-
-[packages.webapp.conf](packages.webapp.conf) is a separate array of desktop web
-apps, currently YouTube. Entries use `name` and `url`, with optional `icon_url`
-to override website icon discovery:
-
-```hocon
-[{ name: "YouTube", url: "https://www.youtube.com/" }]
-```
-
-`luna setup` validates this list before installing packages. When it is nonempty,
-setup creates a missing Luna Chromium profile before configuring apps, then
-installs the web apps after enabling keyring. It never opens a browser. Entries
-share the default Luna profile; reruns replace their desktop entries and icons.
-An empty array disables this stage. Missing or invalid lists stop setup.
-
-Git/local recipes receive the catalog checkout as `$LUNA_ROOT`. Git recipes
-also receive the selected ref as `$LUNA_PACKAGE_VERSION` (`v1.2.3`, not `latest`).
-Tag filters apply only to `latest`; explicit branches/tags are unchanged.
-Without a pattern, an untagged remote uses its default branch. No matching or
-eligible tags returns an error. Prerelease detection recognizes SemVer tags with
-an optional `v`; other tag names remain eligible.
-
-T3 Code's Git metadata and build hooks now live in its
-[app manifest](../apps/t3code/app.jsonc), replacing its entry in this recipe list.
-The hooks build the x86_64 Linux app in a disposable workspace and install a
-launcher into `~/.local/bin/t3code`. Generic installer hook execution is pending;
-see [T3 Code](../apps/t3code/README.md).
-
-The Chromium provider is the prebuilt AUR `ungoogled-chromium-bin` package:
-
-```sh
-luna install ungoogled-chromium-bin
-luna chromium setup
-```
-
-Its installation runs in a separate package-manager transaction that accepts
-conflicting Chromium/chromedriver replacement. Package-manager dependency checks
-remain active; browser profile files are retained. Package-only installation
-leaves a missing Luna profile for the explicit setup step; full `luna setup`
-creates it when web apps are declared. See [Chromium roles](../apps/chromium/README.md).
-
-Zen uses the prebuilt AUR `zen-browser-bin` package:
-
-```sh
-luna install zen-browser-bin
-```
-
-Zen's app manifest declares an `after_configure` Bun hook for Luna's appearance,
-uBlock Origin, and Bitwarden. Until installer hook execution is implemented, run
-the hook directly. Close Zen first; a missing default profile is skipped.
-No Zen profile is created by Luna. See [Zen configuration](../apps/zen/README.md).
+See [example.jsonc](example.jsonc) for the package fields and source examples.
+Its entries illustrate recipes; it is not an additional install list. App
+configuration exports and lifecycle hooks belong in [apps/](../apps/README.md).
