@@ -114,10 +114,12 @@ luna defaults reset 'image/*' terminal
 
 ## Menu
 
-`luna menu` opens the menu; `show`, `hide`, `toggle`, `start`, `stop`, and `status`
-control it. Show/toggle start a missing instance; start keeps it hidden.
+`luna menu` opens the menu; `show`, `system`, `hide`, `toggle`, `start`, `stop`, and
+`status` control it. Show/system/toggle start a missing instance; start keeps it hidden.
+`system` opens the session actions directly (Super+Esc).
 Install with `luna install luna-menu`. Use `--install-dir PATH` on menu commands to
-test source QML. Only Apps is implemented; other main sections are placeholders.
+test source QML. Apps, About, session actions, terminal commands, URLs, and browser
+search are available; other main sections remain placeholders.
 See [menu controls and appearance](../luna-menu/DOCS.md).
 
 ## Apps and web apps

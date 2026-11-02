@@ -12,7 +12,7 @@
     },
     "packages/luna-api": {
       "name": "@luna/api",
-      "version": "0.0.1-alpha",
+      "version": "0.0.1",
       "dependencies": {
         "pathe": "^2.0.3",
         "zod": "^4.6.7",
@@ -20,7 +20,7 @@
     },
     "src/luna-cli": {
       "name": "@luna/cli",
-      "version": "0.0.1-alpha",
+      "version": "0.0.1",
       "bin": {
         "luna": "./src/index.ts",
       },

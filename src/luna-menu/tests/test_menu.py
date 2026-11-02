@@ -101,14 +101,31 @@ ShellRoot {
         for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
             self.assertNotIn(error, output)
         launches = [json.loads(line) for line in (self.root / "launched.jsonl").read_text().splitlines()]
-        self.assertEqual(len(launches), 2)
+        self.assertEqual(len(launches), 6)
         native = next(entry for entry in launches if entry["kind"] == "record-app")
-        terminal = next(entry for entry in launches if entry["kind"] == "xdg-terminal-exec")
+        terminal = next(entry for entry in launches if entry["kind"] == "xdg-terminal-exec" and entry["args"][0] == "--")
+        about = next(entry for entry in launches if entry["args"][0] == "--app-id=luna-next-fastfetch")
+        self.assertEqual(about["args"], ["--app-id=luna-next-fastfetch", "--title=Fastfetch", "--", "bash", "-c",
+                                         'fastfetch; status=$?; read -r -s -n 1; exit "$status"'])
         self.assertEqual(native["args"], ["literal argument; $HOME"])
         self.assertEqual(terminal["args"], ["--", "record-app", "literal argument; $HOME"])
+        urls = [entry["args"] for entry in launches if entry["kind"] == "xdg-open"]
+        self.assertCountEqual(urls, [["https://example.com/a?x=1&y=2"],
+            ["https://duckduckgo.com/?q=caf%C3%A9%20%26%20cats%20%23%3F%20%24(touch%20UNEXPECTED)"]])
+        command = next(entry for entry in launches if entry["kind"] == "xdg-terminal-exec" and "luna-menu" in entry["args"])
+        self.assertEqual(command["args"], ["--", "bash", "-c",
+            '"$1" -lc "$2"; status=$?; read -r -s -n 1; exit "$status"',
+            "luna-menu", self.env.get("SHELL") or "/bin/sh", 'printf "%s" "a b" | cat'])
         self.assertEqual(native["cwd"], str(self.root / "working directory"))
         self.assertEqual(terminal["cwd"], native["cwd"])
         self.assertFalse((self.root / "UNEXPECTED").exists())
+        sessions = [json.loads(line) for line in (self.root / "session.jsonl").read_text().splitlines()]
+        self.assertCountEqual(sessions, [
+            {"command": "systemctl", "args": ["reboot"]},
+            {"command": "systemctl", "args": ["poweroff"]},
+            {"command": "systemctl", "args": ["poweroff"]},  # The explicitly denied request.
+            {"command": "hyprctl", "args": ["eval", "hl.dispatch(hl.dsp.exit())"]},
+        ])
 
     def test_real_ipc_show_resets_root_and_hide_toggle_control_visibility(self):
         shell = self.offscreen_shell()
@@ -121,6 +138,7 @@ ShellRoot {
         function state(): string {
             return JSON.stringify({visible: shell.menuWindow.visible,
                 apps: shell.menuWindow.content.appsView,
+                section: shell.menuWindow.content.section,
                 query: shell.menuWindow.content.query});
         }
         function enterApps(): void { shell.menuWindow.content.activate(0); }
@@ -155,13 +173,15 @@ ShellRoot {
                     if process.poll() is not None or time.monotonic() >= deadline:
                         self.fail("Menu did not become ready:\n" + log_path.read_text())
                     time.sleep(0.025)
-                self.assertEqual(state(), {"visible": False, "apps": False, "query": ""})
+                self.assertEqual(state(), {"visible": False, "apps": False, "section": "root", "query": ""})
                 self.assertEqual(call("menu", "show"), "")
                 self.assertTrue(state()["visible"])
                 call("test", "enterApps")
                 self.assertTrue(state()["apps"])
                 call("menu", "show")
-                self.assertEqual(state(), {"visible": True, "apps": False, "query": ""})
+                self.assertEqual(state(), {"visible": True, "apps": False, "section": "root", "query": ""})
+                call("menu", "system")
+                self.assertEqual(state(), {"visible": True, "apps": False, "section": "system", "query": ""})
                 call("menu", "hide")
                 self.assertFalse(state()["visible"])
                 call("menu", "toggle")

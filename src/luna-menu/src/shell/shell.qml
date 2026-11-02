@@ -36,12 +36,12 @@ ShellRoot {
         return value;
     }
 
-    function show() {
+    function show(section) {
         if (!menuWindow)
             return;
         const focused = Hyprland.focusedMonitor;
         menuScreen = Quickshell.screens.find(screen => focused && screen.name === focused.name) || Quickshell.screens[0] || null;
-        menuWindow.show();
+        menuWindow.show(section);
     }
 
     Loader {
@@ -64,6 +64,7 @@ ShellRoot {
         target: "menu"
         function status(): string { return shell.menuWindow ? "running" : "unavailable"; }
         function show(): void { shell.show(); }
+        function system(): void { shell.show("system"); }
         function hide(): void { if (shell.menuWindow) shell.menuWindow.hide(); }
         function toggle(): void {
             if (shell.menuWindow && shell.menuWindow.opened)

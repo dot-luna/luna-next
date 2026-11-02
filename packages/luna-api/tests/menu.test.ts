@@ -35,7 +35,7 @@ if (args.includes('--daemonize')) {
   if (marker < 0 || args[marker + 1] !== 'menu' || !state.running) process.exit(1);
   const method=args[marker + 2];
   if (method === 'status') console.log('running');
-  else if (method === 'show') state.visible=true;
+  else if (method === 'show' || method === 'system') { state.visible=true; state.section=method === 'system' ? 'system' : 'root'; }
   else if (method === 'hide') state.visible=false;
   else if (method === 'toggle') state.visible=!state.visible;
   else process.exit(2);
@@ -105,14 +105,36 @@ test("source checkout selection is explicit and renderer failure is returned wit
   });
 });
 
-test("menu CLI defaults to show and keeps JSON responses unchanged", async () => {
+test.each([[], ["system"]])(
+  "menu CLI opens the requested view %j and keeps JSON responses unchanged",
+  (...args: string[]) => {
+    const f = fixture();
+    const cli = new URL("../../../src/luna-cli/src/index.ts", import.meta.url).pathname;
+    const result = Bun.spawnSync([process.execPath, cli, "--json", "menu", ...args], {
+      env: f.options.env,
+    });
+    expect(result.exitCode, result.stderr.toString()).toBe(0);
+    expect(JSON.parse(result.stdout.toString())).toMatchObject({
+      succes: true,
+      data: { running: true },
+    });
+    expect(f.state()).toMatchObject({
+      visible: true,
+      section: args[0] === "system" ? "system" : "root",
+    });
+  },
+);
+
+test("system starts a missing menu and opens its submenu in the existing instance", async () => {
   const f = fixture();
-  const cli = new URL("../../../src/luna-cli/src/index.ts", import.meta.url).pathname;
-  const result = Bun.spawnSync([process.execPath, cli, "--json", "menu"], { env: f.options.env });
-  expect(result.exitCode, result.stderr.toString()).toBe(0);
-  expect(JSON.parse(result.stdout.toString())).toMatchObject({
+  expect(await Luna.menu.system(f.options)).toMatchObject({
     succes: true,
     data: { running: true },
   });
-  expect(f.state().visible).toBe(true);
+  expect(f.state()).toMatchObject({ visible: true, section: "system" });
+  await Luna.menu.show(f.options);
+  expect(f.state().section).toBe("root");
+  await Luna.menu.system(f.options);
+  expect(f.state()).toMatchObject({ visible: true, section: "system" });
+  expect(f.commands().filter((command) => command.args.includes("--daemonize"))).toHaveLength(1);
 });

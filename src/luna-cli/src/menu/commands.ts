@@ -23,6 +23,6 @@ export function addMenuCommands(
     );
   };
   group.action(() => run("show"));
-  for (const action of ["show", "hide", "toggle", "start", "stop", "status"] as const)
+  for (const action of ["show", "system", "hide", "toggle", "start", "stop", "status"] as const)
     group.command(action).action(() => run(action));
 }
