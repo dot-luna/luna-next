@@ -172,5 +172,155 @@
       "source": "pacman",
       "purpose": "Find files and directories for fuzzy selection",
     },
+
+    // Desktop apps; their planned default roles are recorded in defaults.jsonc.
+    {
+      "name": "evince",
+      "source": "pacman",
+      "purpose": "View PDF documents",
+    },
+    {
+      "name": "gnome-disk-utility",
+      "source": "pacman",
+      "purpose": "Manage disks, partitions, and drive health",
+    },
+    {
+      "name": "hyprpicker",
+      "source": "pacman",
+      "purpose": "Pick colors from the screen",
+    },
+    {
+      "name": "imv",
+      "source": "pacman",
+      "purpose": "View supported image formats",
+    },
+    {
+      "name": "mpv",
+      "source": "pacman",
+      "purpose": "Play videos and other supported media",
+    },
+    {
+      "name": "nautilus",
+      "source": "pacman",
+      "purpose": "Browse and manage files",
+    },
+    {
+      "name": "sushi",
+      "source": "pacman",
+      "purpose": "Preview selected files in Nautilus",
+    },
+
+    // Terminal tools and media helpers.
+    {
+      "name": "tmux",
+      "source": "pacman",
+      "purpose": "Manage persistent terminal sessions and panes",
+    },
+    {
+      "name": "man-db",
+      "source": "pacman",
+      "purpose": "Read system and command manual pages",
+    },
+    {
+      "name": "tldr",
+      "source": "pacman",
+      "purpose": "Read concise command examples",
+    },
+    {
+      "name": "lazygit",
+      "source": "pacman",
+      "purpose": "Manage Git repositories in a terminal interface",
+    },
+    {
+      "name": "jq",
+      "source": "pacman",
+      "purpose": "Query and transform JSON from the terminal",
+    },
+    {
+      "name": "ffmpeg",
+      "source": "pacman",
+      "purpose": "Convert and process audio and video",
+    },
+    {
+      "name": "qrencode",
+      "source": "pacman",
+      "purpose": "Generate QR codes",
+    },
+
+    // Package installation only; Docker service and app integration follow separately.
+    {
+      "name": "docker",
+      "source": "pacman",
+      "purpose": "Run containers",
+    },
+    {
+      "name": "docker-compose",
+      "source": "pacman",
+      "purpose": "Manage multi-container applications",
+    },
+    {
+      "name": "docker-buildx",
+      "source": "pacman",
+      "purpose": "Build container images with BuildKit",
+    },
+    {
+      "name": "lazydocker",
+      "source": "pacman",
+      "purpose": "Manage Docker containers in a terminal interface",
+    },
+
+    // System tools; service setup and snapshot policies remain separate work.
+    {
+      "name": "snapper",
+      "source": "pacman",
+      "purpose": "Manage filesystem snapshots and rollback",
+    },
+    {
+      "name": "ufw",
+      "source": "pacman",
+      "purpose": "Manage firewall rules",
+    },
+    {
+      "name": "bluez",
+      "source": "pacman",
+      "purpose": "Provide the Bluetooth service used by bluetoothctl",
+    },
+    {
+      "name": "bluez-utils",
+      "source": "pacman",
+      "purpose": "Manage Bluetooth devices with bluetoothctl",
+    },
+    {
+      "name": "brightnessctl",
+      "source": "pacman",
+      "purpose": "Control hardware display and keyboard backlights",
+    },
+    {
+      "name": "wireplumber",
+      "source": "pacman",
+      "purpose": "Provide wpctl for PipeWire audio device and volume controls",
+    },
+    {
+      "name": "wl-clipboard",
+      "source": "pacman",
+      "purpose": "Copy and paste Wayland clipboard data with wl-copy and wl-paste",
+    },
+
+    // Native messaging and recording apps.
+    {
+      "name": "discord",
+      "source": "pacman",
+      "purpose": "Use Discord chat, voice, and video in the desktop app",
+    },
+    {
+      "name": "telegram-desktop",
+      "source": "pacman",
+      "purpose": "Use Telegram messaging in the desktop app",
+    },
+    {
+      "name": "obs-studio",
+      "source": "pacman",
+      "purpose": "Record and stream video with OBS Studio",
+    },
   ],
 }
