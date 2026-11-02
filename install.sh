@@ -21,17 +21,13 @@
 #
 # Bootstrap steps:
 #   1. Resolve paths and create missing checkout/binary directories.
-#   2. Upgrade Arch and install base-devel, ca-certificates, curl, git, mise, sudo.
-#   3. Build and install yay through makepkg if it is not already available.
-#   4. Install mise's global bun@latest and add it to this script's PATH.
-#   5. Clone the selected Git ref, or safely update an existing Luna checkout.
-#   6. Run bun install --frozen-lockfile at the checkout root, then
-#      bun run --cwd packages/luna-api build and
-#      bun run --cwd src/luna-cli build.
-#      Each package must provide a build script; the CLI build must produce
-#      target/luna-bun.
-#   7. Publish that binary as ~/.local/bin/luna with executable permissions.
-#   8. Wait five seconds, then hand the remaining setup to luna self install.
+#   2. Upgrade Arch and install only ca-certificates, git, and mise.
+#   3. Install mise's global bun@latest and add it to this script's PATH.
+#   4. Clone the selected Git ref, or safely update an existing Luna checkout.
+#   5. Run bun install --frozen-lockfile at the checkout root, then
+#      bun run --cwd src/luna-cli build to produce target/luna-bun.
+#   6. Publish that binary as ~/.local/bin/luna with executable permissions.
+#   7. Wait five seconds, then hand the remaining setup to luna self install.
 #
 # Recovery: create missing directories, resolve directory links and '..', reuse
 # empty checkout directories, and retry Git downloads and Bun installation up to
@@ -45,7 +41,7 @@
 # commits. Missing privileges and failed required installs/builds also stop the
 # script with diagnostics. Completed package installations are not rolled back.
 # The previous CLI executable stays in place until its replacement is built and
-# copied successfully. Temporary staging and yay build files are removed on exit;
+# copied successfully. Temporary logs and staged files are removed on exit;
 # the source checkout and its CLI build artifacts remain for later operations.
 #
 # After building, wait five seconds before running luna self install with the
@@ -182,24 +178,13 @@ retry() {
 }
 
 # 3. Refresh pacman's configured repositories with a full upgrade, then install
-# only bootstrap tools. base-devel supplies makepkg and the compiler used for yay.
+# only CLI bootstrap tools. App packages and native build tools belong to CLI setup.
 # Authenticate before hiding package output; sudo can prompt through the terminal.
 sudo -v
 printf 'Updating system packages...\n'
-run sudo pacman -Syu --needed --noconfirm -- base-devel ca-certificates curl git mise sudo
+run sudo pacman -Syu --needed --noconfirm -- ca-certificates git mise
 
-# 4. Prepare the AUR source by building yay as the user, never as root.
-# Existing pacman mirrors and Git identity stay under the user's control.
-if ! command -v yay >/dev/null 2>&1; then
-    printf 'Installing yay...\n'
-    run retry git clone --depth 1 -- https://aur.archlinux.org/yay.git "$temporary/yay"
-    (
-        cd -- "$temporary/yay"
-        run makepkg --syncdeps --install --needed --noconfirm
-    )
-fi
-
-# 5. Use mise's global Bun tool so both the build and later CLI hooks can use it.
+# 4. Use mise's global Bun tool so both the build and later CLI hooks can use it.
 # Resolve outside the checkout so project mise tasks do not require a trust prompt.
 printf 'Installing Bun...\n'
 run retry mise --cd "$HOME" use --global --yes bun@latest
@@ -207,7 +192,7 @@ bun_path=$(mise --cd "$HOME" which bun)
 # Make this Bun installation available immediately, without editing shell startup files.
 export PATH="${bun_path%/*}:$bin_dir:$PATH"
 
-# 6. Resolve latest from Git's advertised default branch, then keep the selected
+# 5. Resolve latest from Git's advertised default branch, then keep the selected
 # branch or tag in a persistent checkout. latest means the default branch's current
 # commit, rather than a release tag. Existing branches only fast-forward.
 if [[ "$repo_ref" == latest ]]; then
@@ -298,15 +283,15 @@ fi
 # Hooks and the CLI use the resolved checkout; user-supplied flags stay unchanged.
 export LUNA_ROOT="$repo_root"
 
-# 7. Build the API and CLI using the committed lockfile. Stage beside the destination
-# so a failed install, build, or copy keeps the old CLI.
+# 6. Build the CLI using the committed lockfile. Bun resolves the API's source
+# directly, without a separate API build. Stage beside the destination so a failed
+# dependency install, build, or copy keeps the old CLI.
 printf 'Building Luna CLI...\n'
 # Keep directory changes inside a subshell so relative flags forwarded later still
 # refer to the directory from which the user started the installer.
 (
     cd -- "$repo_root"
     run bun install --frozen-lockfile
-    run bun run --cwd packages/luna-api build
     run bun run --cwd src/luna-cli build
 )
 staged_cli=$(mktemp "$bin_dir/.luna.XXXXXX")
@@ -315,7 +300,7 @@ run install -m755 -- "$repo_root/target/luna-bun" "$staged_cli"
 mv -fT -- "$staged_cli" "$bin_dir/luna"
 staged_cli=
 
-# 8. Give the user five seconds to stop before the CLI configures the rest.
+# 7. Give the user five seconds to stop before the CLI configures the rest.
 # Signal handlers print a shell-safe recovery command with the same caller flags.
 cancel_handoff() {
     printf '\nSetup cancelled. Other settings are not configured. To finish, run:\n'
