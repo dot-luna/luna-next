@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ApiError } from "../../lib/response.ts";
 import type { InstallContext } from "./command.ts";
 
-const recipe = z
+export const packageRecipeSchema = z
   .object({
     name: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9@._+/-]*$/u),
     source: z.enum(["pacman", "aur", "mise"]),
@@ -18,13 +18,13 @@ const recipe = z
 
 const stages = z
   .object({
-    before_cli: z.array(recipe),
-    after_cli: z.array(recipe),
-    later: z.array(recipe),
+    before_cli: z.array(packageRecipeSchema),
+    after_cli: z.array(packageRecipeSchema),
+    later: z.array(packageRecipeSchema),
   })
   .strict();
 
-export type PackageRecipe = z.infer<typeof recipe>;
+export type PackageRecipe = z.infer<typeof packageRecipeSchema>;
 
 async function readJsonc<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   const text = await Bun.file(path).text();
@@ -39,11 +39,11 @@ async function readJsonc<T>(path: string, schema: z.ZodType<T>): Promise<T> {
 }
 
 /** Only active package stages are executed; AUR packages require an existing yay. */
-export async function readPackages(context: InstallContext) {
+export async function readPackages(context: InstallContext, checkTools = true) {
   const packages = await readJsonc(join(context.repository, "installs/packages.jsonc"), stages);
   const mise = await readJsonc(
     join(context.repository, "installs/packages.mise.jsonc"),
-    z.array(recipe.extend({ source: z.literal("mise") })),
+    z.array(packageRecipeSchema.extend({ source: z.literal("mise") })),
   );
   const names = new Set<string>();
   for (const item of [...packages.before_cli, ...packages.after_cli, ...packages.later, ...mise]) {
@@ -52,12 +52,13 @@ export async function readPackages(context: InstallContext) {
     names.add(item.name);
   }
   if (
+    checkTools &&
     [...packages.before_cli, ...packages.after_cli].some((item) => item.source === "aur") &&
     !Bun.which("yay", { PATH: context.env.PATH })
   ) {
     throw new ApiError(
       "INVALID_ENVIRONMENT",
-      "An early AUR package requires yay; app installation is not implemented yet",
+      "An early AUR package requires an already installed yay",
     );
   }
   return { ...packages, mise };

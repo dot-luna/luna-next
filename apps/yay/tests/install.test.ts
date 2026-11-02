@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 const app = new URL("../", import.meta.url).pathname;
 
-test("yay installs from its selected clone and propagates makepkg failures", () => {
+test("yay installs from its build workspace and propagates makepkg failures", () => {
   const root = mkdtempSync(join(tmpdir(), "luna-yay-test-"));
   try {
     const cloneRoot = join(root, "git clones");
@@ -24,7 +24,7 @@ test("yay installs from its selected clone and propagates makepkg failures", () 
         cwd: app,
         env: {
           PATH: `${bin}:/usr/bin:/bin`,
-          LUNA_GIT_APP_CLONE_DIR: cloneRoot,
+          LUNA_GIT_APP_BUILD_DIR: cloneRoot,
           LUNA_TEST_EXIT_CODE: String(exitCode),
         },
         stdout: "pipe",
@@ -46,7 +46,7 @@ test("yay installs from its selected clone and propagates makepkg failures", () 
   }
 });
 
-test("yay refuses to build without the selected clone directory", () => {
+test("yay refuses to build without the build workspace directory", () => {
   const result = Bun.spawnSync([join(app, "scripts/install.sh")], {
     cwd: app,
     env: { PATH: "/usr/bin:/bin" },
@@ -54,5 +54,5 @@ test("yay refuses to build without the selected clone directory", () => {
     stderr: "pipe",
   });
   expect(result.exitCode).not.toBe(0);
-  expect(result.stderr.toString()).toContain("LUNA_GIT_APP_CLONE_DIR must be set");
+  expect(result.stderr.toString()).toContain("LUNA_GIT_APP_BUILD_DIR must be set");
 });

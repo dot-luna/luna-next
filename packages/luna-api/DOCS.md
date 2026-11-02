@@ -1,7 +1,7 @@
 # Luna API
 
 `Luna.info(options?)` reads the checkout's root `package.json` on every call.
-`Luna.self.install(options?)` prepares shared prerequisites and Git configuration.
+`Luna.self.install(options?)` installs prerequisites, Git configuration, themes, apps, later packages, and web apps.
 `Luna.self.update(options?)` updates the checkout and rebuilds/publishes only the CLI.
 
 All operations return `{ succes: true, data }` or
@@ -25,7 +25,8 @@ and commits, use fast-forward pulls, and do not replace local tags.
 Installation additionally accepts `fromBootstrap` to skip the checkout update,
 system upgrade, and CLI build already performed by `install.sh`; package stages
 still run. Order: validate, update checkout, `before_cli` packages, build/publish
-CLI, Git configuration, `after_cli` packages/mise tools, then bundled themes. Direct installation
+CLI, Git configuration, `after_cli` packages/mise tools, bundled themes and their
+packages, apps in catalog order, later packages, then web apps. Direct installation
 upgrades system packages before installing dependencies.
 
 Use `git: { name?, email? }` to override global identity values. Otherwise existing
@@ -34,9 +35,10 @@ overrides. `requestGitIdentity(current)` may supply missing values;
 the API itself never prompts. Git defaults use `master` and `nvim`, with Neovim
 in the before-CLI dependencies. Unrelated global Git settings are retained.
 
-Apps, later packages, and web apps are empty installation stages.
-`data.pending` lists them; `data.cliRebuilt` reports whether CLI publication ran.
-An early AUR recipe requires an already installed yay. Update requires mise and
+Success returns `completed: true`, `installedApps`, `installedWebapps`, and an empty
+`pending` array; `cliRebuilt` reports whether CLI publication ran. No completion is
+returned after a failed stage. An early AUR recipe requires an already installed
+Yay; theme and app stages can install the catalog’s Yay provider. Update requires mise and
 changes only the checkout and CLI. Both publish to `$HOME/.local/bin/luna`.
 
 Completed steps remain after failure. Build/copy failures keep the previous CLI.
@@ -69,3 +71,39 @@ See [theme fields and storage](../../themes/DOCS.md). Selection changes apply
 GSettings but do not restart apps. Source JSONC stays intact; selection writes
 normalize its owned document. Mutations can return `CONFLICT` for locks, external
 edits, existing copies, or wallpaper filename conflicts.
+
+## App API
+
+`Luna.apps.install(names?, options?)` installs missing apps and configures them.
+`Luna.apps.configure(names?, options?)` runs configuration only. Omit names to
+select all; names match directory IDs, package names, or aliases. Both return
+selected IDs in `apps/apps.jsonc` order, irrespective of argument order.
+Options: `repository`, `env`, `onProgress`, and install-only `force` to rerun
+installation/build hooks even for installed apps. Run installation as a normal user.
+
+See [app manifests and lifecycle](../../apps/DOCS.md) for hooks, exports, settings,
+Git refs, build cleanup, and retry behavior. Invalid catalogs fail before package
+or hook changes. Failed operations retain completed changes for a later retry.
+
+## Web-app API
+
+`Luna.webapp.install(name, url, options?)`, `list(options?)`,
+`uninstall(name, options?)`, and `launch(name, options?)` manage desktop launchers.
+Names are exact, nonblank display names (at most 100 UTF-8 bytes); URLs must use
+HTTP(S), without credentials. Installing the same name updates its URL.
+
+Chromium and the configured `Luna` profile must exist before install/launch
+(`luna install chromium`). Launch uses `--app=URL --profile-directory=Luna`,
+without browser tabs/address bar; window decorations depend on the compositor.
+Installation does not open Chromium or change its profile. Uninstall removes
+only the launcher and metadata; browser data and unrelated apps remain.
+
+Options accept `env`, `dataDir`, `applicationsDir`, `launcher`, `profileRoot`, and
+`chromium`. Defaults are `$LUNA_DATA_HOME_DIR/webapps` (otherwise
+`$XDG_DATA_HOME/luna/webapps`), `$XDG_DATA_HOME/applications`,
+`$HOME/.local/bin/luna`, and `$CHROME_USER_DATA_DIR` (otherwise
+`$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium`). XDG roots
+fall back under HOME. Desktop entries invoke the installed Luna executable and
+use a generic Chromium icon. Browser profile and export paths must not overlap;
+linked export paths are rejected. Per-app locks serialize writes. A late I/O
+failure can leave metadata without its launcher; reinstall repairs it.

@@ -40,6 +40,17 @@ if (name === "gsettings") {
 } else if (name === "sudo" && args[0] !== "-v") {
   const child = Bun.spawnSync(args, { env, stdin: "ignore", stdout: "inherit", stderr: "inherit" });
   process.exit(child.exitCode);
+} else if ((name === "pacman" || name === "yay") && env.SELF_INSTALLED_JSON) {
+  const path = env.SELF_INSTALLED_JSON;
+  const installed: string[] = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : [];
+  const packages = args.slice(args.indexOf("--") + 1);
+  if (args[0] === "-Qq") process.exit(installed.includes(args.at(-1)!) ? 0 : 1);
+  if (args[0] === "-S")
+    writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
+  process.exit(0);
+} else if (name === "mise" && args.includes("ls")) {
+  console.log("[]");
+  process.exit(0);
 } else if (name === "mise" && args.includes("which")) {
   console.log(join(env.SELF_BIN!, "bun"));
   process.exit(0);

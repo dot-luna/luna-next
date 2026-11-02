@@ -54,7 +54,10 @@ userTests("CLI self commands", () => {
         repository: value.repository,
         executable: value.executable,
         cliRebuilt: false,
-        pending: ["apps", "later", "webapps"],
+        completed: true,
+        installedApps: [],
+        installedWebapps: [],
+        pending: [],
       },
     });
     expect(value.git(value.repository, ["config", "--global", "user.name"])).toBe("CLI User");
@@ -71,7 +74,7 @@ userTests("CLI self commands", () => {
     expect(value.commands().some((item) => item.args.includes("gcc"))).toBe(false);
   });
 
-  test("human output reports partial setup and writes progress to stderr", async () => {
+  test("human output reports completed setup and writes progress to stderr", async () => {
     const result = await cli(value, [
       "self",
       "install",
@@ -82,7 +85,7 @@ userTests("CLI self commands", () => {
       "human@example.test",
     ]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Pending: apps, later, webapps");
+    expect(result.stdout).toContain("Luna installation completed.");
     expect(result.stdout).not.toContain("routine command output");
     expect(result.stderr).toContain("Configuring Git");
   });

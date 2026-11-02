@@ -30,7 +30,10 @@ userTests("self operations", () => {
         repository: value.repository,
         executable: value.executable,
         cliRebuilt: true,
-        pending: ["apps", "later", "webapps"],
+        completed: true,
+        installedApps: [],
+        installedWebapps: [],
+        pending: [],
       },
     });
     const commands = value.commands();
@@ -42,7 +45,7 @@ userTests("self operations", () => {
     expect(index("bun", "build")).toBeLessThan(index("git", "user.name"));
     expect(index("git", "user.name")).toBeLessThan(index("pacman", "gcc"));
     expect(index("pacman", "gcc")).toBeLessThan(index("mise", "node@lts"));
-    expect(commands.some((item) => item.args.includes("zed"))).toBe(false);
+    expect(index("mise", "node@lts")).toBeLessThan(index("pacman", "zed"));
     expect(
       commands
         .filter((item) => item.name !== "gsettings")
@@ -55,7 +58,7 @@ userTests("self operations", () => {
     expect(value.git(value.repository, ["config", "--global", "core.editor"])).toBe("nvim");
     expect(readFileSync(value.executable, "utf8")).toContain("fixture CLI");
     expect(statSync(value.executable).mode & 0o777).toBe(0o755);
-    expect(progress).toHaveLength(7);
+    expect(progress).toHaveLength(10);
     expect(process.cwd()).toBe(oldCwd);
     expect(Bun.env.LUNA_ROOT).toBe(oldRoot);
   });
@@ -72,7 +75,7 @@ userTests("self operations", () => {
     ).toBe(false);
     expect(
       commands.filter((item) => item.name === "pacman").map((item) => item.args.at(-1)),
-    ).toEqual(["neovim", "gcc"]);
+    ).toEqual(["neovim", "gcc", "zed"]);
     expect(readFileSync(value.executable, "utf8")).toBe("previous CLI");
   });
 

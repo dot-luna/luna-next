@@ -1,7 +1,7 @@
 import { respond } from "../lib/response.ts";
 import { applyT3, hyprlandTheme } from "./adapters.ts";
 import { themeContext } from "./context.ts";
-import { locked } from "./files.ts";
+import { locked } from "../lib/files.ts";
 import {
   currentTheme,
   effectiveMode,
@@ -12,6 +12,7 @@ import {
 } from "./selection.ts";
 import { installTheme, listThemes, removeThemes } from "./store.ts";
 import type { ThemeInstallOptions, ThemeMode, ThemeOptions } from "./types.ts";
+import { installThemePackages } from "./packages.ts";
 import { lookup } from "./values.ts";
 
 /** One-shot theme operations. Mutations lock selection; reads resolve installed JSONC afresh. */
@@ -45,6 +46,7 @@ export const theme = {
       const c = themeContext(options);
       return locked(c, async () => {
         const value = await inspectTheme(c, name);
+        await installThemePackages(c, value.packages);
         await saveAppearance(c, value.colors.mode, name);
         return value;
       });

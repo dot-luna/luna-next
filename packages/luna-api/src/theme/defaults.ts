@@ -2,6 +2,8 @@ import source from "../../../../themes/bundled/tokyo-night/theme.jsonc" with { t
 import type { ResolvedTheme } from "./types.ts";
 
 export const defaults = Bun.JSONC.parse(source) as Omit<ResolvedTheme, "name">;
+// Only declared prerequisites install; partial themes inherit visual defaults alone.
+delete defaults.packages;
 export const lightColors = {
   accent: "#34548a",
   accent_foreground: "#ffffff",

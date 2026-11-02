@@ -20,6 +20,7 @@ export interface ThemeEntry {
 
 export interface ResolvedTheme {
   name: string;
+  packages?: { name: string; source: "pacman" | "aur" }[];
   colors: Record<string, string> & { mode: ThemeMode };
   fonts: { ui: string; mono: string };
   wallpaper: { sources: string[] };
