@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Bootstrap Luna on Arch Linux as a normal user with sudo access.
-# Usage: bash install.sh [--repo PATH]
 # The CLI owns desktop setup; this script only prepares its package sources and binary.
 set -euo pipefail
 
@@ -11,21 +10,34 @@ fail() {
 
 repo_url=https://github.com/dot-luna/luna-next.git
 repo_root="${HOME:?HOME must be set}/.local/src/luna-next"
+repo_ref=latest
 while (( $# > 0 )); do
     case "$1" in
-        --repo)
-            (( $# >= 2 )) && [[ -n "$2" && "$2" != -* ]] || fail '--repo requires a path.'
-            repo_root=$2
+        --install-dir|--ref)
+            (( $# >= 2 )) && [[ -n "$2" && "$2" != -* ]] || fail "$1 requires a value."
+            if [[ "$1" == --install-dir ]]; then repo_root=$2; else repo_ref=$2; fi
             shift 2
             ;;
-        --help|-h)
-            printf '%s\n' 'Usage: bash install.sh [--repo PATH]' \
-                'Default checkout: ~/.local/src/luna-next' \
-                'Installs the CLI, then runs luna self install after a five-second pause.'
-            exit 0
+        --install-dir=*)
+            repo_root=${1#*=}
+            [[ -n "$repo_root" ]] || fail '--install-dir requires a path.'
+            shift
             ;;
-        *) fail "Unknown argument: $1. Use --help for usage." ;;
+        --ref=*)
+            repo_ref=${1#*=}
+            [[ -n "$repo_ref" ]] || fail '--ref requires a branch, tag, or latest.'
+            shift
+            ;;
+        *) fail "Unknown argument: $1" ;;
     esac
+done
+
+# Reject malformed refs before system changes. Git validates the full ref once installed.
+[[ -n "$repo_ref" && "$repo_ref" != -* && "$repo_ref" != /* && "$repo_ref" != */ && "$repo_ref" != *. ]] || fail 'Invalid branch or tag name.'
+[[ "$repo_ref" != *[[:space:][:cntrl:]~^:?\*\[\\]* && "$repo_ref" != *..* && "$repo_ref" != *'@{'* && "$repo_ref" != *//* ]] || fail 'Invalid branch or tag name.'
+IFS=/ read -r -a ref_parts <<< "$repo_ref"
+for ref_part in "${ref_parts[@]}"; do
+    [[ "$ref_part" != .* && "$ref_part" != *.lock ]] || fail 'Invalid branch or tag name.'
 done
 
 # 1. Validate destinations before requesting privileges or changing the system.
@@ -105,8 +117,20 @@ run mise --cd "$HOME" use --global --yes bun@latest
 bun_path=$(mise --cd "$HOME" which bun)
 export PATH="${bun_path%/*}:$HOME/.local/bin:$PATH"
 
-# 6. Keep a persistent checkout for app sources. Reruns only fast-forward clean
-# Luna checkouts tracking origin; unrelated repositories and edits are rejected.
+# 6. Resolve latest from Git's advertised default branch, then keep the selected
+# branch or tag in a persistent checkout. Existing branches only fast-forward.
+if [[ "$repo_ref" == latest ]]; then
+    remote_head=$(git ls-remote --symref "$repo_url" HEAD)
+    repo_ref=
+    while read -r marker target _; do
+        if [[ "$marker" == ref: && "$target" == refs/heads/* ]]; then
+            repo_ref=${target#refs/heads/}
+            break
+        fi
+    done <<< "$remote_head"
+    [[ -n "$repo_ref" ]] || fail 'Cannot resolve the remote default branch.'
+fi
+git check-ref-format "refs/heads/$repo_ref" || fail 'Invalid branch or tag name.'
 if [[ -e "$repo_root" ]]; then
     [[ -d "$repo_root/.git" && ! -L "$repo_root/.git" ]] || fail "Expected a standalone Luna checkout: $repo_root"
     repo_root=$(cd -- "$repo_root" && pwd -P)
@@ -115,15 +139,50 @@ if [[ -e "$repo_root" ]]; then
     [[ "$origin" == "$repo_url" || "$origin" == "${repo_url%.git}" || "$origin" == git@github.com:dot-luna/luna-next.git ]] || fail 'The checkout has a different origin.'
     changes=$(git -C "$repo_root" status --porcelain --untracked-files=normal)
     [[ -z "$changes" ]] || fail 'The checkout has local changes; commit or move them before installing.'
-    upstream=$(git -C "$repo_root" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}') || fail 'The checkout must track an origin branch.'
-    [[ "$upstream" == origin/* ]] || fail 'The checkout must track an origin branch.'
+    detached_commit=
+    retained_refs=
+    if ! git -C "$repo_root" symbolic-ref --quiet HEAD >/dev/null; then
+        detached_commit=$(git -C "$repo_root" rev-parse --verify 'HEAD^{commit}')
+        # Inspect before a tag fetch can move the only ref retaining this commit.
+        retained_refs=$(git -C "$repo_root" for-each-ref --contains "$detached_commit" --format='%(refname)' refs/heads refs/remotes refs/tags)
+    fi
     printf 'Updating Luna...\n'
-    run git -C "$repo_root" fetch origin
-    run git -C "$repo_root" merge --ff-only --no-autostash "$upstream"
+    remote_refs=$(git -C "$repo_root" ls-remote --refs origin "refs/heads/$repo_ref" "refs/tags/$repo_ref")
+    ref_kind=
+    while read -r _ remote_ref; do
+        if [[ "$remote_ref" == "refs/heads/$repo_ref" ]]; then
+            ref_kind=branch
+            break
+        elif [[ "$remote_ref" == "refs/tags/$repo_ref" ]]; then
+            ref_kind=tag
+        fi
+    done <<< "$remote_refs"
+    [[ -n "$ref_kind" ]] || fail "No remote branch or tag named $repo_ref."
+    if [[ "$ref_kind" == branch ]]; then
+        selected_ref="refs/remotes/origin/$repo_ref"
+        run git -C "$repo_root" fetch --no-tags origin "+refs/heads/$repo_ref:$selected_ref"
+    else
+        selected_ref="refs/tags/$repo_ref"
+        run git -C "$repo_root" fetch --no-tags origin "+refs/tags/$repo_ref:$selected_ref"
+    fi
+    if [[ -n "$detached_commit" && -z "$retained_refs" ]]; then
+        selected_commit=$(git -C "$repo_root" rev-parse --verify "$selected_ref^{commit}")
+        [[ "$detached_commit" == "$selected_commit" ]] || fail 'Save the unreferenced detached commit on a branch before installing.'
+    fi
+    if [[ "$ref_kind" == branch ]]; then
+        if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$repo_ref"; then
+            run git -C "$repo_root" switch --no-overwrite-ignore --no-guess "$repo_ref"
+        else
+            run git -C "$repo_root" switch --no-overwrite-ignore --no-track -c "$repo_ref" "$selected_ref"
+        fi
+        run git -C "$repo_root" merge --ff-only --no-autostash --no-overwrite-ignore "$selected_ref"
+    else
+        run git -C "$repo_root" switch --no-overwrite-ignore --detach "$selected_ref"
+    fi
 else
     printf 'Cloning Luna...\n'
     mkdir -p -- "${repo_root%/*}"
-    run git clone -- "$repo_url" "$repo_root"
+    run git clone --branch "$repo_ref" --single-branch -- "$repo_url" "$repo_root"
     repo_root=$(cd -- "$repo_root" && pwd -P)
 fi
 export LUNA_NEXT_ROOT="$repo_root"

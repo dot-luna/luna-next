@@ -37,18 +37,40 @@ if name == "sudo" and args != ["-v"]:
 elif name == "git":
     command = args[2:] if args[0] == "-C" else args
     state = json.loads(os.environ.get("BOOTSTRAP_GIT", "{}"))
+    if command[0] == os.environ.get("BOOTSTRAP_GIT_FAIL"):
+        print("simulated git failure", file=sys.stderr)
+        sys.exit(17)
     if command[0] == "clone":
         root = Path(args[-1])
         (root / ".git").mkdir(parents=True)
         if "yay.git" not in args[-2]:
             (root / "src/ln-cli").mkdir(parents=True)
     elif command[0] == "rev-parse":
-        print(state.get("upstream", "origin/master") if "@{upstream}" in command
-              else state.get("root", args[1]))
+        if "--verify" in command:
+            print(state.get("head" if command[-1] == "HEAD^{commit}" else "selected", "a" * 40))
+        else:
+            print(state.get("root", args[1]))
     elif command[0] == "remote":
         print(state.get("origin", "https://github.com/dot-luna/luna-next.git"))
     elif command[0] == "status":
         print(state.get("changes", ""), end="")
+    elif command[0] == "ls-remote":
+        if "--symref" in command:
+            if not state.get("missing_default"):
+                print("ref: refs/heads/" + state.get("default", "master") + "\tHEAD")
+        else:
+            for ref in command[3:]:
+                kind, value = ref.removeprefix("refs/").split("/", 1)
+                if state.get("refs", {"master": "heads"}).get(value) in (kind, "both"):
+                    print("a" * 40 + "\t" + ref)
+    elif command[0] == "symbolic-ref":
+        if state.get("detached"):
+            sys.exit(1)
+    elif command[0] == "for-each-ref":
+        print("\n".join(state.get("retained_refs", [])), end="")
+    elif command[0] == "show-ref":
+        if command[-1].removeprefix("refs/heads/") not in state.get("local_branches", ["master"]):
+            sys.exit(1)
 elif name == "mise" and "which" in args:
     print(Path(os.environ["BOOTSTRAP_BIN"]) / "bun")
 elif name == "bun" and args[0] == "run":
@@ -129,7 +151,8 @@ class RootInstallTests(unittest.TestCase):
                          ["--syncdeps", "--install", "--needed", "--noconfirm"])
         self.assertEqual(self.commands("mise")[0]["args"],
                          ["--cd", str(self.home), "use", "--global", "--yes", "bun@latest"])
-        self.assertEqual(self.commands("git")[-1]["args"], ["clone", "--", REPO_URL, str(self.managed)])
+        self.assertEqual(self.commands("git")[-1]["args"],
+                         ["clone", "--branch", "master", "--single-branch", "--", REPO_URL, str(self.managed)])
         self.assertEqual(self.commands("bun")[0]["args"], ["install", "--frozen-lockfile"])
         self.assertEqual(self.commands("bun")[1]["args"], ["run", "--cwd", "src/ln-cli", "build"])
         self.assertEqual(self.commands("sleep")[0]["args"], ["5"])
@@ -142,7 +165,7 @@ class RootInstallTests(unittest.TestCase):
         self.assertFalse(list((self.home / ".local/bin").glob(".luna.*")))
 
     def test_custom_relative_checkout_and_piped_input(self):
-        self.run_install("--repo", "custom checkout", piped=True)
+        self.run_install("--install-dir=custom checkout", piped=True)
         selected = self.work / "custom checkout"
         self.assertEqual(self.commands("luna")[0]["args"], ["--repo", str(selected), "self", "install"])
 
@@ -155,13 +178,15 @@ class RootInstallTests(unittest.TestCase):
         self.checkout()
         self.run_install()
         commands = self.commands("git")
-        self.assertEqual(commands[-2]["args"][-2:], ["fetch", "origin"])
-        self.assertEqual(commands[-1]["args"][-4:], ["merge", "--ff-only", "--no-autostash", "origin/master"])
+        fetch = next(item for item in commands if "fetch" in item["args"])
+        self.assertEqual(fetch["args"][-4:], ["fetch", "--no-tags", "origin", "+refs/heads/master:refs/remotes/origin/master"])
+        self.assertEqual(commands[-1]["args"][-5:],
+                         ["merge", "--ff-only", "--no-autostash", "--no-overwrite-ignore", "refs/remotes/origin/master"])
         self.assertFalse(any("clone" in item["args"] and REPO_URL in item["args"] for item in commands))
 
     def test_unrelated_dirty_or_untracked_checkout_is_rejected(self):
         for state in ({"origin": "https://example.com/other.git"}, {"changes": " M file"},
-                      {"changes": "?? personal"}, {"upstream": "elsewhere/master"}):
+                      {"changes": "?? personal"}):
             with self.subTest(state=state):
                 if not self.managed.exists():
                     self.checkout()
@@ -175,14 +200,73 @@ class RootInstallTests(unittest.TestCase):
         (self.home / "linked").symlink_to(self.work, target_is_directory=True)
         for destination in (str(self.home / "linked/repo"), str(self.home / "../repo")):
             with self.subTest(destination=destination):
-                self.run_install("--repo", destination, success=False)
+                self.run_install("--install-dir", destination, success=False)
                 self.assertEqual(self.commands(), [])
 
-    def test_help_and_bad_flags_do_not_change_system(self):
-        self.run_install("--help")
-        for args in (("--repo",), ("--repo", "--help"), ("--unexpected",)):
+    def test_bad_flags_do_not_change_system(self):
+        for args in (("--repo", str(self.work)), ("--install-dir",), ("--install-dir=",),
+                     ("--ref",), ("--ref=",), ("--help",), ("--unexpected",)):
             self.run_install(*args, success=False)
         self.assertEqual(self.commands(), [])
+
+    def test_latest_resolves_the_remote_default_branch(self):
+        self.env["BOOTSTRAP_GIT"] = json.dumps({"default": "main"})
+        self.run_install("--ref=latest")
+        self.assertIn("main", self.commands("git")[-1]["args"])
+
+    def test_explicit_branch_or_tag_is_cloned_without_default_lookup(self):
+        for ref in ("feature/new-cli", "v1.2.3"):
+            with self.subTest(ref=ref):
+                self.log.unlink(missing_ok=True)
+                self.run_install("--install-dir", str(self.work / ref), "--ref=" + ref)
+                self.assertIn(ref, self.commands("git")[-1]["args"])
+                self.assertFalse(any("--symref" in item["args"] for item in self.commands("git")))
+
+    def test_existing_checkout_switches_to_remote_branch(self):
+        self.checkout(refs={"feature/cli": "heads"})
+        self.run_install("--ref", "feature/cli")
+        switch = next(item for item in self.commands("git") if "switch" in item["args"])
+        self.assertEqual(switch["args"][-4:], ["--no-track", "-c", "feature/cli", "refs/remotes/origin/feature/cli"])
+
+    def test_tag_uses_detached_checkout(self):
+        self.checkout(refs={"v1.2.3": "tags"})
+        self.run_install("--ref=v1.2.3")
+        self.assertEqual(self.commands("git")[-1]["args"][-4:],
+                         ["switch", "--no-overwrite-ignore", "--detach", "refs/tags/v1.2.3"])
+
+    def test_branch_wins_over_tag_with_same_name(self):
+        self.checkout(refs={"stable": "both"})
+        self.run_install("--ref=stable")
+        self.assertIn("refs/remotes/origin/stable", self.commands("git")[-1]["args"])
+
+    def test_unreferenced_detached_commit_is_preserved(self):
+        self.checkout(detached=True, head="b" * 40)
+        result = self.run_install(success=False)
+        self.assertIn("unreferenced detached commit", result.stderr)
+        self.assertFalse(any("switch" in item["args"] for item in self.commands("git")))
+
+    def test_missing_ref_or_default_stops_before_build(self):
+        self.checkout(refs={})
+        self.run_install("--ref=missing", success=False)
+        self.assertEqual(self.commands("bun"), [])
+        self.env["BOOTSTRAP_GIT"] = json.dumps({"missing_default": True})
+        self.run_install(success=False)
+        self.assertEqual(self.commands("bun"), [])
+
+    def test_malformed_refs_fail_before_system_changes(self):
+        for ref in ("../bad", "-bad", "branch..name", "bad name", "x.lock", "x@{1}"):
+            with self.subTest(ref=ref):
+                self.run_install("--ref=" + ref, success=False)
+                self.assertEqual(self.commands(), [])
+
+    def test_failed_checkout_inspection_or_fast_forward_stops_before_build(self):
+        self.checkout()
+        for command in ("status", "fetch", "merge"):
+            with self.subTest(command=command):
+                self.log.unlink(missing_ok=True)
+                self.env["BOOTSTRAP_GIT_FAIL"] = command
+                self.run_install(success=False)
+                self.assertEqual(self.commands("bun"), [])
 
     def test_package_failure_shows_diagnostics_and_stops(self):
         self.env["BOOTSTRAP_FAIL"] = "pacman"
