@@ -37,12 +37,13 @@ async function start(context: MenuContext) {
 }
 
 async function operate(
-  action: "status" | "start" | "show" | "hide" | "toggle" | "stop",
+  action: "status" | "start" | "show" | "hide" | "toggle" | "stop" | "system",
   options: MenuOptions,
 ) {
   const context = await menuContext(options);
-  if (action === "start" || action === "show" || action === "toggle") await start(context);
-  if (action === "show" || action === "toggle") await ipc(context, action);
+  if (action === "start" || action === "show" || action === "toggle" || action === "system")
+    await start(context);
+  if (action === "show" || action === "toggle" || action === "system") await ipc(context, action);
   if (action === "hide" && (await running(context))) await ipc(context, "hide");
   if (action === "stop" && (await running(context)))
     await command(context, ["kill", "-p", context.shellDirectory]);
@@ -52,11 +53,12 @@ async function operate(
   } satisfies MenuState;
 }
 
-/** Show/toggle start a hidden instance when needed. Existing instances retain their theme snapshot. */
+/** Show/toggle/system start a hidden instance when needed. Existing instances retain their theme snapshot. */
 export const menu = {
   status: (options: MenuOptions = {}) => respond(() => operate("status", options)),
   start: (options: MenuOptions = {}) => respond(() => operate("start", options)),
   show: (options: MenuOptions = {}) => respond(() => operate("show", options)),
+  system: (options: MenuOptions = {}) => respond(() => operate("system", options)),
   hide: (options: MenuOptions = {}) => respond(() => operate("hide", options)),
   toggle: (options: MenuOptions = {}) => respond(() => operate("toggle", options)),
   stop: (options: MenuOptions = {}) => respond(() => operate("stop", options)),

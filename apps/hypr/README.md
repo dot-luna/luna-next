@@ -8,7 +8,8 @@ and includes Luna's entry in the user's Hyprland configuration before personal o
 
 Colors, gaps, borders, rounding, opacity, blur, and shadows come from
 `luna theme hyprland` on startup/reload, including Luna's defaults when no theme is
-selected. The transparency shortcut and menu blur use the same resolved values.
+selected. The transparency shortcut uses the resolved opacity values. Luna Menu
+controls its own blur toggle and uses Hyprland's theme blur strength.
 Theme resolution errors stop configuration loading.
 
 [config/env.lua](config/env.lua) defines standard XDG homes and `LUNA_*` paths for

@@ -5,15 +5,17 @@ import QtQuick.Window
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import "Applications.js" as Applications
+import "System.js" as System
+import "Query.js" as Query
 
 Rectangle {
     id: card
 
     required property var theme
     property var applications: []
-    property bool appsView: false
+    property string section: "root"
+    readonly property bool appsView: section === "apps"
     readonly property string query: search.text
-    // Keep the original main menu; only Apps has an implemented route.
     readonly property var menuEntries: [
         {name: "Apps", icon: "grid-view", route: "apps"},
         {name: "Insert", icon: "smile"},
@@ -23,11 +25,13 @@ Rectangle {
         {name: "Setup", icon: "settings-02"},
         {name: "Install", icon: "download-01"},
         {name: "Remove", icon: "delete-02"},
-        {name: "About", icon: "information-circle"},
-        {name: "System", icon: "power-service"}
+        {name: "About", icon: "information-circle", action: "about"},
+        {name: "System", icon: "power-service", route: "system"}
     ]
-    readonly property var entries: appsView ? Applications.find(applications, query)
+    readonly property var matchingEntries: appsView ? Applications.find(applications, query)
+        : section === "system" ? Applications.sections(System.entries, query)
         : Applications.rootEntries(menuEntries, applications, query)
+    readonly property var entries: Query.results(matchingEntries, query)
     readonly property int selectedIndex: results.currentIndex
     readonly property var selectedEntry: entries[selectedIndex] || null
     readonly property string uiFont: Qt.fontFamilies().some(family => family.toLowerCase() === theme.fonts.ui.toLowerCase())
@@ -36,35 +40,39 @@ Rectangle {
     readonly property real textScale: textSize / 10
     readonly property color backgroundColor: theme.colors.background
     signal applicationActivated(var entry)
+    signal actionActivated(string action)
+    signal queryActivated(var entry)
     signal dismissed()
 
     implicitWidth: 640 * textScale
     implicitHeight: 476 * textScale
-    // Only the card carries alpha; the compositor blurs it through the layer rule.
+    // Only the card carries alpha; its window requests blur for this shape.
     color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, theme.appearance.opacity.active)
     radius: Math.min(theme.appearance.rounding, width / 2, height / 2)
     border.width: theme.appearance.border_width
     border.color: theme.colors.muted
 
     function focusSearch() { search.forceActiveFocus(Qt.OtherFocusReason); }
-    function reset() {
-        appsView = false;
+    function reset(destination) {
+        section = destination || "root";
         search.clear();
         results.currentIndex = entries.length ? 0 : -1;
         results.positionViewAtBeginning();
     }
     function back() {
-        if (appsView || query !== "") reset();
+        if (section !== "root" || query !== "") reset();
         else dismissed();
         focusSearch();
     }
     function jumpSelection(index) {
         if (!entries.length) return;
+        results.animateSelection = true;
         results.currentIndex = Math.max(0, Math.min(entries.length - 1, index));
         results.positionViewAtIndex(results.currentIndex, ListView.Contain);
     }
     function moveSelection(direction) {
         if (!entries.length) return;
+        results.animateSelection = true;
         results.currentIndex = (Math.max(0, results.currentIndex) + direction + entries.length) % entries.length;
         results.positionViewAtIndex(results.currentIndex, ListView.Contain);
     }
@@ -75,10 +83,14 @@ Rectangle {
     function activate(index) {
         const entry = entries[index];
         if (!entry) return;
-        if (entry.route === "apps") {
-            appsView = true;
+        if (entry.route) {
+            section = entry.route;
             search.clear();
             focusSearch();
+        } else if (entry.queryAction) {
+            queryActivated(entry);
+        } else if (entry.action) {
+            actionActivated(entry.action);
         } else if (typeof entry.execute === "function") {
             applicationActivated(entry);
         }
@@ -92,20 +104,37 @@ Rectangle {
         else if (event.key === Qt.Key_End) jumpSelection(entries.length - 1);
         else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) activate(selectedIndex);
         else if (event.key === Qt.Key_Escape || (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier))
-                 || (event.key === Qt.Key_Backspace && query === "" && appsView)) back();
+                 || (event.key === Qt.Key_Backspace && query === "" && section !== "root")) back();
         else return;
         event.accepted = true;
     }
     onEntriesChanged: {
+        resultTransition.stop();
+        // Keep the last visible list when multiple changes arrive before the next frame.
+        if (results.opacity > 0) {
+            outgoingResults.model = results.model;
+            outgoingResults.currentIndex = results.currentIndex;
+            outgoingResults.contentY = results.contentY;
+            outgoingResults.showingApps = results.showingApps;
+            outgoingResults.opacity = results.opacity;
+        }
+        results.animateSelection = false;
+        results.model = entries;
+        results.showingApps = appsView;
         results.currentIndex = entries.length ? 0 : -1;
         results.positionViewAtBeginning();
+        results.opacity = 0;
+        resultTransition.start();
     }
 
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
     ListPointer {
         anchors.fill: parent
         view: results
-        onHoveredIndex: index => results.currentIndex = index
+        onHoveredIndex: index => {
+            results.animateSelection = true;
+            results.currentIndex = index;
+        }
     }
     ColumnLayout {
         anchors.fill: parent
@@ -114,11 +143,11 @@ Rectangle {
         // The original header is a continuous search surface, without a nested box.
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 72 * card.textScale
+            Layout.preferredHeight: 68 * card.textScale
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 22
-                anchors.rightMargin: 18
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
                 spacing: 14
                 Icon {
                     name: "search-01"
@@ -141,7 +170,8 @@ Rectangle {
                     selectedTextColor: card.theme.colors.accent_foreground
                     selectionColor: card.theme.colors.accent
                     background: Item {}
-                    Accessible.name: card.appsView ? "Search applications" : "Search menu"
+                    Accessible.name: card.appsView ? "Search applications"
+                        : card.section === "system" ? "Search system actions" : "Search menu"
                     Accessible.description: card.selectedEntry ? card.selectedEntry.name : "No matching entries"
                     Keys.priority: Keys.BeforeItem
                     Keys.onPressed: event => card.handleKey(event)
@@ -169,15 +199,74 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 12
+            // The outgoing view is visual only; input always uses the latest results.
+            ListView {
+                id: outgoingResults
+                objectName: "outgoingResults"
+                property bool showingApps: false
+                anchors.fill: parent
+                enabled: false
+                interactive: false
+                visible: opacity > 0
+                opacity: 0
+                clip: true
+                spacing: 4
+                delegate: MenuRow {
+                    required property int index
+                    required property var modelData
+                    entry: modelData
+                    theme: card.theme
+                    uiFont: card.uiFont
+                    textSize: card.textSize
+                    textScale: card.textScale
+                    selected: outgoingResults.currentIndex === index
+                    appsView: outgoingResults.showingApps
+                    width: outgoingResults.width
+                }
+            }
+            ParallelAnimation {
+                id: resultTransition
+                NumberAnimation {
+                    target: outgoingResults
+                    property: "opacity"
+                    to: 0
+                    duration: 110
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    target: results
+                    property: "opacity"
+                    to: 1
+                    duration: 190
+                    easing.type: Easing.OutCubic
+                }
+                onFinished: outgoingResults.model = null
+            }
             ListView {
                 id: results
                 objectName: "applicationList"
+                // Search resets stay in place; only navigation moves the highlight.
+                property bool animateSelection: false
+                property bool showingApps: false
                 anchors.fill: parent
-                model: card.entries
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 currentIndex: count ? 0 : -1
                 spacing: 4
+                highlightFollowsCurrentItem: false
+                highlight: Rectangle {
+                    width: results.width
+                    height: results.currentItem ? results.currentItem.height : 0
+                    y: results.currentItem ? results.currentItem.y : 0
+                    visible: results.currentItem !== null
+                    color: card.theme.colors.selection
+                    radius: Math.min(card.theme.appearance.rounding, width / 2, height / 2)
+                    z: -1
+                    Behavior on y {
+                        enabled: results.animateSelection
+                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    }
+                }
                 ScrollBar.vertical: ScrollBar {
                     id: scrollbar
                     policy: ScrollBar.AsNeeded
@@ -202,7 +291,11 @@ Rectangle {
                     selected: results.currentIndex === index
                     appsView: card.appsView
                     width: results.width
-                    onClicked: { results.currentIndex = index; card.activate(index); }
+                    onClicked: {
+                        results.animateSelection = true;
+                        results.currentIndex = index;
+                        card.activate(index);
+                    }
                 }
             }
             ColumnLayout {

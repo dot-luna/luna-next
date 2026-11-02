@@ -1,13 +1,6 @@
-return function(appearance)
+return function()
     -- Follow the exact window activated by a URL/file handler, retaining its workspace.
     hl.config({ misc = { focus_on_activate = true } })
-
-    -- Layer surfaces follow the theme's blur choice; leave the transparent dismiss area clear.
-    hl.layer_rule({
-        match = { namespace = "^luna-menu$" },
-        blur = appearance.decoration.blur.enabled,
-        ignore_alpha = 0,
-    })
 
     -- Match Zen's video overlay without affecting ordinary tabs that mention PiP.
     hl.window_rule({

@@ -135,8 +135,9 @@ edits, existing copies, or wallpaper filename conflicts.
 
 ## Menu API
 
-`Luna.menu` provides `start`, `show`, `hide`, `toggle`, `stop`, and `status`.
-Show/toggle start it when needed; start stays hidden. Options: `repository` selects
+`Luna.menu` provides `start`, `show`, `system`, `hide`, `toggle`, `stop`, and `status`.
+Show/system/toggle start it when needed; start stays hidden. System opens the session
+action list without executing an action. Options: `repository` selects
 source QML; `env` replaces the environment. Otherwise QML comes from Luna's installed
 menu config directory. Responses contain `{running, shellDirectory}`. Startup
 resolves one theme snapshot; no files are watched. Missing QML returns `INVALID_PATH`;

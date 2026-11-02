@@ -16,14 +16,28 @@ THEME = {
         "selection_foreground": "#1a1b26", "lighter_background": "#f0f0f3",
     },
     "fonts": {"ui": "DejaVu Sans", "mono": "DejaVu Sans Mono"},
-    "appearance": {"rounding": 13, "border_width": 2, "opacity": {"active": 0.9}, "gaps": {"outer": 8}},
+    "appearance": {"rounding": 13, "border_width": 2, "opacity": {"active": 0.9},
+                   "gaps": {"outer": 8}, "blur": {"enabled": True, "size": 10, "passes": 3}},
 }
 
 
 def isolated_environment(root):
     for name in ("runtime", "home", "config", "data", "system-data", "cache", "state", "bin"):
         (root / name).mkdir(mode=0o700)
-    environment = dict(os.environ, HOME=str(root / "home"),
+    # Never let UI tests reach the host's session or power commands.
+    recorder = root / "bin/systemctl"
+    recorder.write_text('''#!/usr/bin/python3
+import json, os, pathlib, sys
+with pathlib.Path(os.environ["MENU_SESSION_LOG"]).open("a") as output:
+    output.write(json.dumps({"command": pathlib.Path(sys.argv[0]).name, "args": sys.argv[1:]}) + "\\n")
+if os.environ.get("MENU_SESSION_FAIL") == "1":
+    print("fixture denied request", file=sys.stderr)
+    sys.exit(7)
+''')
+    recorder.chmod(0o755)
+    shutil.copyfile(recorder, root / "bin/hyprctl")
+    (root / "bin/hyprctl").chmod(0o755)
+    environment = dict(os.environ, MENU_SESSION_LOG=str(root / "session.jsonl"), HOME=str(root / "home"),
                        QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
                        XDG_RUNTIME_DIR=str(root / "runtime"), XDG_CONFIG_HOME=str(root / "config"),
                        XDG_DATA_HOME=str(root / "data"), XDG_DATA_DIRS=str(root / "system-data"),
@@ -51,6 +65,9 @@ with pathlib.Path(os.environ["MENU_LAUNCH_LOG"]).open("a") as output:
     terminal = root / "bin/xdg-terminal-exec"
     shutil.copyfile(binary, terminal)
     terminal.chmod(0o755)
+    browser = root / "bin/xdg-open"
+    shutil.copyfile(binary, browser)
+    browser.chmod(0o755)
     folder = root / "data/applications"
     folder.mkdir()
     working = root / "working directory"

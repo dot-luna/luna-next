@@ -1,6 +1,6 @@
 {
   "name": "@dot-luna/luna",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1",
   "private": true,
   "description": "A Hyprland setup for Arch Linux by @jrtilak.",
   "homepage": "https://github.com/dot-luna/luna-next#readme",

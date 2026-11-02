@@ -1,8 +1,8 @@
 # Menu
 
-`luna menu` opens the menu. `show` and `toggle` start it when needed; `start`
+`luna menu` opens the menu. `show`, `system`, and `toggle` start it when needed; `start`
 prepares a hidden instance. `hide`, `stop`, and `status` control that menu only.
-Super+Space toggles it through Luna's Hyprland bindings.
+Super+Space toggles it; Super+Esc opens System directly (`luna menu system`).
 
 The default renderer is `$LUNA_CONFIG_HOME_DIR/menu` (otherwise
 `$XDG_CONFIG_HOME/luna/menu`, then `~/.config/luna/menu`). For source testing, use
@@ -11,13 +11,26 @@ when using source QML without `luna install luna-menu`.
 
 ## Controls
 
-Apps opens installed applications. Other main sections remain placeholders.
-Typing at the root searches sections and applications; searching inside Apps is
-scoped to applications. Hidden and NoDisplay desktop entries are excluded.
+Apps opens installed applications. System lists Screensaver, Lock, Suspend,
+Hibernate, Logout, Reboot, and Shutdown; only the last three are active. About
+opens the same terminal as Super+Shift+F (requires Fastfetch). Other main sections remain
+placeholders. Hidden and NoDisplay desktop entries are excluded.
+
+Typing at the root searches sections and applications; Apps and System searches
+stay within their section. A nonempty query always adds Search in browser last
+(DuckDuckGo in the default browser). A web URL or domain offers Open in browser
+first. `!command` offers Run in terminal first, using the default terminal and
+`$SHELL` (otherwise `/bin/sh`). Terminal output stays until a silent keypress.
+Typing alone never executes an action; press Enter or click its row.
+
+Reboot and Shutdown fade to black with a five-second countdown. Esc or Cancel
+returns to System before execution; hiding or reopening also cancels a pending
+countdown. Logout runs immediately. Native authorization and inhibitors apply.
+Failed requests display an error; Esc returns to System.
 
 Up/Down and Tab/Shift+Tab select results. Home/End jump to either end; Page Up/Down
 move a visible page. Enter or click opens an entry. Escape, Alt+Left, or Backspace
-in an empty Apps search returns to the root; Escape at the root dismisses.
+in an empty Apps or System search returns to the root; Escape at the root dismisses.
 The clear button resets the query. Any mouse button outside dismisses the menu,
 including on other monitors. Opening resets the search on the focused monitor.
 
@@ -28,13 +41,14 @@ Graphical apps use their desktop entry's default action. Terminal apps use
 
 The main menu and Apps presentation are ported from
 [`dot-luna/luna` at 9aa7d7e](https://github.com/dot-luna/luna/tree/9aa7d7e7aa48686d243bc1793f37ee9fd246ab58/src/launcher).
-The header, fixed-height body, row spacing, selection, and font scaling follow
-that menu. UI icons use the free Hugeicons set, documented in
+The menu has a compact search header; the row spacing, selection, and font scaling
+follow that menu. UI icons use the free Hugeicons set, documented in
 [icons/README.md](src/shell/icons/README.md), with its MIT notice.
 
 `luna install luna-menu` installs Quickshell and `xdg-terminal-exec`, then exports the QML
 to Luna's menu configuration directory. Configuration replaces that owned directory without
 backups and restarts an already-running menu hidden; a stopped menu stays stopped.
+Opening links and searches requires `xdg-utils`, included in a full Luna installation.
 No separate systemd service is required. Hyprland starts it hidden at login, and
 the shortcut can start it on demand.
 
@@ -43,12 +57,18 @@ The Zsh alias `menu` runs `luna menu`, including subcommands. Reconfigure with
 
 The API resolves a theme snapshot at process startup through `LUNA_MENU_THEME`.
 The renderer never reads or watches theme files. Stop and start the menu after
-changing themes. Missing or malformed theme input fails startup. Hyprland supplies
-opacity/blur and exports the user QML import path globally through `QML_IMPORT_PATH`.
+changing themes. Missing or malformed theme input fails startup.
+
+The card uses `appearance.opacity.active` and requests background blur only when
+`appearance.blur.enabled` is true. Blur follows the card's bounds and rounding;
+outside click areas stay clear. The compositor must support `ext-background-effect-v1`.
+Hyprland's global blur switch still applies. It reads blur settings from the theme
+on startup/reload; run `hyprctl reload` after changing them, including `size` and
+`passes`. It also exports the user QML import path globally through `QML_IMPORT_PATH`.
 
 ## API and checks
 
-`Luna.menu` provides `start`, `show`, `hide`, `toggle`, `stop`, and `status`.
+`Luna.menu` provides `start`, `show`, `system`, `hide`, `toggle`, `stop`, and `status`.
 Options are `repository` for explicit source QML and `env` to replace the process
 environment. Responses contain `{running, shellDirectory}`. Missing QML returns
 `INVALID_PATH`; unavailable Quickshell or failed native commands return
@@ -57,10 +77,11 @@ environment. Responses contain `{running, shellDirectory}`. Missing QML returns
 ```sh
 /usr/lib/qt6/bin/qmllint src/luna-menu/src/shell/*.qml
 python3 -m unittest discover -s src/luna-menu/tests -v
-bun test packages/luna-api/tests/menu.test.ts __tests__/apps/luna-menu __tests__/apps/hypr-environment.test.ts
+bun test packages/luna-api/tests/menu.test.ts __tests__/apps/luna-menu __tests__/apps/hypr-environment.test.ts __tests__/apps/hypr-menu-bindings.test.ts __tests__/apps/shortcuts.test.ts
 ```
 
 QML tests require Quickshell and `dbus-run-session`. They use private XDG paths,
-fake application executables, and real Qt keyboard/mouse events. Offscreen tests
+fake application/session executables, and real Qt keyboard/mouse events. No test
+logs out, reboots, or shuts down the host. Offscreen tests
 retain production content but replace compositor-specific windows. Focused-monitor
 placement, compositor blur, and layer keyboard focus need a Wayland session.

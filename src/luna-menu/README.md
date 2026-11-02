@@ -1,8 +1,7 @@
 # Luna Menu
 
-The original Luna menu layout, with a searchable Apps submenu. Other main-menu
-sections are placeholders. Free Hugeicons are bundled; application icons use the
-installed desktop entries.
+A keyboard-driven menu for apps, terminal commands, web searches, and session
+actions. Free Hugeicons are bundled; application icons use installed desktop entries.
 
 ```sh
 luna install luna-menu

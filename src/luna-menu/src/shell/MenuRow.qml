@@ -25,10 +25,7 @@ Button {
     topPadding: 8
     bottomPadding: 8
     hoverEnabled: true
-    background: Rectangle {
-        color: row.selected ? row.theme.colors.selection : "transparent"
-        radius: Math.min(row.theme.appearance.rounding, width / 2, height / 2)
-    }
+    background: Item {}
     contentItem: RowLayout {
         spacing: 14
         Item {
@@ -76,7 +73,7 @@ Button {
             Layout.preferredHeight: 14
             name: "arrow-right-01"
             ink: row.theme.colors.selection_foreground
-            visible: row.selected && !row.applicationEntry
+            visible: row.selected && Boolean(row.entry.route)
         }
     }
 }

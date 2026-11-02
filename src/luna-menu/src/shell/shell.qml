@@ -31,15 +31,17 @@ ShellRoot {
         if (!value.appearance.opacity || !Number.isFinite(value.appearance.opacity.active)
                 || !value.appearance.gaps || !Number.isFinite(value.appearance.gaps.outer))
             throw new Error("missing opacity or gaps");
+        if (!value.appearance.blur || typeof value.appearance.blur.enabled !== "boolean")
+            throw new Error("missing blur enabled flag");
         return value;
     }
 
-    function show() {
+    function show(section) {
         if (!menuWindow)
             return;
         const focused = Hyprland.focusedMonitor;
         menuScreen = Quickshell.screens.find(screen => focused && screen.name === focused.name) || Quickshell.screens[0] || null;
-        menuWindow.show();
+        menuWindow.show(section);
     }
 
     Loader {
@@ -62,6 +64,7 @@ ShellRoot {
         target: "menu"
         function status(): string { return shell.menuWindow ? "running" : "unavailable"; }
         function show(): void { shell.show(); }
+        function system(): void { shell.show("system"); }
         function hide(): void { if (shell.menuWindow) shell.menuWindow.hide(); }
         function toggle(): void {
             if (shell.menuWindow && shell.menuWindow.opened)
