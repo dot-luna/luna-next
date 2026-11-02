@@ -55,7 +55,7 @@ export async function installThemes(context: InstallContext) {
       await installThemePackages(c, (await currentTheme(c)).packages);
     else {
       const value = await inspectTheme(c, "tokyo-night");
-      await saveAppearance(c, value.colors.mode, value.name);
+      await saveAppearance(c, value.colors.mode, value);
     }
   });
 }

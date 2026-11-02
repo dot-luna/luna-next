@@ -28,9 +28,19 @@ if (env.SELF_FAIL === `${name}:${command[0]}`) {
 }
 
 if (name === "gsettings") {
-  const path = join(env.HOME!, "preference");
+  const key = args[2];
+  if (key !== "color-scheme" && key !== "gtk-theme")
+    throw new Error(`Unexpected GSettings key: ${key}`);
+  const path = join(env.HOME!, key);
   if (args[0] === "set") writeFileSync(path, args.at(-1)!);
-  else console.log(`'${existsSync(path) ? readFileSync(path, "utf8") : "default"}'`);
+  else
+    console.log(
+      existsSync(path)
+        ? readFileSync(path, "utf8")
+        : key === "gtk-theme"
+          ? "'Adwaita'"
+          : "'default'",
+    );
   process.exit(0);
 } else if (name === "git") {
   const forwarded = ["ls-remote", "fetch", "pull"].includes(command[0]!)

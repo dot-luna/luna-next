@@ -91,8 +91,13 @@ Install also accepts `name` and `force`; remove accepts `dryRun`; T3 application
 accepts an explicit `userdata` directory. `mode` accepts dark/light/toggle.
 Validation uses the feature-owned Zod schemas in `src/theme/schema.ts`.
 
-See [theme fields and storage](../../themes/DOCS.md). Selection changes apply
-GSettings but do not restart apps. Headless shells use a private D-Bus session
+See [theme fields and storage](../../themes/DOCS.md). `set`, `mode`, and `toggle`
+publish GTK3 colors, UI/monospace fonts, and control rounding from the selected
+theme, then synchronize GSettings `color-scheme` and `gtk-theme`, without restarting apps. System mode
+changes preserve the authored palette. Failed application attempts selection,
+stylesheet, and preference recovery while preserving detected external edits.
+Generated stylesheets and dconf preferences persist across app and session restarts.
+Headless shells use a private D-Bus session
 when no session address or runtime bus is supplied; setup installs `dbus` for this. Source JSONC stays intact; selection writes
 normalize its owned document. Mutations can return `CONFLICT` for locks, external
 edits, existing copies, or wallpaper filename conflicts.
