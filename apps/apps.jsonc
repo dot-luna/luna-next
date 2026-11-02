@@ -21,6 +21,8 @@
     "codex/app.jsonc",
     "t3code/app.jsonc",
 
+    "luna-menu/app.jsonc",
+
     // Configure shell integrations after their apps and desktop defaults.
     "zsh/app.jsonc",
   ],

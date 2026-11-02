@@ -8,6 +8,8 @@
   `LUNA_NEXT_`; do not add aliases for the old prefix.
 - Keep changes focused on the requested task. Preserve unrelated working-tree
   edits and include only intended files when committing.
+- Use free Hugeicons for Luna's UI icons, with the upstream license notice.
+  Do not introduce Lucide icons.
 - This repository is in active development. Do not add legacy migrations,
   backward-compatibility layers, or old-format fallbacks.
 - Installing or configuring apps replaces the declared destination files and

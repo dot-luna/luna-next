@@ -86,6 +86,14 @@ and requires `--yes` or `--dry-run` without an interactive terminal.
 
 See [theme format and behavior](../../themes/DOCS.md).
 
+## Menu
+
+`luna menu` opens the menu; `show`, `hide`, `toggle`, `start`, `stop`, and `status`
+control it. Show/toggle start a missing instance; start keeps it hidden.
+Install with `luna install menu`. Use `--install-dir PATH` on menu commands to
+test source QML. Only Apps is implemented; other main sections are placeholders.
+See [menu controls and appearance](../luna-menu/DOCS.md).
+
 ## Apps and web apps
 
 - `luna install [names...] [--force] [--install-dir PATH]`: install and configure

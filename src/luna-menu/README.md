@@ -1,12 +1,13 @@
-# Luna Next menu
+# Luna Menu
 
-A Quickshell menu containing Apps and a searchable list of installed applications.
-Requires Quickshell and `xdg-terminal-exec` for terminal applications.
+The original Luna menu layout, with a searchable Apps submenu. Other main-menu
+sections are placeholders. Free Hugeicons are bundled; application icons use the
+installed desktop entries.
 
 ```sh
-luna install --local cli menu
-luna menu start
-luna menu show
+luna install menu
+luna menu
 ```
 
-See [DOCS.md](DOCS.md) for controls, themes, and checks.
+Installation provides Quickshell and the terminal launcher. See [DOCS.md](DOCS.md)
+for controls and testing.

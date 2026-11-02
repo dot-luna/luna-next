@@ -25,6 +25,17 @@ return function(config_dir)
   local cache = define("LUNA_CACHE_HOME_DIR", cache_home .. "/luna")
   define("LUNA_STATE_HOME_DIR", state_home .. "/luna")
 
+  -- Every compositor-launched app can import user-installed QML modules.
+  local qml = home .. "/.local/lib/qt6/qml"
+  local imports = os.getenv("QML_IMPORT_PATH") or ""
+  local present = false
+  for path in imports:gmatch("[^:]+") do
+    if path == qml then present = true end
+  end
+  if not present then
+    hl.env("QML_IMPORT_PATH", qml .. (imports ~= "" and ":" .. imports or ""))
+  end
+
   -- These are base directories; each app gets its own named subdirectory.
   define("LUNA_LOCAL_APP_INSTALL_DIR", data .. "/apps/local")
   define("LUNA_GIT_APP_CLONE_DIR", data .. "/git/clone")

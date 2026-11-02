@@ -16,6 +16,14 @@ function find(entries, query) {
     });
 }
 
+// Root searches include matching main sections and applications, as in the original menu.
+function rootEntries(menuEntries, applications, query) {
+    const words = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return menuEntries;
+    const sections = menuEntries.filter(entry => words.every(word => entry.name.toLocaleLowerCase().includes(word)));
+    return sections.concat(find(applications, query));
+}
+
 // Quickshell 0.3.2 execute() preserves the desktop working directory but ignores
 // Terminal=true. Pass its already-parsed arguments to the system terminal launcher.
 function launch(entry, detached) {

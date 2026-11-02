@@ -123,11 +123,6 @@
       "purpose": "Open files and URLs with desktop applications",
     },
     {
-      "name": "xdg-terminal-exec",
-      "source": "pacman",
-      "purpose": "Run commands in the preferred terminal",
-    },
-    {
       "name": "zip",
       "source": "pacman",
       "purpose": "Create ZIP archives from the terminal",

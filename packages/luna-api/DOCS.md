@@ -97,6 +97,16 @@ when no session address or runtime bus is supplied; setup installs `dbus` for th
 normalize its owned document. Mutations can return `CONFLICT` for locks, external
 edits, existing copies, or wallpaper filename conflicts.
 
+## Menu API
+
+`Luna.menu` provides `start`, `show`, `hide`, `toggle`, `stop`, and `status`.
+Show/toggle start it when needed; start stays hidden. Options: `repository` selects
+source QML; `env` replaces the environment. Otherwise QML comes from Luna's installed
+menu config directory. Responses contain `{running, shellDirectory}`. Startup
+resolves one theme snapshot; no files are watched. Missing QML returns `INVALID_PATH`;
+missing Quickshell or failed IPC returns `COMMAND_FAILED`.
+See the [menu docs](../../src/luna-menu/DOCS.md).
+
 ## App API
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.

@@ -16,7 +16,7 @@ from _support import APP, QUICKSHELL, SHELL, THEME, desktop_entries, isolated_en
                      "Quickshell and dbus-run-session are required")
 class MenuTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="luna-next-menu ' ")
+        self.temporary = tempfile.TemporaryDirectory(prefix="luna-menu ' ")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.env = isolated_environment(self.root)
@@ -39,23 +39,23 @@ class MenuTests(unittest.TestCase):
         return directory
 
     def test_real_shell_validates_hidden_ui_and_rejects_invalid_theme_input(self):
-        self.env["LUNA_NEXT_MENU_VALIDATE"] = "1"
+        self.env["LUNA_MENU_VALIDATE"] = "1"
         shell = self.offscreen_shell()
         result = self.run_shell(shell)
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
-        self.assertIn("Luna Next menu validation passed", output)
+        self.assertIn("Luna menu validation passed", output)
         for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
             self.assertNotIn(error, output)
         for theme in ("not json", "null", "{}", json.dumps(dict(THEME, fonts={})),
                       json.dumps(dict(THEME, appearance={"rounding": -1, "border_width": 1}))):
             with self.subTest(theme=theme):
-                self.env["LUNA_NEXT_MENU_THEME"] = theme
+                self.env["LUNA_MENU_THEME"] = theme
                 result = self.run_shell(shell)
                 output = result.stdout + result.stderr
                 self.assertNotEqual(result.returncode, 0, output)
-                self.assertIn("Luna Next menu theme:", output)
-                self.assertNotIn("Luna Next menu validation passed", output)
+                self.assertIn("Luna menu theme:", output)
+                self.assertNotIn("Luna menu validation passed", output)
 
     def test_production_content_keyboard_mouse_search_and_native_desktop_entries(self):
         desktop_entries(self.root)
@@ -88,7 +88,7 @@ ShellRoot {
         result = self.run_shell(self.root, timeout=25)
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
-        summary = re.search(r"LUNA_NEXT_MENU_TEST_RESULT (\{[^\n]+\})", output)
+        summary = re.search(r"LUNA_MENU_TEST_RESULT (\{[^\n]+\})", output)
         self.assertIsNotNone(summary, output)
         counts = json.loads(summary.group(1))
         self.assertEqual(counts["failed"], 0, output)
