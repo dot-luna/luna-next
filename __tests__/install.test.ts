@@ -94,7 +94,7 @@ userTests("root installer", () => {
   beforeEach(() => { value = new Fixture(); });
   afterEach(() => { rmSync(value.root, { recursive: true, force: true }); });
 
-  test("prepares sources, builds dependencies, and hands off with default flags", () => {
+  test("prepares sources, builds API then CLI, and hands off with default flags", () => {
     const result = value.run();
     expect(value.commands("pacman")[0]!.args).toEqual([
       "-Syu", "--needed", "--noconfirm", "--", "base-devel", "ca-certificates", "curl", "git", "mise", "sudo",
@@ -108,7 +108,6 @@ userTests("root installer", () => {
     expect(existsSync(join(value.managed, ".git"))).toBe(true);
     expect(value.commands("bun").map(item => item.args)).toEqual([
       ["install", "--frozen-lockfile"],
-      ["run", "--cwd", "packages/luna-logger", "build"],
       ["run", "--cwd", "packages/luna-api", "build"],
       ["run", "--cwd", "src/luna-cli", "build"],
     ]);
@@ -400,17 +399,23 @@ userTests("root installer", () => {
     expect(value.commands("luna")).toEqual([]);
   });
 
-  test("dependency failures prevent CLI compilation and preserve the installed binary", () => {
+  test("CLI build failures prevent publication and preserve the installed binary", () => {
     value.previousBinary();
-    for (const pkg of ["packages/luna-logger", "packages/luna-api"]) {
-      value.clearLog();
-      value.env.BOOTSTRAP_BUILD_FAIL = pkg;
-      const result = value.run([], { success: false });
-      expect(result.exitCode).toBe(17);
-      expect(readFileSync(value.binary, "utf8")).toBe("previous executable");
-      expect(value.commands("bun").some(item => item.args.includes("src/luna-cli"))).toBe(false);
-      expect(value.commands("luna")).toEqual([]);
-    }
+    value.env.BOOTSTRAP_BUILD_FAIL = "src/luna-cli";
+    const result = value.run([], { success: false });
+    expect(result.exitCode).toBe(17);
+    expect(readFileSync(value.binary, "utf8")).toBe("previous executable");
+    expect(value.commands("luna")).toEqual([]);
+  });
+
+  test("API build failures stop before compiling the CLI and preserve the installed binary", () => {
+    value.previousBinary();
+    value.env.BOOTSTRAP_BUILD_FAIL = "packages/luna-api";
+    const result = value.run([], { success: false });
+    expect(result.exitCode).toBe(17);
+    expect(readFileSync(value.binary, "utf8")).toBe("previous executable");
+    expect(value.commands("bun").some(item => item.args.includes("src/luna-cli"))).toBe(false);
+    expect(value.commands("luna")).toEqual([]);
   });
 
   test("propagates a CLI setup failure", () => {

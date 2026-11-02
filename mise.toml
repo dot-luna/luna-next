@@ -1,8 +1,8 @@
-[tasks."build:ln-cli"]
+[tasks."build:luna-cli"]
 description = "Build the luna CLI"
-run = "bun run --cwd src/ln-cli build"
+run = "bun run --cwd src/luna-cli build"
 
-[tasks."install:ln-cli"]
+[tasks."install:luna-cli"]
 description = "Install luna into ~/.local/bin"
-depends = ["build:ln-cli"]
+depends = ["build:luna-cli"]
 run = 'install -Dm755 target/luna-bun "$HOME/.local/bin/luna"'
