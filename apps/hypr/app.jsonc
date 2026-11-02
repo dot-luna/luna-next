@@ -4,6 +4,11 @@
 
   "deps": [
     {
+      "name": "polkit-kde-agent",
+      "source": "pacman",
+      "purpose": "Show desktop authentication prompts",
+    },
+    {
       "name": "xdg-desktop-portal-hyprland",
       "source": "pacman",
       "purpose": "Provide Hyprland screen sharing and portal routing with GTK file pickers",

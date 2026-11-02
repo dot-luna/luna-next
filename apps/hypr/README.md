@@ -1,7 +1,9 @@
 # Hyprland
 
 Luna's Hyprland Lua defaults: monitors, workspaces, input, theme, animations,
-shortcuts, and session startup.
+shortcuts, and session startup. The KDE Polkit agent supplies desktop authentication
+prompts; Luna Menu starts hidden at login. Luna’s wallpaper renderer and custom
+authentication agent are not part of the current JSONC app catalog.
 
 The [app manifest](app.jsonc) exports `config/` to `$LUNA_CONFIG_HOME_DIR/hypr/`
 and includes Luna's entry in the user's Hyprland configuration before personal overrides.
