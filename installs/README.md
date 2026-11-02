@@ -12,11 +12,12 @@ tied to an app, such as its plugins, belong in that app's `deps`.
 Dependencies for inactive local desktop apps are omitted; add them when enabling
 those apps.
 
-| File                                           | Contents                                               |
-| ---------------------------------------------- | ------------------------------------------------------ |
-| [packages.jsonc](packages.jsonc)               | Pacman and AUR packages grouped by installation stage. |
-| [packages.mise.jsonc](packages.mise.jsonc)     | Array of development tools and runtime versions.       |
-| [packages.webapp.jsonc](packages.webapp.jsonc) | Array of desktop web apps with only `name` and `url`.  |
+| File                                           | Contents                                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [packages.jsonc](packages.jsonc)               | Pacman and AUR packages grouped by installation stage.                              |
+| [packages.mise.jsonc](packages.mise.jsonc)     | Array of development tools and runtime versions.                                    |
+| [packages.webapp.jsonc](packages.webapp.jsonc) | Array of desktop web apps with only `name` and `url`.                               |
+| [defaults.jsonc](defaults.jsonc)               | Comment-only default-app choices and undecided items; not applied by the installer. |
 
 Add system packages to the appropriate group in `packages.jsonc`:
 

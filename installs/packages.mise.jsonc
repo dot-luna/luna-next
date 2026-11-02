@@ -42,4 +42,12 @@
     "url": null,
     "purpose": "uv Python package and project manager",
   },
+  // The Cloudflare CLI uses the Node.js runtime declared above.
+  {
+    "name": "cloudflare-cf",
+    "source": "mise",
+    "version": "latest",
+    "url": "https://github.com/cloudflare/cf",
+    "purpose": "Manage Cloudflare APIs and Workers projects with cf",
+  },
 ]
