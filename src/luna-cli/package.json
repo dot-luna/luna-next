@@ -9,7 +9,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test": "bun test",
-    "build": "bun build --compile ./src/index.ts --outfile ../../target/luna-bun"
+    "build": "bun ./src/build.ts"
   },
   "dependencies": {
     "@luna/api": "workspace:*",

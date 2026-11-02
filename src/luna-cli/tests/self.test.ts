@@ -54,7 +54,7 @@ userTests("CLI self commands", () => {
         repository: value.repository,
         executable: value.executable,
         cliRebuilt: false,
-        pending: ["themes", "apps", "later", "webapps"],
+        pending: ["apps", "later", "webapps"],
       },
     });
     expect(value.git(value.repository, ["config", "--global", "user.name"])).toBe("CLI User");
@@ -82,7 +82,7 @@ userTests("CLI self commands", () => {
       "human@example.test",
     ]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Pending: themes, apps, later, webapps");
+    expect(result.stdout).toContain("Pending: apps, later, webapps");
     expect(result.stdout).not.toContain("routine command output");
     expect(result.stderr).toContain("Configuring Git");
   });

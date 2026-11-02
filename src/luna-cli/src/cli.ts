@@ -3,6 +3,7 @@ import { Command, CommanderError } from "commander";
 import { formatInfo } from "./info/format.ts";
 import { createOutput } from "./lib/output.ts";
 import { addSelfCommands } from "./self/commands.ts";
+import { addThemeCommands } from "./theme/commands.ts";
 
 interface GlobalOptions {
   version?: boolean;
@@ -25,6 +26,9 @@ export async function runCli(argv: string[]): Promise<number> {
     });
 
   addSelfCommands(program, output, wantsJson, (value) => {
+    exitCode = value;
+  });
+  addThemeCommands(program, output, wantsJson, (value) => {
     exitCode = value;
   });
 

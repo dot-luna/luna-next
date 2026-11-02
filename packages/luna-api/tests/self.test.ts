@@ -30,7 +30,7 @@ userTests("self operations", () => {
         repository: value.repository,
         executable: value.executable,
         cliRebuilt: true,
-        pending: ["themes", "apps", "later", "webapps"],
+        pending: ["apps", "later", "webapps"],
       },
     });
     const commands = value.commands();
@@ -44,9 +44,9 @@ userTests("self operations", () => {
     expect(index("pacman", "gcc")).toBeLessThan(index("mise", "node@lts"));
     expect(commands.some((item) => item.args.includes("zed"))).toBe(false);
     expect(
-      commands.every(
-        (item) => item.cwd === value.repository && item.repository === value.repository,
-      ),
+      commands
+        .filter((item) => item.name !== "gsettings")
+        .every((item) => item.cwd === value.repository && item.repository === value.repository),
     ).toBe(true);
     expect(value.git(value.repository, ["config", "--global", "user.name"])).toBe(identity.name);
     expect(value.git(value.repository, ["config", "--global", "init.defaultBranch"])).toBe(
@@ -55,7 +55,7 @@ userTests("self operations", () => {
     expect(value.git(value.repository, ["config", "--global", "core.editor"])).toBe("nvim");
     expect(readFileSync(value.executable, "utf8")).toContain("fixture CLI");
     expect(statSync(value.executable).mode & 0o777).toBe(0o755);
-    expect(progress).toHaveLength(6);
+    expect(progress).toHaveLength(7);
     expect(process.cwd()).toBe(oldCwd);
     expect(Bun.env.LUNA_ROOT).toBe(oldRoot);
   });
@@ -111,6 +111,24 @@ userTests("self operations", () => {
       value.commands().some((item) => item.name === "pacman" && item.args.includes("gcc")),
     ).toBe(false);
     expect(existsSync(join(value.home, ".gitconfig"))).toBe(false);
+  });
+
+  test("requests only a missing Git name when global email already exists", async () => {
+    value.git(value.repository, ["config", "--global", "user.email", "existing@example.test"]);
+    const requests: unknown[] = [];
+    const result = await Luna.self.install({
+      env: value.env,
+      fromBootstrap: true,
+      requestGitIdentity: async (current) => {
+        requests.push(current);
+        return { name: "Missing Name", email: current.email! };
+      },
+    });
+    expect(result.succes).toBe(true);
+    expect(requests).toEqual([{ name: undefined, email: "existing@example.test" }]);
+    expect(value.git(value.repository, ["config", "--global", "user.email"])).toBe(
+      "existing@example.test",
+    );
   });
 
   test.each(["include.path", "includeIf"])(

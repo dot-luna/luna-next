@@ -37,10 +37,10 @@ export function prepare(): void {
     if (git("status", "--porcelain", "--untracked-files=no")) throw new Error("T3's selected clone has tracked changes.");
     const revision = git("rev-parse", "HEAD");
     const response = JSON.parse(run(["luna", "theme", "get", "--json"], undefined, true));
-    if (response.ok !== true || typeof response.result?.appearance?.rounding !== "number") {
+    if (response.succes !== true || typeof response.data?.appearance?.rounding !== "number") {
       throw new Error("Luna could not resolve theme rounding.");
     }
-    const square = response.result.appearance.rounding === 0;
+    const square = response.data.appearance.rounding === 0;
     if (fs.existsSync(locations.build) && !fs.existsSync(locations.metadata)) {
       throw new Error("Refusing to replace an unmanaged T3 build directory: " + locations.build);
     }

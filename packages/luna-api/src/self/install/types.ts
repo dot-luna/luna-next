@@ -24,7 +24,7 @@ export interface InstallResult {
   executable: string;
   cliRebuilt: boolean;
   /** Deferred stages are reported so partial setup cannot look like a full desktop install. */
-  pending: ("themes" | "apps" | "later" | "webapps")[];
+  pending: ("apps" | "later" | "webapps")[];
 }
 
 export type InstallResponse = ApiResponse<InstallResult>;

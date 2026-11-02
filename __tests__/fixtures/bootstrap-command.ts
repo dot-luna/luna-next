@@ -109,8 +109,8 @@ if (name === "sudo" && args[0] !== "-v") {
   if (pkg === env.BOOTSTRAP_BUILD_FAIL) fail("simulated dependency build failure");
   if (pkg === "src/luna-cli") {
     mkdirSync("target", { recursive: true });
-    copyFileSync(env.BOOTSTRAP_LUNA_WRAPPER!, "target/luna-bun");
-    chmodSync("target/luna-bun", 0o755);
+    copyFileSync(env.BOOTSTRAP_LUNA_WRAPPER!, "target/luna");
+    chmodSync("target/luna", 0o755);
   } else fail("unexpected build target");
 } else if (name === "sleep" && env.BOOTSTRAP_CANCEL) {
   // Signal only the installer, then remain alive until its EXIT cleanup kills us.

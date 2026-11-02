@@ -17,8 +17,8 @@ unrelated origins, diverged history, and switches away from unreferenced detache
 commits. They never reset or autostash changes.
 
 - `luna self install`: update the checkout, install `before_cli` packages,
-  rebuild/publish the CLI, configure Git, then install `after_cli` packages and
-  the mise list. A direct invocation also upgrades system packages before
+  rebuild/publish the CLI, configure Git, then install `after_cli` packages,
+  the mise list, and bundled themes. A direct invocation also upgrades system packages before
   installing dependencies. `install.sh` passes `--from-bootstrap` to skip the
   repeated checkout update, system upgrade, and CLI build/publication; shared
   package stages and Git configuration still run.
@@ -32,8 +32,7 @@ bootstrap. Without a terminal, supply the flags or configure global Git identity
 first. Git defaults use branch `master` and editor `nvim`; unrelated global
 settings remain. Neovim is installed in `before_cli` so the editor is available.
 
-Setup currently stops after shared prerequisites and Git configuration. Themes,
-apps, `later` packages, and web apps are empty stages, reported as pending.
+Setup currently stops after shared prerequisites and Git configuration. Apps, `later` packages, and web apps are empty stages, reported as pending.
 Early AUR recipes require an existing yay because app installation is deferred.
 
 Build failures preserve the installed CLI. Completed checkout updates, packages,
@@ -46,5 +45,25 @@ From the repository root:
 ```sh
 bun run check
 bun test __tests__ packages/luna-api/tests src/luna-cli/tests
-bun run --cwd src/luna-cli build
+bun run --cwd src/luna-cli build --no-install
 ```
+
+## Build
+
+`bun run --cwd src/luna-cli build` compiles `target/luna` and atomically replaces
+`~/.local/bin/luna`. `--no-install` only compiles; bootstrap and self-update use
+that mode because they own executable publication.
+
+## Themes
+
+`luna theme` supports `install <folder> [--name NAME] [--force]`, `list`,
+`current`, `path [name]`, `get [key]`, `inspect <name>`, `set <name>`,
+`mode [dark|light|toggle]`, `toggle`, `get-config-file`, `hyprland`,
+`apply t3code`, and `remove <names...> [--dry-run] [--yes]`.
+
+Use `theme --config-file PATH --library-dir PATH` for explicit selection/library
+paths. JSON mode returns the same API response. Human `hyprland` output is a Lua
+table; other clients use `theme get --json`. Removal protects the selected theme
+and requires `--yes` or `--dry-run` without an interactive terminal.
+
+See [theme format and behavior](../../themes/DOCS.md).

@@ -20,7 +20,7 @@ async function fixture() {
     colors: Object.fromEntries(["foreground", "dark_foreground", "accent", "secondary_accent",
       "link", "info", "error", "comment", "warning", "success"].map(role => [role, "#123456"])),
   };
-  await Bun.write(`${root}/theme.json`, JSON.stringify({ ok: true, result: theme }));
+  await Bun.write(`${root}/theme.json`, JSON.stringify({ succes: true, data: theme }));
   await Bun.write(`${root}/bin/luna`, `#!/usr/bin/env bun
 if (Bun.argv.slice(2).join(" ") !== "theme get --json") process.exit(1);
 console.log(await Bun.file(Bun.env.FIXTURE_THEME!).text());
@@ -58,7 +58,7 @@ test("generation produces Glow's native formats, requested defaults, and a fresh
   expect(await Bun.file(`${value.directory}/config/style.jsonc`).text()).toBe(original);
 
   value.theme.colors.accent = "#abcdef";
-  await Bun.write(`${value.root}/theme.json`, JSON.stringify({ ok: true, result: value.theme }));
+  await Bun.write(`${value.root}/theme.json`, JSON.stringify({ succes: true, data: value.theme }));
   value.generate();
   const [updated] = await value.outputs();
   expect(JSON.parse(updated).heading.color).toBe("#abcdef");
@@ -72,12 +72,12 @@ test("failed theme resolution, invalid install paths, and malformed templates pr
     expect(() => value.generate({ ...value.env, LUNA_CONFIG_HOME_DIR: home })).toThrow("absolute install directory");
     expect(await value.outputs()).toEqual(original);
   }
-  for (const response of [{ ok: false }, { ok: true, result: { colors: {} } }]) {
+  for (const response of [{ succes: false }, { succes: true, data: { colors: {} } }]) {
     await Bun.write(`${value.root}/theme.json`, JSON.stringify(response));
     expect(value.generate).toThrow();
     expect(await value.outputs()).toEqual(original);
   }
-  await Bun.write(`${value.root}/theme.json`, JSON.stringify({ ok: true, result: value.theme }));
+  await Bun.write(`${value.root}/theme.json`, JSON.stringify({ succes: true, data: value.theme }));
   await Bun.write(`${value.directory}/config/glow.yml`, "style: [unterminated\n");
   expect(value.generate).toThrow();
   expect(await value.outputs()).toEqual(original);

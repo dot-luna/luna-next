@@ -1,12 +1,10 @@
-# Luna Next themes
+# Luna themes
 
-Shared colors, fonts, and appearance in declarative HOCON files.
-
-With `luna` installed, run from the repository root:
+Shared colors, fonts, appearance, and wallpaper sources in JSONC.
 
 ```sh
 luna theme install themes/bundled/tokyo-night
 luna theme set tokyo-night
 ```
 
-See [DOCS.md](DOCS.md) for theme fields, defaults, and application behavior.
+See [DOCS.md](DOCS.md) for fields, storage, commands, and limitations.

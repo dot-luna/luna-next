@@ -25,7 +25,7 @@
 #   3. Install mise's global bun@latest and add it to this script's PATH.
 #   4. Clone the selected Git ref, or safely update an existing Luna checkout.
 #   5. Run bun install --frozen-lockfile at the checkout root, then
-#      bun run --cwd src/luna-cli build to produce target/luna-bun.
+#      bun run --cwd src/luna-cli build --no-install to produce target/luna.
 #   6. Publish that binary as ~/.local/bin/luna with executable permissions.
 #   7. Wait five seconds, then hand the remaining setup to luna self install.
 #
@@ -298,10 +298,10 @@ printf 'Building Luna CLI...\n'
 (
     cd -- "$repo_root"
     run bun install --frozen-lockfile
-    run bun run --cwd src/luna-cli build
+    run bun run --cwd src/luna-cli build --no-install
 )
 staged_cli=$(mktemp "$bin_dir/.luna.XXXXXX")
-run install -m755 -- "$repo_root/target/luna-bun" "$staged_cli"
+run install -m755 -- "$repo_root/target/luna" "$staged_cli"
 # Renaming on the destination filesystem publishes the completed binary at once.
 mv -fT -- "$staged_cli" "$bin_dir/luna"
 staged_cli=

@@ -5,6 +5,7 @@ export type ApiErrorCode =
   | "INVALID_ARGUMENT"
   | "INPUT_REQUIRED"
   | "COMMAND_FAILED"
+  | "CONFLICT"
   | "IO_ERROR";
 
 export type SuccessResponse<T> = { succes: true; data: T };

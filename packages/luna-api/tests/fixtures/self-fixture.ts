@@ -39,7 +39,8 @@ export class SelfFixture {
   constructor() {
     for (const path of [this.home, this.bin, this.upstream]) mkdirSync(path);
     symlinkSync(bash, join(this.bin, "bash"));
-    for (const name of ["git", "pacman", "sudo", "mise", "bun"]) {
+    for (const tool of ["flock", "mv"]) symlinkSync(Bun.which(tool)!, join(this.bin, tool));
+    for (const name of ["git", "pacman", "sudo", "mise", "bun", "gsettings"]) {
       writeFileSync(
         join(this.bin, name),
         `#!${bash}\nexec ${[process.execPath, mock, name].map(quote).join(" ")} "$@"\n`,
@@ -70,6 +71,7 @@ export class SelfFixture {
       '[{"name":"node","source":"mise","version":"lts"}]',
     );
     this.write(this.upstream, "apps/git/scripts/after-install.sh", readFileSync(gitHook, "utf8"));
+    this.write(this.upstream, "themes/bundled/tokyo-night/theme.jsonc", "{}");
     this.write(this.upstream, ".gitignore", "target/\n");
     this.commit("Initial fixture");
     this.git(this.root, ["clone", this.upstream, this.repository]);

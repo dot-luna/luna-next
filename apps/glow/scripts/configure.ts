@@ -31,12 +31,12 @@ async function configure(): Promise<void> {
   if (!home?.startsWith("/")) throw new Error("LUNA_CONFIG_HOME_DIR must be an absolute install directory.");
 
   const response = JSON.parse(run(["luna", "theme", "get", "--json"]));
-  if (response.ok !== true) throw new Error("Luna could not resolve the current theme.");
+  if (response.succes !== true) throw new Error("Luna could not resolve the current theme.");
   const app = new URL("../", import.meta.url);
   const template = await Bun.file(new URL("config/style.jsonc", app)).text();
   // Replace only Luna color tokens; retain Glamour's own format placeholders.
   const rendered = template.replace(/\{\{colors\.([a-z_]+)\}\}/gu, (_, role: string) => {
-    const value = response.result.colors[role];
+    const value = response.data.colors[role];
     if (typeof value !== "string") throw new Error(`Luna's resolved theme is missing colors.${role}.`);
     return JSON.stringify(value).slice(1, -1);
   });

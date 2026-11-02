@@ -26,8 +26,8 @@ function run(args: string[]): string {
 
 async function configure(): Promise<void> {
   const response = JSON.parse(run(["luna", "theme", "get", "--json"]));
-  if (response.ok !== true) throw new Error("Luna could not resolve the current theme.");
-  const theme = response.result;
+  if (response.succes !== true) throw new Error("Luna could not resolve the current theme.");
+  const theme = response.data;
   const app = new URL("../", import.meta.url);
   const template = await Bun.file(new URL("config/config.jsonc", app)).text();
   const rendered = template.replace(/\{\{(colors\.[a-z_]+|name)\}\}/gu, (_, key: string) => {

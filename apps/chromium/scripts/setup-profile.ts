@@ -124,8 +124,8 @@ const colorRoles: Record<string, string> = {
 /** Read the current resolved theme on every run; source HOCON and defaults stay owned by Luna. */
 export function currentTheme(): Theme {
   const response = JSON.parse(run(["luna", "theme", "get", "--json"]));
-  if (response.ok !== true) throw new Error(response.error || "Cannot resolve Luna's theme.");
-  return response.result;
+  if (response.succes !== true) throw new Error(response.errMessage || "Cannot resolve Luna's theme.");
+  return response.data;
 }
 
 /** Trust Luna's resolved theme, overriding website corners only when its rounding is zero. */
