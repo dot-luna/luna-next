@@ -169,7 +169,7 @@ userTests("root installer", () => {
     ]);
     expect(value.commands("sleep")[0]!.args).toEqual(["5"]);
     expect(value.commands("luna")[0]).toMatchObject({
-      args: ["self", "install", "--no-git-pull"],
+      args: ["self", "install", "--from-bootstrap"],
       repo: value.managed,
     });
     expect(existsSync(value.binary)).toBe(true);
@@ -183,7 +183,7 @@ userTests("root installer", () => {
   test("accepts a relative checkout and piped input, preserving the original flags", () => {
     value.run(["--install-dir=custom checkout"], { piped: true });
     expect(value.commands("luna")[0]).toMatchObject({
-      args: ["self", "install", "--install-dir=custom checkout", "--no-git-pull"],
+      args: ["self", "install", "--install-dir=custom checkout", "--from-bootstrap"],
       repo: join(value.work, "custom checkout"),
     });
   });
@@ -261,7 +261,7 @@ userTests("root installer", () => {
       value.run(["--install-dir", destination!]);
       expect(value.commands("luna")[0]).toMatchObject({
         repo: selected,
-        args: ["self", "install", "--install-dir", destination, "--no-git-pull"],
+        args: ["self", "install", "--install-dir", destination, "--from-bootstrap"],
       });
     }
   });
@@ -366,7 +366,7 @@ userTests("root installer", () => {
       "self",
       "install",
       "--ref=latest",
-      "--no-git-pull",
+      "--from-bootstrap",
     ]);
   });
 
@@ -381,7 +381,7 @@ userTests("root installer", () => {
         "self",
         "install",
         ...args,
-        "--no-git-pull",
+        "--from-bootstrap",
       ]);
     }
   });
@@ -561,7 +561,12 @@ userTests("root installer", () => {
     const recovery = result.stdout.split("To finish, run:\n")[1]!.trim();
     const resumed = spawn([bash, "-c", recovery], value.env, value.work);
     expect(resumed.exitCode, resumed.stderr).toBe(0);
-    expect(value.commands("luna")[0]!.args).toEqual(["self", "install", ...args, "--no-git-pull"]);
+    expect(value.commands("luna")[0]!.args).toEqual([
+      "self",
+      "install",
+      ...args,
+      "--from-bootstrap",
+    ]);
   });
 
   test("termination during the pause skips setup and prints the resume command", () => {

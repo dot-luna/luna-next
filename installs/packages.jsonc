@@ -16,6 +16,11 @@
       "source": "pacman",
       "purpose": "Manage development tools and runtime versions",
     },
+    {
+      "name": "neovim",
+      "source": "pacman",
+      "purpose": "Git editor configured before app installation",
+    },
   ],
   // After the CLI is ready, before installing apps/: shared build tools, setup helpers, and runtimes.
   "after_cli": [
@@ -136,11 +141,6 @@
       "name": "github-cli",
       "source": "pacman",
       "purpose": "GitHub repository workflows",
-    },
-    {
-      "name": "neovim",
-      "source": "pacman",
-      "purpose": "Terminal text editor",
     },
     {
       "name": "fuse2",
