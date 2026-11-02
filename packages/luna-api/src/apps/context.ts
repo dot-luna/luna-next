@@ -43,9 +43,13 @@ export async function createContext(options: AppsOptions): Promise<Context> {
     LUNA_GIT_APP_INSTALL_DIR: absolute(env.LUNA_GIT_APP_INSTALL_DIR || join(data, "apps/git"), "LUNA_GIT_APP_INSTALL_DIR"),
   };
   const gitPaths = [environment.LUNA_GIT_APP_CLONE_DIR, environment.LUNA_GIT_APP_BUILD_DIR, environment.LUNA_GIT_APP_INSTALL_DIR];
+  const reserved = [config, join(data, "state"), join(data, "apps/local"), join(cache, "locks")];
   for (const [index, path] of gitPaths.entries()) {
     await safePath(path);
     if (within(path, repository) || within(repository, path) || within(path, home)) throw new ApiError("INVALID_PATH", `Git app directory overlaps HOME or the repository: ${path}`);
+    if (reserved.some(other => within(path, other) || within(other, path))) {
+      throw new ApiError("INVALID_PATH", `Git app directory overlaps managed configuration or reserved state: ${path}`);
+    }
     for (const other of gitPaths.slice(index + 1)) {
       if (within(path, other) || within(other, path)) throw new ApiError("INVALID_PATH", `Git app directories overlap: ${path}, ${other}`);
     }

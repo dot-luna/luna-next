@@ -129,7 +129,10 @@ export async function configure(context: Context, app: AppInfo): Promise<void> {
     if (!stat) throw new ApiError("INVALID_EXPORT", `Missing export source: ${source}`);
     if (item.user_config && stat.kind !== "file") throw new ApiError("INVALID_EXPORT", `user_config requires a file export: ${source}`);
   }
-  for (const item of app.manifest.exports ?? []) {
+  // Publish enclosing folders before their excluded, separately exported children.
+  const exports = [...(app.manifest.exports ?? [])].sort((left, right) =>
+    childPath(context.config, left.target).split("/").length - childPath(context.config, right.target).split("/").length);
+  for (const item of exports) {
     const exported = await exportFile(context, app, item);
     if (item.user_config) await integrate(context, app, item, exported);
   }
