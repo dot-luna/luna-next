@@ -17,6 +17,7 @@ export class ThemeFixture {
     PATH: this.bin,
     THEME_LOG: join(this.root, "commands"),
     THEME_PREFERENCE: join(this.root, "preference"),
+    LUNA_TEST_GTK_THEME: join(this.root, "gtk-theme"),
     THEME_MARKER: join(this.root, "failure"),
     THEME_CONFIG: this.configFile,
   };

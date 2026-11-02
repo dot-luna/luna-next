@@ -32,6 +32,8 @@ test("theme CLI installs JSONC, selects, resolves, lists and protects the active
   expect(JSON.parse(install.stdout)).toEqual({ succes: true, data: join(f.libraryDir, "custom") });
   const selected = await cli([...flags(), "set", "custom", "--json"]);
   expect(selected.code, selected.stdout + selected.stderr).toBe(0);
+  expect(f.read(f.env.THEME_PREFERENCE!)).toBe("prefer-dark");
+  expect(f.read(f.env.LUNA_TEST_GTK_THEME!)).toBe("'Luna'");
   const get = await cli([...flags(), "get", "colors.accent_foreground", "--json"]);
   expect(JSON.parse(get.stdout)).toEqual({ succes: true, data: "#000000" });
   expect(get.stderr).toBe("");
@@ -43,6 +45,21 @@ test("theme CLI installs JSONC, selects, resolves, lists and protects the active
       .active_border,
   ).toBe("#ffffff");
   expect((await cli([...flags(), "remove", "custom", "--yes", "--json"])).code).toBe(1);
+});
+
+test("theme mode and toggle commands synchronize GTK appearance", async () => {
+  f.write(f.env.THEME_PREFERENCE!, "prefer-dark");
+  f.write(f.env.LUNA_TEST_GTK_THEME!, "'Adwaita'");
+  const mode = await cli([...flags(), "mode", "dark", "--json"]);
+  expect(mode.code, mode.stdout + mode.stderr).toBe(0);
+  expect(JSON.parse(mode.stdout)).toEqual({ succes: true, data: "dark" });
+  expect(f.read(f.env.LUNA_TEST_GTK_THEME!)).toBe("'Luna'");
+
+  const toggle = await cli([...flags(), "toggle", "--json"]);
+  expect(toggle.code, toggle.stdout + toggle.stderr).toBe(0);
+  expect(JSON.parse(toggle.stdout)).toEqual({ succes: true, data: "light" });
+  expect(f.read(f.env.THEME_PREFERENCE!)).toBe("prefer-light");
+  expect(f.read(f.env.LUNA_TEST_GTK_THEME!)).toBe("'Luna-alt'");
 });
 
 test("theme removal requires confirmation and supports a dry run", async () => {

@@ -76,14 +76,30 @@ Selection writes normalize the owned selection file as formatted JSON, valid
 JSONC. Defaults stay in memory. Reads create a missing selection as `{}`. Mutations
 use a shared `flock` lock; conflicting writers fail. Atomic file writes preserve
 modes and refuse detected external changes. GSettings failures attempt exact
-selection and preference recovery without overwriting detected external edits.
+selection, generated GTK stylesheet, and desktop preference recovery without
+overwriting detected external edits.
 Appearance commands reuse the supplied session bus or its XDG runtime socket.
 Without one, `dbus-run-session` starts a private bus so dconf can persist settings
 from TTY/SSH sessions. This requires the `dbus` package, installed during setup.
 
 `self install` installs all bundled themes after shared dependencies, before apps.
-It selects Tokyo Night only when no theme is selected. Selection applies the system
-light/dark preference through GSettings; it does not restart apps. `theme hyprland`
+It selects Tokyo Night only when no theme is selected. `theme set`, `theme mode`,
+and `theme toggle` apply the system light/dark preference and generate GTK3 styling
+from the selected Luna palette, fonts, and `appearance.rounding`. GTK keeps its
+built-in widget layout; Luna supplies colors for surfaces, text, controls, and
+selection. The UI font applies generally; widgets marked monospace use `fonts.mono`.
+Control and menu corners follow rounding where GTK's grouped or circular control
+geometry does not take precedence. Authored colors stay fixed when system mode
+changes. Generated stylesheets live under
+`$XDG_DATA_HOME/themes/Luna/gtk-3.0/gtk.css` and `Luna-alt/gtk-3.0/gtk.css`, defaulting
+under `~/.local/share`. Luna switches native theme names when styling changes so
+GTK can reload without a file watcher. Generated files and saved dconf preferences
+persist across app restarts and desktop logins.
+
+GTK3 on Wayland reads the GSettings theme; X11 requires an XSettings bridge,
+which Luna does not configure. GNOME/libadwaita receives the system dark/light
+preference; its palette is not customized. App overrides can take precedence,
+and some apps need reopening; Luna does not restart them. `theme hyprland`
 provides validated native appearance, and `theme get --json` supplies app hooks.
 `theme apply t3code` writes T3's native palette/fonts, preserving other preferences;
 fonts need an app restart. T3 files can be partially applied after a late I/O error.
@@ -93,6 +109,9 @@ See [CLI commands](../src/luna-cli/DOCS.md) and [API methods](../packages/luna-a
 ## Checks
 
 ```sh
-bun test packages/luna-api/tests/theme.test.ts src/luna-cli/tests/theme.test.ts
+bun test packages/luna-api/tests src/luna-cli/tests/theme.test.ts
 bun run check
 ```
+
+Native GTK3 style checks also run when Python/PyGObject and a Wayland or X11
+display are available.

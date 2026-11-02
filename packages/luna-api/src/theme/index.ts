@@ -47,7 +47,7 @@ export const theme = {
       return locked(c, async () => {
         const value = await inspectTheme(c, name);
         await installThemePackages(c, value.packages);
-        await saveAppearance(c, value.colors.mode, name);
+        await saveAppearance(c, value.colors.mode, value);
         return value;
       });
     });
