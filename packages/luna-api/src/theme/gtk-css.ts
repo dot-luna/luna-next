@@ -63,18 +63,23 @@ menu:backdrop, menubar:backdrop, popover.background:backdrop, headerbar:backdrop
   text-shadow: none;
 }
 menuitem, menu menuitem, .menu menuitem, .context-menu menuitem, menubar > menuitem,
-menu menuitem:backdrop, .menu menuitem:backdrop, .context-menu menuitem:backdrop {
+menu menuitem:backdrop, .menu menuitem:backdrop, .context-menu menuitem:backdrop,
+modelbutton.flat, modelbutton.flat:backdrop, .menuitem.button.flat, .menuitem.button.flat:backdrop {
   color: @theme_fg_color;
   background-color: transparent;
   background-image: none;
 }
 menuitem:hover, menu menuitem:hover, .menu menuitem:hover, .context-menu menuitem:hover,
 menubar > menuitem:hover, menu menuitem:hover:backdrop,
-.menu menuitem:hover:backdrop, .context-menu menuitem:hover:backdrop {
+.menu menuitem:hover:backdrop, .context-menu menuitem:hover:backdrop,
+modelbutton.flat:hover, modelbutton.flat:hover:backdrop,
+.menuitem.button.flat:hover, .menuitem.button.flat:hover:backdrop {
   color: @theme_selected_fg_color;
   background-color: @theme_selected_bg_color;
 }
+/* Match GTK's circular color rules while inheriting its circular geometry. */
 button, button:backdrop, switch slider, switch:hover slider, switch:backdrop slider,
+button.circular:not(.flat):not(.osd):not(:checked):not(:active):not(:disabled):not(:backdrop),
 treeview.view header button, treeview.view header button:backdrop {
   color: @theme_fg_color;
   background-color: ${c.lighter_background};
@@ -83,12 +88,18 @@ treeview.view header button, treeview.view header button:backdrop {
   box-shadow: none;
   text-shadow: none;
   -gtk-icon-shadow: none;
+  outline-color: ${c.accent};
 }
-button:hover, button:hover:backdrop, treeview.view header button:hover {
+button:hover, button:hover:backdrop, treeview.view header button:hover,
+button.circular:hover:not(.osd):not(:checked):not(:active):not(:disabled):not(:backdrop) {
   color: @theme_selected_fg_color;
   background-color: ${c.selection};
   background-image: none;
   border-color: @borders;
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+  outline-color: ${c.accent};
 }
 button:active, button:checked, button:active:backdrop, button:checked:backdrop,
 button.suggested-action, button.suggested-action:hover, button.suggested-action:backdrop {
@@ -126,7 +137,9 @@ entry.error, entry.error:focus { border-color: ${c.error}; }
 entry.warning, entry.warning:focus { border-color: ${c.warning}; }
 selection, selection:focus, textview text selection, textview text selection:focus,
 treeview.view:selected, treeview.view:selected:focus, treeview.view:selected:backdrop,
-iconview.view:selected, row:selected, row:selected:backdrop {
+iconview.view:selected, row:selected, row:selected:backdrop,
+modelbutton.flat:selected, modelbutton.flat:selected:backdrop,
+.menuitem.button.flat:selected, .menuitem.button.flat:selected:backdrop {
   color: @theme_selected_fg_color;
   background-color: @theme_selected_bg_color;
 }
@@ -168,7 +181,11 @@ tooltip, tooltip.background { color: @theme_fg_color; background-color: ${c.dark
 entry:disabled, entry:disabled:backdrop, treeview.view:disabled, treeview.view:disabled:backdrop,
 menu menuitem:disabled, menu menuitem:disabled:backdrop,
 .menu menuitem:disabled, .menu menuitem:disabled:backdrop,
-.context-menu menuitem:disabled, .context-menu menuitem:disabled:backdrop {
+.context-menu menuitem:disabled, .context-menu menuitem:disabled:backdrop,
+modelbutton.flat:disabled, modelbutton.flat:disabled:backdrop,
+modelbutton.flat:disabled:selected, modelbutton.flat:disabled:selected:backdrop,
+.menuitem.button.flat:disabled, .menuitem.button.flat:disabled:backdrop,
+.menuitem.button.flat:disabled:selected, .menuitem.button.flat:disabled:selected:backdrop {
   color: @insensitive_fg_color;
   text-shadow: none;
   -gtk-icon-shadow: none;

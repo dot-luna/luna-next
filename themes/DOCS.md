@@ -112,3 +112,6 @@ See [CLI commands](../src/luna-cli/DOCS.md) and [API methods](../packages/luna-a
 bun test packages/luna-api/tests src/luna-cli/tests/theme.test.ts
 bun run check
 ```
+
+Native GTK3 style checks also run when Python/PyGObject and a Wayland or X11
+display are available.
