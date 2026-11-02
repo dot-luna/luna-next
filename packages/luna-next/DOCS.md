@@ -18,7 +18,7 @@ return everything. Relative local URLs resolve from the checkout.
 `find_repository(path?)` selects an explicit path, nonempty `LUNA_NEXT_ROOT`, or
 `~/.local/src/luna-next`, in that order. Working-directory ancestors are considered
 only when the managed checkout is absent. Invalid selected paths fail; the build
-checkout is never a runtime default. The [installer](../../install/DOCS.md)
+checkout is never a runtime default. The [installer](../../install.sh)
 prepares the managed path and shared environment.
 
 `install_packages(&packages)` batches by source: pacman, Git, AUR, mise, local.
