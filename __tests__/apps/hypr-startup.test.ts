@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
+import { appContext } from "../../packages/luna-api/src/apps/context.ts";
+import { AppFixture } from "../../packages/luna-api/tests/fixtures/app-fixture.ts";
 import { readCatalog } from "../../packages/luna-api/src/apps/catalog.ts";
 
 test("Hyprland starts a declared authentication agent and registered Luna commands at login", async () => {
@@ -20,9 +22,15 @@ dofile(arg[1])
   expect(result.exitCode, result.stderr.toString()).toBe(0);
   const commands = result.stdout.toString().trim().split("\n");
   expect(commands).toContain("/usr/lib/polkit-kde-authentication-agent-1");
-  const catalog = await readCatalog(repository);
-  const hypr = catalog.find((app) => app.id === "hypr")!;
-  expect(hypr.manifest.deps?.map((dep) => dep.name)).toContain("polkit-kde-agent");
+  const fixture = new AppFixture();
+  try {
+    const context = await appContext({ repository, env: fixture.env });
+    const catalog = await readCatalog(context);
+    const hypr = catalog.find((app) => app.id === "hypr")!;
+    expect(hypr.manifest.deps?.map((dep) => dep.name)).toContain("polkit-kde-agent");
+  } finally {
+    fixture.dispose();
+  }
   for (const command of commands.filter((command) =>
     command.startsWith('"$HOME/.local/bin/luna" '),
   )) {
