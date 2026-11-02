@@ -11,7 +11,7 @@ import {
 } from "../../theme/selection.ts";
 import { installTheme } from "../../theme/store.ts";
 import { readTheme } from "../../theme/values.ts";
-import { installThemePackages } from "../../theme/packages.ts";
+import { installThemePackages, missingThemePackages } from "../../theme/packages.ts";
 import { installApps } from "../../apps/index.ts";
 import { appContext } from "../../apps/context.ts";
 import type { InstallContext } from "./command.ts";
@@ -28,8 +28,11 @@ export async function installThemes(context: InstallContext) {
     const selected = (await selection(c)).value.theme?.name;
     if (selected && !entries.some((entry) => entry.name === selected))
       recipes.push(await readTheme(await themePath(c, selected)));
+    const missing = (
+      await Promise.all(recipes.map((recipe) => missingThemePackages(c, recipe.packages)))
+    ).flat();
     if (
-      recipes.some((recipe) => recipe.packages?.some((item) => item.source === "aur")) &&
+      missing.some((item) => item.source === "aur") &&
       !Bun.which("yay", { PATH: context.env.PATH })
     ) {
       context.progress("Installing yay for theme prerequisites...");

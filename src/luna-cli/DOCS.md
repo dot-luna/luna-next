@@ -80,6 +80,11 @@ See [theme format and behavior](../../themes/DOCS.md).
 - `luna webapp list`, `luna webapp launch <name>`,
   `luna webapp uninstall <name>`: manage apps by exact display name.
 
+The `webapp` group accepts `--data-dir`, `--applications-dir`, `--launcher`,
+`--profile-root`, and `--chromium` for explicit paths/browser selection. Generated
+desktop entries retain their resolved paths and browser even if the desktop
+session has a different environment.
+
 Install/configure Chromium first with `luna install chromium`. Web apps open in
 its `Luna` profile using app mode, without tabs/address bar. Uninstall retains
 browser data. Quote names or URLs containing spaces or shell punctuation:

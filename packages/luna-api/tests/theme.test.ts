@@ -315,3 +315,21 @@ test("theme dependencies allow only Pacman/AUR and install missing fonts before 
   expect(existsSync(join(f.libraryDir, "broken-fonts"))).toBe(false);
   expect(data(await Luna.theme.current(f.options))).toBe("fonts");
 });
+
+test("already installed theme fonts do not require Yay or sudo", async () => {
+  unlinkSync(join(f.bin, "yay"));
+  unlinkSync(join(f.bin, "sudo"));
+  const source = f.source(
+    "installed-fonts",
+    '{"packages":[{"name":"font-official","source":"pacman"},{"name":"font-aur","source":"aur"}]}',
+  );
+  data(await Luna.theme.install(source, f.options));
+  data(await Luna.theme.set("installed-fonts", f.options));
+  const commands = f
+    .read(f.env.SELF_LOG!)
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  expect(commands).toHaveLength(4);
+  expect(commands.every((c) => c.name === "pacman" && c.args[0] === "-Qq")).toBe(true);
+});

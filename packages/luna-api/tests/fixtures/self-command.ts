@@ -48,8 +48,24 @@ if (name === "gsettings") {
   if (args[0] === "-S")
     writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
   process.exit(0);
+} else if (name === "mise" && args.includes("latest")) {
+  const requested = args.at(-1)!.split("@")[1];
+  const versions: string[] = JSON.parse(env.SELF_MISE_VERSIONS ?? "[]");
+  const version = versions.find(
+    (version) =>
+      !requested ||
+      requested === "latest" ||
+      version === requested ||
+      version.startsWith(requested + "."),
+  );
+  if (version) console.log(version);
+  process.exit(0);
 } else if (name === "mise" && args.includes("ls")) {
-  console.log("[]");
+  console.log(
+    JSON.stringify(
+      JSON.parse(env.SELF_MISE_VERSIONS ?? "[]").map((version: string) => ({ version })),
+    ),
+  );
   process.exit(0);
 } else if (name === "mise" && args.includes("which")) {
   console.log(join(env.SELF_BIN!, "bun"));

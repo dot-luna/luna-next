@@ -364,3 +364,47 @@ test("self install bootstraps the Yay provider before installing AUR theme fonts
   expect(progress).toContain("Installing yay for theme prerequisites...");
   expect(JSON.parse(readFileSync(f.env.SELF_INSTALLED_JSON!, "utf8"))).toContain("aur-font");
 });
+
+test("explicit mise versions require a matching installed version; partial requests resolve installed tools", async () => {
+  f.app("tool", { name: "tool", source: "mise", version: "2.0.0" }, [
+    "before_install",
+    "after_install",
+  ]);
+  const env = { ...f.env, SELF_MISE_VERSIONS: '["1.0.0"]' };
+  data(await Luna.apps.install([], { ...options(), env }));
+  expect(
+    f
+      .commands()
+      .some((c) => c.name === "mise" && c.args.includes("use") && c.args.includes("tool@2.0.0")),
+  ).toBe(true);
+  expect(f.hooks().map((h) => h.stage)).toEqual(["before_install", "after_install"]);
+  f.entries = [];
+  f.app("tool", { name: "tool", source: "mise", version: "1" }, [
+    "before_install",
+    "after_install",
+  ]);
+  const before = f.hooks().length;
+  data(await Luna.apps.install([], { ...options(), env }));
+  expect(f.hooks()).toHaveLength(before);
+  expect(f.commands().at(-1)?.args).toContain("tool@1");
+});
+
+test("self install does not bootstrap Yay for already installed theme fonts", async () => {
+  unlinkSync(join(f.bin, "yay"));
+  f.write(
+    f.repository,
+    "themes/bundled/tokyo-night/theme.jsonc",
+    '{"packages":[{"name":"existing-font","source":"aur"}]}',
+  );
+  f.write(f.root, "installed.json", '["existing-font"]');
+  const progress: string[] = [];
+  data(
+    await Luna.self.install({
+      ...options(),
+      fromBootstrap: true,
+      git: { name: "Test", email: "test@example.test" },
+      onProgress: (message) => progress.push(message),
+    }),
+  );
+  expect(progress.some((message) => message.includes("Installing yay"))).toBe(false);
+});

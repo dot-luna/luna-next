@@ -28,7 +28,7 @@ test("web apps create isolated launchers, update URLs and uninstall without remo
   );
   const entry = readFileSync(app.desktopFile, "utf8");
   expect(entry).toContain("Type=Application");
-  expect(entry).toContain("webapp launch");
+  expect(entry).toContain('"webapp" "launch"');
   expect(entry).toContain("100%%");
   expect(readFileSync(preferences, "utf8")).toBe("{}");
   expect(existsSync(f.env.CHROME_LOG!)).toBe(false);
@@ -177,3 +177,54 @@ test("profile symlink aliases cannot hide overlap with web app exports", async (
   ).toMatchObject({ succes: false, err: "INVALID_PATH" });
   expect(existsSync(join(f.home, ".local/share/luna/webapps"))).toBe(false);
 });
+
+test.skipIf(!Bun.which("gio"))(
+  "desktop launch retains explicit API roots and browser outside the install environment",
+  async () => {
+    const entry = resolve(import.meta.dir, "../../../src/luna-cli/src/index.ts");
+    const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
+    const launcher = join(f.home, "custom bin/luna % cli");
+    f.write(
+      f.home,
+      "custom bin/luna % cli",
+      `#!${Bun.which("bash")}\nexec ${[process.execPath, entry].map(quote).join(" ")} "$@"\n`,
+    );
+    const { chmodSync } = await import("node:fs");
+    chmodSync(launcher, 0o755);
+    const profileRoot = join(f.root, "custom profile");
+    f.write(profileRoot, "Luna/Preferences", "{}");
+    const custom = {
+      ...options(),
+      launcher,
+      profileRoot,
+      dataDir: join(f.root, "custom data"),
+      applicationsDir: join(f.root, "custom applications"),
+      chromium: join(f.bin, "chromium"),
+    };
+    const app = data(
+      await Luna.webapp.install(
+        'Custom "App" 100% $name `value` \\',
+        "https://example.test/",
+        custom,
+      ),
+    );
+    const child = Bun.spawn([Bun.which("gio")!, "launch", app.desktopFile], {
+      env: { ...f.env, PATH: "/usr/bin:/bin" },
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, stderr, status] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    expect(status, stdout + stderr).toBe(0);
+    const deadline = Date.now() + 2000;
+    while (!existsSync(f.env.CHROME_LOG!) && Date.now() < deadline) await Bun.sleep(10);
+    const args = JSON.parse(readFileSync(f.env.CHROME_LOG!, "utf8"));
+    expect(args).toContain(`--user-data-dir=${profileRoot}`);
+    expect(args).toContain("--app=https://example.test/");
+    expect(existsSync(join(f.home, ".local/share/luna/webapps"))).toBe(false);
+  },
+);

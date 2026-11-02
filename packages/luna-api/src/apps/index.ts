@@ -47,17 +47,19 @@ async function installOne(context: InstallContext, app: CatalogApp, force = fals
         if (![0, 1].includes(result.exitCode)) throw new ApiError("COMMAND_FAILED", result.stderr);
         installed = result.exitCode === 0;
       } else if (app.manifest.source === "mise") {
+        const request = app.manifest.version
+          ? `${app.manifest.name}@${app.manifest.version}`
+          : app.manifest.name;
+        // Mise resolves aliases and partial versions against its installed tools.
         const result = await local.execute([
           "mise",
           "--cd",
           local.home,
-          "ls",
+          "latest",
           "--installed",
-          "--json",
-          app.manifest.name,
+          request,
         ]);
-        const versions: unknown = JSON.parse(result.stdout);
-        installed = Array.isArray(versions) && versions.length > 0;
+        installed = Boolean(result.stdout.trim());
       } else installed = Boolean(previous);
       if (!installed || force) {
         await runHooks(local, app, "before_install");

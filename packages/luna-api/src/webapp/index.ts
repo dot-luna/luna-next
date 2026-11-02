@@ -49,7 +49,7 @@ async function readApp(context: WebappContext, value: string, byId = false) {
 /** Install launch metadata and a desktop entry without opening a browser or changing its profile. */
 export async function installWebapp(context: WebappContext, name: string, url: string) {
   const recipe = validate(webappRecipeSchema, { name, url }, "Web app");
-  await requireProfile(context);
+  const browser = await requireProfile(context);
   const launcher = await metadata(context.launcher);
   if (!launcher?.isFile() || !(launcher.mode & 0o111))
     throw new ApiError("INVALID_PATH", "Install the Luna CLI before installing web apps");
@@ -66,11 +66,30 @@ export async function installWebapp(context: WebappContext, name: string, url: s
     const source = await readOptional(config);
     const entry = await readOptional(desktop);
     const title = app.name.replaceAll("\\", "\\\\");
+    // env also lets desktop clients expand %% in executable paths as an argument.
+    // Desktop sessions need not inherit the install process's environment or API overrides.
+    const launchArgs = [
+      "/usr/bin/env",
+      context.launcher,
+      "webapp",
+      "launch",
+      app.name,
+      "--data-dir",
+      context.dataDir,
+      "--applications-dir",
+      context.applicationsDir,
+      "--launcher",
+      context.launcher,
+      "--profile-root",
+      context.profileRoot,
+      "--chromium",
+      browser,
+    ];
     const body = [
       "[Desktop Entry]",
       "Type=Application",
       `Name=${title}`,
-      `Exec=${desktopArgument(context.launcher)} webapp launch ${desktopArgument(app.name)}`,
+      `Exec=${launchArgs.map(desktopArgument).join(" ")}`,
       "Icon=chromium",
       "Terminal=false",
       "Categories=Network;",
@@ -123,10 +142,10 @@ export const webapp = {
     return respond(async () => {
       const c = webappContext(options);
       const app = await readApp(c, name);
-      await requireProfile(c);
+      const browser = await requireProfile(c);
       const child = Bun.spawn(
         [
-          c.chromium,
+          browser,
           `--user-data-dir=${c.profileRoot}`,
           "--profile-directory=Luna",
           `--app=${app.url}`,

@@ -104,6 +104,7 @@ Options accept `env`, `dataDir`, `applicationsDir`, `launcher`, `profileRoot`, a
 `$HOME/.local/bin/luna`, and `$CHROME_USER_DATA_DIR` (otherwise
 `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium`). XDG roots
 fall back under HOME. Desktop entries invoke the installed Luna executable and
-use a generic Chromium icon. Browser profile and export paths must not overlap;
+use a generic Chromium icon. Launchers retain resolved API paths and browser
+selection independently of the desktop environment. Browser profile and export paths must not overlap;
 linked export paths are rejected. Per-app locks serialize writes. A late I/O
 failure can leave metadata without its launcher; reinstall repairs it.

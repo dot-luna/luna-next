@@ -51,9 +51,10 @@ Partial themes inherit visual defaults, but do not inherit package declarations.
 `theme set` checks again before changing selection, so removed dependencies are
 restored before activation. `pacman -Qq` detects installed packages; Pacman uses
 sudo and AUR uses Yay, both with `--needed --noconfirm`. Pacman and the required
-installer must already be available for direct theme commands. Authenticate sudo
-first if needed. Self-install builds Yay from the app catalog before theme packages
-when required. Read commands never install packages. Removing a theme retains
+installer must already be available when packages are missing. Installed packages
+do not require their original installer. Authenticate sudo
+first if needed. Self-install builds Yay from the app catalog only when missing
+AUR theme packages require it. Read commands never install packages. Removing a theme retains
 its packages. A package failure keeps the previous installed copy or selection;
 packages already installed remain.
 

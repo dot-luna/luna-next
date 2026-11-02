@@ -1,4 +1,4 @@
-import { Luna } from "@luna/api";
+import { Luna, type WebappOptions } from "@luna/api";
 import type { Command } from "commander";
 import type { createOutput } from "../lib/output.ts";
 import { promptForm } from "../lib/prompts.ts";
@@ -9,7 +9,15 @@ export function addWebappCommands(
   json: boolean,
   setExitCode: (value: number) => void,
 ) {
-  const group = program.command("webapp").description("Manage web apps in Luna's Chromium profile");
+  const group = program
+    .command("webapp")
+    .description("Manage web apps in Luna's Chromium profile")
+    .option("--data-dir <path>", "Web app metadata directory")
+    .option("--applications-dir <path>", "Desktop entry directory")
+    .option("--launcher <path>", "Installed Luna executable")
+    .option("--profile-root <path>", "Chromium user-data directory containing the Luna profile")
+    .option("--chromium <path>", "Chromium executable");
+  const options = () => group.opts<WebappOptions>();
   group
     .command("install [name] [url]")
     .description("Install a web app; prompt for missing name or URL")
@@ -33,7 +41,7 @@ export function addWebappCommands(
       }
       setExitCode(
         output.response(
-          await Luna.webapp.install(name, url),
+          await Luna.webapp.install(name, url, options()),
           (data) => `Installed web app: ${data.name}`,
         ),
       );
@@ -44,7 +52,7 @@ export function addWebappCommands(
     .action(async (name: string) => {
       setExitCode(
         output.response(
-          await Luna.webapp.uninstall(name),
+          await Luna.webapp.uninstall(name, options()),
           (data) => `Removed web app: ${data.name}`,
         ),
       );
@@ -54,7 +62,7 @@ export function addWebappCommands(
     .description("List installed web apps")
     .action(async () => {
       setExitCode(
-        output.response(await Luna.webapp.list(), (data) =>
+        output.response(await Luna.webapp.list(options()), (data) =>
           data.map((app) => `${app.name}  ${app.url}`).join("\n"),
         ),
       );
@@ -64,7 +72,10 @@ export function addWebappCommands(
     .description("Open a web app in Chromium app mode")
     .action(async (name: string) => {
       setExitCode(
-        output.response(await Luna.webapp.launch(name), (data) => `Launched web app: ${data.name}`),
+        output.response(
+          await Luna.webapp.launch(name, options()),
+          (data) => `Launched web app: ${data.name}`,
+        ),
       );
     });
 }

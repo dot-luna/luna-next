@@ -80,6 +80,7 @@ export async function requireProfile(context: WebappContext) {
   } catch {
     throw new ApiError("INVALID_METADATA", `Invalid Chromium preferences: ${preferences}`);
   }
-  if (!Bun.which(context.chromium, { PATH: context.env.PATH }))
-    throw new ApiError("INVALID_ENVIRONMENT", "Chromium is required for web apps");
+  const executable = Bun.which(context.chromium, { PATH: context.env.PATH });
+  if (!executable) throw new ApiError("INVALID_ENVIRONMENT", "Chromium is required for web apps");
+  return executable;
 }

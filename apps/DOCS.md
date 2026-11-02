@@ -32,7 +32,7 @@ Use `luna install [names...]` to install/configure, or `luna configure [names...
 for configuration only. Names can be IDs, package names, or aliases. Selection
 always follows `apps.jsonc` order; omitted names select all. `--force` reruns
 installation/build hooks. Pacman/AUR packages are checked with `pacman -Qq`;
-mise tools use installed-version detection. Dependencies run before app hooks.
+mise tools resolve requested versions/aliases against installed versions. Dependencies run before app hooks.
 An absent Yay is installed through the indexed provider, which must precede AUR apps.
 
 ## Exports and personal settings
