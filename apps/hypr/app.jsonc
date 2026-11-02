@@ -1,0 +1,29 @@
+{
+  "name": "hyprland",
+  "source": "pacman",
+
+  "exports": [
+    {
+      "source": "config/",
+      "target": "hypr/",
+
+      // The entry is exported separately to connect it to the user's configuration.
+      "exclude": ["hyprland.lua"],
+    },
+    {
+      "source": "config/hyprland.lua",
+      "target": "hypr/hyprland.lua",
+
+      "user_config": {
+        "dest": [
+          "$HYPRLAND_CONFIG",
+          "$XDG_CONFIG_HOME/hypr/hyprland.lua",
+          "$HOME/.config/hypr/hyprland.lua",
+          "~/.config/hypr/hyprland.lua",
+        ],
+        // Include Luna's entry before personal settings so user overrides take precedence.
+        "dest_mode": "include",
+      },
+    },
+  ],
+}

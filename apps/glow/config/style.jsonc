@@ -1,0 +1,87 @@
+{
+  // Theme placeholders are resolved by configure.ts; Glow receives plain JSON.
+  // Leave backgrounds unset to retain the terminal's background/transparency.
+  "document": {
+    "block_prefix": "\n",
+    "block_suffix": "\n",
+    "color": "{{colors.foreground}}",
+    "margin": 2
+  },
+  "paragraph": {},
+  "block_quote": {
+    "indent": 1,
+    "indent_token": "│ ",
+    "color": "{{colors.dark_foreground}}"
+  },
+  "list": { "level_indent": 2 },
+
+  // Use color to distinguish headings; reserve bold for H1 and explicit strong text.
+  "heading": {
+    "block_suffix": "\n",
+    "color": "{{colors.accent}}",
+    "bold": false
+  },
+  "h1": { "bold": true },
+  "h2": { "prefix": "## " },
+  "h3": { "prefix": "### " },
+  "h4": { "prefix": "#### " },
+  "h5": { "prefix": "##### " },
+  "h6": { "prefix": "###### " },
+  "text": {},
+  "strong": { "bold": true },
+  "emph": { "italic": true },
+  "strikethrough": { "crossed_out": true },
+  "hr": {
+    "color": "{{colors.dark_foreground}}",
+    "format": "\n────────────────────────\n"
+  },
+
+  // Keep list markers compact and tasks distinguishable without relying on color.
+  "item": { "block_prefix": "• " },
+  "enumeration": { "block_prefix": ". " },
+  "task": { "ticked": "[✓] ", "unticked": "[ ] " },
+  "link": { "color": "{{colors.link}}", "underline": true },
+  "link_text": { "color": "{{colors.link}}" },
+  "image": { "color": "{{colors.info}}", "underline": true },
+  "image_text": {
+    "color": "{{colors.dark_foreground}}",
+    "format": "Image: {{.text}} →"
+  },
+
+  // Inline code uses a second accent. Chroma tokens use Luna's semantic colors.
+  "code": { "color": "{{colors.secondary_accent}}", "prefix": " ", "suffix": " " },
+  "code_block": {
+    "color": "{{colors.foreground}}",
+    "margin": 2,
+    "chroma": {
+      "text": { "color": "{{colors.foreground}}" },
+      "background": { "color": "{{colors.foreground}}" },
+      "error": { "color": "{{colors.error}}" },
+      "comment": { "color": "{{colors.comment}}" },
+      "comment_preproc": { "color": "{{colors.info}}" },
+      "keyword": { "color": "{{colors.secondary_accent}}" },
+      "keyword_type": { "color": "{{colors.info}}" },
+      "operator": { "color": "{{colors.secondary_accent}}" },
+      "punctuation": { "color": "{{colors.foreground}}" },
+      "name": { "color": "{{colors.foreground}}" },
+      "name_builtin": { "color": "{{colors.info}}" },
+      "name_function": { "color": "{{colors.accent}}" },
+      "name_class": { "color": "{{colors.accent}}" },
+      "name_tag": { "color": "{{colors.accent}}" },
+      "name_attribute": { "color": "{{colors.secondary_accent}}" },
+      "literal_number": { "color": "{{colors.warning}}" },
+      "literal_string": { "color": "{{colors.success}}" },
+      "literal_string_escape": { "color": "{{colors.info}}" },
+      "generic_deleted": { "color": "{{colors.error}}" },
+      "generic_inserted": { "color": "{{colors.success}}" },
+      "generic_emph": { "italic": true },
+      "generic_strong": { "bold": true }
+    }
+  },
+  "table": {},
+  "definition_list": {},
+  "definition_term": { "color": "{{colors.accent}}" },
+  "definition_description": { "block_prefix": "\n→ " },
+  "html_block": {},
+  "html_span": {}
+}

@@ -1,0 +1,16 @@
+{
+  "name": "bitwarden",
+  "source": "pacman",
+
+  "exports": [
+    {
+      "source": "config/hyprland.lua",
+      "target": "bitwarden/hyprland.lua",
+
+      "user_config": {
+        "dest": ["$LUNA_CONFIG_HOME_DIR/hypr/include.lua"],
+        "dest_mode": "include",
+      },
+    },
+  ],
+}

@@ -1,0 +1,64 @@
+{
+  // Package ID used by the selected package source.
+  "name": "example-app",
+
+  // Package source: pacman, aur, git, local, or mise.
+  "source": "pacman",
+
+  // Optional command aliases for this app.
+  "alias": ["example"],
+
+  // Optional: omit exports when there are no configuration files to install.
+  // Export destinations are replaced without backups.
+  "exports": [
+    {
+      // Path relative to <app>/; copy this folder and all its contents.
+      "source": "config/",
+
+      // Optional: paths relative to the source folder to leave out of this export.
+      "exclude": ["local.lua"],
+
+      // Destination inside Luna's config install directory.
+      // Luna adds the install directory automatically.
+      "target": "example-app/",
+
+      "user_config": {
+        // Try destinations in priority order; use the first resolved, nonempty path.
+        // "$VAR" reads an environment variable; "!command" uses command output.
+        // Skip unset/empty variables and failed/empty command results.
+        "dest": ["$EXAMPLE_APP_CONFIG_DIR", "!example-app --config-dir", "~/.config/example-app/"],
+
+        // How to connect this export to the user's configuration:
+        // "merge": merge Luna's defaults into dest; existing user settings win.
+        // "include": add a reference to the exported file in dest using native include syntax.
+        "dest_mode": "merge",
+      },
+    },
+  ],
+
+  // Source and target must both be folders or both be files.
+  // For a file, include its filename in both paths; only that file is copied.
+  // Source paths must stay inside <app>/.
+
+  // Git apps also declare url, optional version, git_include_prereleases, and
+  // git_release_tag_pattern; see t3code/app.jsonc for a complete Git example.
+
+  // Optional: omit hooks or individual stages when no scripts are needed.
+  // Paths are relative to <app>/. Each array runs in order through script shebangs.
+  "hooks": {
+    // Surround package installation or upgrades; skip when the package needs neither.
+    "before_install": ["scripts/before-install.sh"],
+    "after_install": ["scripts/after-install.ts"],
+
+    // Git apps only: run after resolving/cloning the selected revision, before configuration.
+    // build contains the build commands; after_build runs only when they all succeed.
+    "before_build": ["scripts/before-build.ts"],
+    "build": ["scripts/build.ts"],
+    "after_build": ["scripts/after-build.ts"],
+
+    // Surround exports and user_config integration; run on each configuration request.
+    // before_configure can generate files used by exports.
+    "before_configure": ["scripts/before-configure.ts"],
+    "after_configure": ["scripts/after-configure.ts"],
+  },
+}

@@ -1,0 +1,8 @@
+{
+  "name": "git",
+  "source": "pacman",
+
+  "hooks": {
+    "after_install": ["scripts/after-install.sh"],
+  },
+}

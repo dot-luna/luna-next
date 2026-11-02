@@ -1,7 +1,8 @@
 -- Appearance toggles preserve values from the first press and reset on config reload.
-return function(bind)
+return function(bind, appearance)
     local saved = {}
     local layouts = {}
+    local decoration = appearance.decoration
 
     -- Save the current values on the first press; the next press restores them.
     -- Each toggle remembers its own settings, so gaps and opacity remain independent.
@@ -47,7 +48,7 @@ return function(bind)
     end, "Toggle window gaps")
 
     -- Super + Backspace: make the global window opacity settings fully opaque.
-    -- If already opaque, use 90% opacity for normal windows and keep fullscreen opaque.
+    -- If already opaque, use Luna's resolved theme opacity values.
     -- Press again to restore the previous values; app-specific opacity rules still apply.
     bind("SUPER + BackSpace", function()
         local active = hl.get_config("decoration.active_opacity")
@@ -55,9 +56,9 @@ return function(bind)
         local fullscreen = hl.get_config("decoration.fullscreen_opacity")
         local opaque = active == 1 and inactive == 1 and fullscreen == 1
         toggle("opacity", {
-            ["decoration.active_opacity"] = opaque and 0.9 or 1,
-            ["decoration.inactive_opacity"] = opaque and 0.9 or 1,
-            ["decoration.fullscreen_opacity"] = 1,
+            ["decoration.active_opacity"] = opaque and decoration.active_opacity or 1,
+            ["decoration.inactive_opacity"] = opaque and decoration.inactive_opacity or 1,
+            ["decoration.fullscreen_opacity"] = opaque and decoration.fullscreen_opacity or 1,
         })
     end, "Toggle window transparency")
 

@@ -1,0 +1,14 @@
+# configure.ts inserts the absolute path of Luna's exported stylesheet.
+style: {{style_path}}
+
+# Page through files using $PAGER, or Glow's default pager when unset.
+pager: true
+
+# Enable mouse-wheel scrolling in Glow's interactive viewer.
+mouse: true
+
+# Include hidden and Git-ignored files when browsing.
+all: true
+
+# Show line numbers in Glow's interactive viewer.
+showLineNumbers: true

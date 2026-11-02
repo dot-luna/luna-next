@@ -1,0 +1,16 @@
+{
+  "name": "bat",
+  "source": "pacman",
+
+  "exports": [
+    {
+      "source": "config/config.flags",
+      "target": "bat/config.flags",
+
+      "user_config": {
+        "dest": ["$BAT_CONFIG_PATH", "!bat --config-file", "~/.config/bat/config"],
+        "dest_mode": "merge",
+      },
+    },
+  ],
+}
