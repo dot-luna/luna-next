@@ -25,7 +25,7 @@ and commits, use fast-forward pulls, and do not replace local tags.
 Installation additionally accepts `fromBootstrap` to skip the checkout update,
 system upgrade, and CLI build already performed by `install.sh`; package stages
 still run. Order: validate, update checkout, `before_cli` packages, build/publish
-CLI, Git configuration, `after_cli` packages and mise tools. Direct installation
+CLI, Git configuration, `after_cli` packages/mise tools, then bundled themes. Direct installation
 upgrades system packages before installing dependencies.
 
 Use `git: { name?, email? }` to override global identity values. Otherwise existing
@@ -34,7 +34,7 @@ overrides. `requestGitIdentity(current)` may supply missing values;
 the API itself never prompts. Git defaults use `master` and `nvim`, with Neovim
 in the before-CLI dependencies. Unrelated global Git settings are retained.
 
-Themes, apps, later packages, and web apps are empty installation stages.
+Apps, later packages, and web apps are empty installation stages.
 `data.pending` lists them; `data.cliRebuilt` reports whether CLI publication ran.
 An early AUR recipe requires an already installed yay. Update requires mise and
 changes only the checkout and CLI. Both publish to `$HOME/.local/bin/luna`.
@@ -50,3 +50,22 @@ bun run --cwd packages/luna-api check
 bun run --cwd packages/luna-api test
 bun run --cwd packages/luna-api build
 ```
+
+## Theme API
+
+`Luna.theme` exposes `install(source, options?)`, `list(options?)`,
+`current(options?)`, `path(name?, options?)`, `get(key?, options?)`,
+`inspect(name, options?)`, `set(name, options?)`, `mode(mode?, options?)`,
+`toggle(options?)`, `getConfigFile(options?)`, `hyprland(options?)`,
+`applyT3code(options?)`, and `remove(names, options?)`. All return the usual API
+response. Missing dotted keys and an unset current name return null.
+
+Theme options accept `env`, `configFile`, `libraryDir`, and `wallpaperDir`.
+Install also accepts `name` and `force`; remove accepts `dryRun`; T3 application
+accepts an explicit `userdata` directory. `mode` accepts dark/light/toggle.
+Validation uses the feature-owned Zod schemas in `src/theme/schema.ts`.
+
+See [theme fields and storage](../../themes/DOCS.md). Selection changes apply
+GSettings but do not restart apps. Source JSONC stays intact; selection writes
+normalize its owned document. Mutations can return `CONFLICT` for locks, external
+edits, existing copies, or wallpaper filename conflicts.

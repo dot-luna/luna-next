@@ -31,8 +31,6 @@
 ├── __tests__/                     # Repository-level Bun tests and fixtures
 ├── themes/
 │   ├── bundled/                   # Included themes
-│   ├── selection.schema.json      # Theme selection schema
-│   ├── theme.schema.json          # Theme definition schema
 │   ├── DOCS.md                    # Theme format and behavior
 │   └── README.md
 ├── .gitignore

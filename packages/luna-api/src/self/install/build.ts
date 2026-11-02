@@ -12,13 +12,13 @@ export async function buildCli(context: InstallContext, executable: string) {
   }
   context.env.PATH = `${dirname(bun)}:${context.env.PATH ?? ""}`;
   await context.execute([bun, "install", "--frozen-lockfile"]);
-  await context.execute([bun, "run", "--cwd", "src/luna-cli", "build"]);
+  await context.execute([bun, "run", "--cwd", "src/luna-cli", "build", "--no-install"]);
   const directory = dirname(executable);
   await mkdir(directory, { recursive: true });
   const staging = await mkdtemp(join(directory, ".luna-"));
   try {
     const staged = join(staging, "luna");
-    await copyFile(join(context.repository, "target/luna-bun"), staged);
+    await copyFile(join(context.repository, "target/luna"), staged);
     await chmod(staged, 0o755);
     await rename(staged, executable);
   } finally {

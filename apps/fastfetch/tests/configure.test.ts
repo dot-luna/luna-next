@@ -29,7 +29,7 @@ async function fixture() {
       dark_foreground: "#445566", info: "#abcdef",
     },
   };
-  await Bun.write(`${root}/theme.json`, JSON.stringify({ ok: true, result: theme }));
+  await Bun.write(`${root}/theme.json`, JSON.stringify({ succes: true, data: theme }));
   await Bun.write(`${root}/bin/luna`, `#!/usr/bin/env bun
 if (Bun.argv.slice(2).join(" ") !== "theme get --json") process.exit(1);
 console.log(await Bun.file(Bun.env.FIXTURE_THEME!).text());
@@ -74,7 +74,7 @@ test("generation refreshes resolved colors, preserves the template, and produces
   }
 
   value.theme.colors.accent = "#fedcba";
-  await Bun.write(`${value.root}/theme.json`, JSON.stringify({ ok: true, result: value.theme }));
+  await Bun.write(`${value.root}/theme.json`, JSON.stringify({ succes: true, data: value.theme }));
   value.generate();
   const updated = Bun.JSONC.parse(await Bun.file(value.output).text()) as Config;
   expect(updated.logo.color["1"]).toBe("#fedcba");
@@ -84,7 +84,7 @@ test("theme failures leave the last generated configuration intact", async () =>
   const value = await fixture();
   value.generate();
   const original = await Bun.file(value.output).text();
-  for (const response of [{ ok: false, error: "Theme unavailable" }, { ok: true, result: { ...value.theme, colors: {} } }]) {
+  for (const response of [{ succes: false, error: "Theme unavailable" }, { succes: true, data: { ...value.theme, colors: {} } }]) {
     await Bun.write(`${value.root}/theme.json`, JSON.stringify(response));
     expect(value.generate).toThrow();
     expect(await Bun.file(value.output).text()).toBe(original);

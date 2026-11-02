@@ -27,12 +27,12 @@ function run(args: string[]): string {
 
 async function configure(): Promise<void> {
   const response = JSON.parse(run(["luna", "theme", "get", "--json"]));
-  if (response.ok !== true) throw new Error("Luna could not resolve the current theme.");
+  if (response.succes !== true) throw new Error("Luna could not resolve the current theme.");
   const app = new URL("../", import.meta.url);
   const config = await Bun.file(new URL("config/kitty.conf", app)).text();
   const template = await Bun.file(new URL("config/theme.conf", app)).text();
   const theme = template.replace(/\{\{(colors|fonts)\.([a-z_]+)\}\}/gu, (_, group: string, role: string) => {
-    const value = response.result[group][role];
+    const value = response.data[group][role];
     if (typeof value !== "string") throw new Error(`Luna's resolved theme is missing ${group}.${role}.`);
     return value;
   });

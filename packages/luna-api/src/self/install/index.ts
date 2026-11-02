@@ -5,13 +5,14 @@ import { buildCli } from "./build.ts";
 import { updateCheckout } from "./checkout.ts";
 import { configureGit } from "./git.ts";
 import { installPackages, readPackages } from "./packages.ts";
-import { installApps, installLaterPackages, installThemes, installWebApps } from "./pending.ts";
+import { installApps, installLaterPackages, installWebApps } from "./pending.ts";
+import { installThemes } from "./themes.ts";
 import type { InstallOptions, InstallResponse } from "./types.ts";
 
 /**
  * Prepare an existing Arch Linux Luna checkout through after_cli packages and mise tools.
  * Bootstrap skips checkout updates and CLI publication, but still reconciles prerequisites.
- * Completed steps remain on failure. Themes, apps, later packages, and web apps are pending.
+ * Completed steps remain on failure. Apps, later packages, and web apps are pending.
  * Commands run as the caller, using sudo only for system packages; the API never prompts.
  */
 export function install(options: InstallOptions = {}): Promise<InstallResponse> {
@@ -40,7 +41,8 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
     await configureGit(context, options);
     context.progress("Installing after-CLI packages and mise tools...");
     await installPackages(context, [...packages.after_cli, ...packages.mise]);
-    installThemes();
+    context.progress("Installing bundled themes...");
+    await installThemes(context);
     installApps();
     installLaterPackages();
     installWebApps();
@@ -48,7 +50,7 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
       repository,
       executable,
       cliRebuilt: !options.fromBootstrap,
-      pending: ["themes", "apps", "later", "webapps"],
+      pending: ["apps", "later", "webapps"],
     };
   });
 }

@@ -97,7 +97,7 @@ test("theme reads use fresh luna theme get --json output", async () => {
   const root = temporary();
   await Bun.write(`${root}/luna`, `#!/usr/bin/env bun
 if (Bun.argv.slice(2).join(' ') !== 'theme get --json') process.exit(1);
-console.log(JSON.stringify({ok:true,result:await Bun.file(Bun.env.FIXTURE_THEME!).json()}));
+console.log(JSON.stringify({succes:true,data:await Bun.file(Bun.env.FIXTURE_THEME!).json()}));
 `);
   run(["chmod", "+x", `${root}/luna`]);
   Bun.env.PATH = `${root}:${environment.PATH}`;

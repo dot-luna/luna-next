@@ -1,4 +1,11 @@
-import { appendFileSync, chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 // Package/build commands are fake. Only Git operates for real, against a local repository.
@@ -14,7 +21,12 @@ if (env.SELF_FAIL === `${name}:${command[0]}`) {
   process.exit(17);
 }
 
-if (name === "git") {
+if (name === "gsettings") {
+  const path = join(env.HOME!, "preference");
+  if (args[0] === "set") writeFileSync(path, args.at(-1)!);
+  else console.log(`'${existsSync(path) ? readFileSync(path, "utf8") : "default"}'`);
+  process.exit(0);
+} else if (name === "git") {
   const forwarded = ["ls-remote", "fetch", "pull"].includes(command[0]!)
     ? ["-c", `url.${env.SELF_REMOTE}.insteadOf=https://github.com/dot-luna/luna-next.git`, ...args]
     : args;
@@ -33,7 +45,7 @@ if (name === "git") {
   process.exit(0);
 } else if (name === "bun" && args[0] === "run") {
   mkdirSync("target", { recursive: true });
-  writeFileSync("target/luna-bun", "#!/bin/sh\nprintf 'fixture CLI\\n'\n");
-  chmodSync("target/luna-bun", 0o755);
+  writeFileSync("target/luna", "#!/bin/sh\nprintf 'fixture CLI\\n'\n");
+  chmodSync("target/luna", 0o755);
 }
 console.log("routine command output stays captured");

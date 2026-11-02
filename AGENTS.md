@@ -35,15 +35,15 @@
   apply it when adding or changing implementation too. Explain meaningful public
   contracts and non-obvious mechanisms; verify claims against implementations
   and callers rather than adding comments to meet a count.
-- Keep `packages/hocon` a standalone Rust configuration helper. Preserve includes
-  and unrelated source text when editing; never save resolved data over the file.
-- Keep `packages/hocon-qml` a separate, one-shot adapter exposing only
-  `Config.load_as_json(path, schemaPath?)`. Return a plain JavaScript object for
-  the app to hold in memory; do not add watchers, caches, live getters, or editing
-  methods.
-- Apps own their JSON Schemas. Use the HOCON helper's optional schema validation
-  on resolved values; keep schema reference resolution offline and defaults in
-  the app. Do not duplicate schema rules in handwritten validators.
+- Use JSONC for Luna-owned configuration and manifests, replacing HOCON `.conf`
+  files as their features are implemented. Native application configuration keeps
+  the format required by that application.
+- Parse JSONC with Bun and validate values with Zod. Keep each feature's Zod
+  schemas in its owning API module, such as `packages/luna-api/src/theme/schema.ts`.
+  Do not add JSON Schema files, Ajv, or duplicate validation rules in consumers.
+- Preserve author-written theme sources when installing them. Merge defaults
+  only in memory; do not write resolved defaults over source files. Keep settings
+  reads explicit and one-shot; do not add watchers, caches, or live getters.
 - Keep shared application operations in `packages/luna-api`; CLI code handles
   arguments, prompts, and output. Standard wallpaper config mutations validate
   and save atomically, then explicitly reload the running renderer. Keep full

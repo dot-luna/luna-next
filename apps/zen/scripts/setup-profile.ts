@@ -214,8 +214,8 @@ async function settings(): Promise<Settings> {
 
 async function appearance(preferences: Settings["preferences"]): Promise<string[]> {
   const response = JSON.parse(run(["luna", "theme", "get", "--json"]));
-  if (response.ok !== true) throw new Error("Luna could not resolve the current theme.");
-  const theme = response.result as Theme;
+  if (response.succes !== true) throw new Error("Luna could not resolve the current theme.");
+  const theme = response.data as Theme;
   if (typeof theme.appearance?.rounding !== "number" || typeof theme.fonts?.ui !== "string"
     || typeof theme.fonts?.mono !== "string") throw new Error("Luna's resolved theme is missing fonts or rounding.");
   const square = theme.appearance.rounding === 0;

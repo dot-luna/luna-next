@@ -165,7 +165,7 @@ userTests("root installer", () => {
     expect(existsSync(join(value.managed, ".git"))).toBe(true);
     expect(value.commands("bun").map((item) => item.args)).toEqual([
       ["install", "--frozen-lockfile"],
-      ["run", "--cwd", "src/luna-cli", "build"],
+      ["run", "--cwd", "src/luna-cli", "build", "--no-install"],
     ]);
     expect(value.commands("sleep")[0]!.args).toEqual(["5"]);
     expect(value.commands("luna")[0]).toMatchObject({
