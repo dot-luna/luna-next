@@ -1,3 +1,4 @@
+
 import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { dirname, join } from "pathe";
 import { ApiError } from "../lib/response.ts";
@@ -7,7 +8,7 @@ import type { InstallContext } from "../self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 import { runHooks } from "./hooks.ts";
 
-async function selectRef(context: InstallContext, app: CatalogApp) {
+async function selectRef(context: InstallContext, app: CatalogApp): Promise<string | null> {
   const m = app.manifest;
   if (m.version && m.version !== "latest") {
     const result = await context.execute(
@@ -36,12 +37,10 @@ async function selectRef(context: InstallContext, app: CatalogApp) {
       )
       .sort((a, b) => Bun.semver.order(b.replace(/^v/u, ""), a.replace(/^v/u, "")))[0];
     if (selected) return selected;
-    if (pattern) throw new ApiError("INVALID_METADATA", `No matching release tags for ${app.id}`);
   }
   const head = (await context.execute(["git", "ls-remote", "--symref", m.url!, "HEAD"])).stdout;
   const ref = head.match(/^ref: refs\/heads\/(.+)\s+HEAD$/mu)?.[1]?.trim();
-  if (!ref) throw new ApiError("INVALID_METADATA", `Cannot resolve default branch for ${app.id}`);
-  return ref;
+  return ref ?? null;
 }
 
 /** Managed clones stay detached; default build workspaces are disposable copies. */
@@ -53,7 +52,7 @@ export async function installGitApp(
 ) {
   const clone = join(context.env.LUNA_GIT_APP_CLONE_DIR!, app.manifest.name);
   const ref = await selectRef(context, app);
-  context.env.LUNA_PACKAGE_VERSION = ref;
+  context.env.LUNA_PACKAGE_VERSION = ref ?? "latest";
   await mkdir(dirname(clone), { recursive: true });
   const existing = await metadata(clone);
   if (!existing) await runHooks(context, app, "before_install");
@@ -80,37 +79,46 @@ export async function installGitApp(
     throw new ApiError("CONFLICT", `Git app has local changes: ${clone}`);
   const old = (await git(["rev-parse", "HEAD"])).stdout.trim();
   const symbolic = await git(["symbolic-ref", "--quiet", "HEAD"], true);
-  const refs = (
-    await git(["ls-remote", "--refs", "origin", `refs/heads/${ref}`, `refs/tags/${ref}`])
-  ).stdout;
-  const branch = refs.split("\n").some((line) => line.endsWith(`\trefs/heads/${ref}`));
-  if (!branch && !refs.split("\n").some((line) => line.endsWith(`\trefs/tags/${ref}`)))
-    throw new ApiError("INVALID_ARGUMENT", `Missing Git ref ${ref} for ${app.id}`);
-  await git(["fetch", "--no-tags", "origin", `${branch ? "refs/heads" : "refs/tags"}/${ref}`]);
-  const revision = (await git(["rev-parse", "FETCH_HEAD^{commit}"])).stdout.trim();
-  if (symbolic.exitCode === 1 && old !== revision && old !== previousRevision) {
-    const retained = (
-      await git([
-        "for-each-ref",
-        "--contains",
-        old,
-        "--format=%(refname)",
-        "refs/heads",
-        "refs/remotes",
-        "refs/tags",
-      ])
+  let revision: string;
+  if (ref) {
+    const refs = (
+      await git(["ls-remote", "--refs", "origin", `refs/heads/${ref}`, `refs/tags/${ref}`])
     ).stdout;
-    if (!retained.trim())
-      throw new ApiError(
-        "CONFLICT",
-        `Save the detached personal commit in ${clone} before installing`,
-      );
-  } else if (![0, 1].includes(symbolic.exitCode))
-    throw new ApiError("COMMAND_FAILED", symbolic.stderr);
-  if (revision === previousRevision && old === revision && !force)
-    return { revision, changed: false };
-  if (existing) await runHooks(context, app, "before_install");
-  await git(["switch", "--no-overwrite-ignore", "--detach", "FETCH_HEAD"]);
+    const branch = refs.split("\n").some((line) => line.endsWith(`\trefs/heads/${ref}`));
+    if (!branch && !refs.split("\n").some((line) => line.endsWith(`\trefs/tags/${ref}`)))
+      throw new ApiError("INVALID_ARGUMENT", `Missing Git ref ${ref} for ${app.id}`);
+    await git(["fetch", "--no-tags", "origin", `${branch ? "refs/heads" : "refs/tags"}/${ref}`]);
+    revision = (await git(["rev-parse", "FETCH_HEAD^{commit}"])).stdout.trim();
+    if (symbolic.exitCode === 1 && old !== revision && old !== previousRevision) {
+      const retained = (
+        await git([
+          "for-each-ref",
+          "--contains",
+          old,
+          "--format=%(refname)",
+          "refs/heads",
+          "refs/remotes",
+          "refs/tags",
+        ])
+      ).stdout;
+      if (!retained.trim())
+        throw new ApiError(
+          "CONFLICT",
+          `Save the detached personal commit in ${clone} before installing`,
+        );
+    } else if (![0, 1].includes(symbolic.exitCode))
+      throw new ApiError("COMMAND_FAILED", symbolic.stderr);
+    if (revision === previousRevision && old === revision && !force)
+      return { revision, changed: false };
+    await git(["switch", "--no-overwrite-ignore", "--detach", "FETCH_HEAD"]);
+  } else {
+    revision = old;
+    context.env.LUNA_PACKAGE_VERSION = revision;
+    if (![0, 1].includes(symbolic.exitCode))
+      throw new ApiError("COMMAND_FAILED", symbolic.stderr);
+    if (revision === previousRevision && old === revision && !force)
+      return { revision, changed: false };
+  }
   const build = join(context.env.LUNA_GIT_APP_BUILD_DIR!, app.manifest.name);
   await mkdir(dirname(build), { recursive: true });
   if (app.manifest.hooks?.before_build?.length) await runHooks(context, app, "before_build");
