@@ -39,7 +39,7 @@ class Fixture {
     BOOTSTRAP_ONCE_MARKER: join(this.root, "once"),
     BOOTSTRAP_LUNA_WRAPPER: join(this.bin, "luna-wrapper"),
     // An inherited checkout must not change the installer's destination.
-    LUNA_NEXT_ROOT: this.work,
+    LUNA_ROOT: this.work,
   };
 
   constructor() {

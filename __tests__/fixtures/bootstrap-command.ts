@@ -5,7 +5,7 @@ import { join } from "node:path";
 // which fake tool runs. No package manager, download, or desktop command is real.
 const [name, ...args] = Bun.argv.slice(2);
 const env = process.env;
-appendFileSync(env.BOOTSTRAP_LOG!, JSON.stringify({ name, args, cwd: process.cwd(), repo: env.LUNA_NEXT_ROOT }) + "\n");
+appendFileSync(env.BOOTSTRAP_LOG!, JSON.stringify({ name, args, cwd: process.cwd(), repo: env.LUNA_ROOT }) + "\n");
 const command = name === "git" && args[0] === "-C" ? args.slice(2) : args;
 const operation = name === "mise" && args.includes("use") ? "use" : command[0];
 

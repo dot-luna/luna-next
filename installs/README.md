@@ -47,7 +47,7 @@ installs the web apps after enabling keyring. It never opens a browser. Entries
 share the default Luna profile; reruns replace their desktop entries and icons.
 An empty array disables this stage. Missing or invalid lists stop setup.
 
-Git/local recipes receive the catalog checkout as `$LUNA_NEXT_ROOT`. Git recipes
+Git/local recipes receive the catalog checkout as `$LUNA_ROOT`. Git recipes
 also receive the selected ref as `$LUNA_PACKAGE_VERSION` (`v1.2.3`, not `latest`).
 Tag filters apply only to `latest`; explicit branches/tags are unchanged.
 Without a pattern, an untagged remote uses its default branch. No matching or

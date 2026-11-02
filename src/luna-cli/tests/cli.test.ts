@@ -16,7 +16,7 @@ async function fixture() {
   roots.push(root);
   const repository = `${root}/repository`;
   await Bun.write(`${repository}/package.json`, JSON.stringify(metadata));
-  return { root, repository, env: { LUNA_NEXT_ROOT: repository } };
+  return { root, repository, env: { LUNA_ROOT: repository } };
 }
 
 async function cli(args: string[], env: Record<string, string>, executable?: string) {
@@ -76,7 +76,7 @@ test("default output shows the banner and options while JSON returns the unchang
   expect(human.stdout).not.toContain(metadata.homepage);
 });
 
-test("LUNA_NEXT_ROOT selects the checkout before the managed path under HOME", async () => {
+test("LUNA_ROOT selects the checkout before the managed path under HOME", async () => {
   const value = await fixture();
   const home = `${value.root}/home`;
   const other = `${home}/.local/src/luna-next`;
@@ -93,7 +93,7 @@ test("LUNA_NEXT_ROOT selects the checkout before the managed path under HOME", a
 
 test("missing or invalid metadata and unsupported commands return standard errors", async () => {
   const value = await fixture();
-  const missingEnv = { LUNA_NEXT_ROOT: `${value.root}/missing` };
+  const missingEnv = { LUNA_ROOT: `${value.root}/missing` };
   const missing = await cli(["--json"], missingEnv);
   expect(missing.exitCode).toBe(1);
   expect(JSON.parse(missing.stdout)).toEqual(
@@ -137,7 +137,7 @@ test("default output supports metadata without optional project links", async ()
 
 test("diagnostic colors respect the environment and never decorate JSON output", async () => {
   const value = await fixture();
-  const env = { LUNA_NEXT_ROOT: `${value.root}/missing`, FORCE_COLOR: "1" };
+  const env = { LUNA_ROOT: `${value.root}/missing`, FORCE_COLOR: "1" };
   const colored = await cli([], env);
   expect(colored.exitCode).toBe(1);
   expect(colored.stdout).toBe("");
@@ -169,11 +169,7 @@ test("compiled CLI reads changed package metadata without rebuilding", async () 
   const info = await cli(["--json"], value.env, executable);
   expect(info.exitCode).toBe(0);
   expect(JSON.parse(info.stdout)).toEqual(await Luna.info({ repository: value.repository }));
-  const failure = await cli(
-    [],
-    { LUNA_NEXT_ROOT: `${value.root}/missing`, NO_COLOR: "1" },
-    executable,
-  );
+  const failure = await cli([], { LUNA_ROOT: `${value.root}/missing`, NO_COLOR: "1" }, executable);
   expect(failure.exitCode).toBe(1);
   expect(failure.stdout).toBe("");
   expect(failure.stderr).toContain("IO_ERROR");

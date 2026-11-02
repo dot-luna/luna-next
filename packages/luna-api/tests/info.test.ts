@@ -58,7 +58,7 @@ test("each call rereads metadata and resolves explicit, environment, then manage
   const home = `${value.root}/home`;
   const managed = `${home}/.local/src/luna-next`;
   await Bun.write(`${managed}/package.json`, JSON.stringify({ ...metadata, version: "2.0.0" }));
-  const env = { HOME: home, LUNA_NEXT_ROOT: value.repository };
+  const env = { HOME: home, LUNA_ROOT: value.repository };
   expect(await Luna.info({ env })).toMatchObject({
     succes: true,
     data: { version: "1.2.3-alpha" },

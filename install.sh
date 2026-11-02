@@ -296,7 +296,7 @@ else
     staged_checkout=
 fi
 # Hooks and the CLI use the resolved checkout; user-supplied flags stay unchanged.
-export LUNA_NEXT_ROOT="$repo_root"
+export LUNA_ROOT="$repo_root"
 
 # 7. Build the API and CLI using the committed lockfile. Stage beside the destination
 # so a failed install, build, or copy keeps the old CLI.
