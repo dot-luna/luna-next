@@ -6,9 +6,9 @@ hl.window_rule({
   size = { 1000, 700 },
 })
 
--- Hold the default terminal open after Fastfetch finishes printing.
+-- Kitty's --hold starts an interactive shell. Wait silently for one key instead.
 hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd(
-  "xdg-terminal-exec --app-id=luna-next-fastfetch --title=Fastfetch --hold -- fastfetch"
+  [[xdg-terminal-exec --app-id=luna-next-fastfetch --title=Fastfetch -- bash -c 'fastfetch; status=$?; read -r -s -n 1; exit "$status"']]
 ), {
   description = "Open Fastfetch",
   non_consuming = false,
