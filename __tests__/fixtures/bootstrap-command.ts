@@ -25,6 +25,15 @@ if (name === "sudo" && args[0] !== "-v") {
   const child = Bun.spawnSync(args, { env, stdin: "ignore", stdout: "inherit", stderr: "inherit" });
   process.exit(child.exitCode);
 } else if (name === "git") {
+  // Real-Git regressions rewrite only remote operations to a temporary local
+  // repository. Local origin validation still sees the declared Luna URL.
+  if (env.BOOTSTRAP_REAL_GIT) {
+    const forwarded = ["ls-remote", "fetch", "pull"].includes(command[0]!)
+      ? ["-c", `url.${env.BOOTSTRAP_REAL_REMOTE}.insteadOf=https://github.com/dot-luna/luna-next.git`, ...args]
+      : args;
+    const child = Bun.spawnSync([env.BOOTSTRAP_REAL_GIT, ...forwarded], { env, stdin: "ignore", stdout: "inherit", stderr: "inherit" });
+    process.exit(child.exitCode);
+  }
   const state = JSON.parse(env.BOOTSTRAP_GIT ?? "{}");
   if (command[0] === env.BOOTSTRAP_GIT_FAIL) fail("simulated git failure");
   switch (command[0]) {

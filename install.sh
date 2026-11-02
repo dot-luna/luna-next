@@ -38,7 +38,8 @@
 # does not leave a partial checkout at the selected destination. An unusable
 # TMPDIR falls back to /tmp. Successful commands show only brief progress.
 #
-# Existing Luna branches fast-forward; tags use detached HEAD. Stop rather than
+# Existing Luna branches switch to the requested ref, then run git pull --ff-only.
+# Remote tags use detached HEAD without replacing local tags. Stop rather than
 # overwrite unrelated folders, local edits, diverged history, or unreferenced
 # commits. Missing privileges and failed required installs/builds also stop the
 # script with diagnostics. Completed package installations are not rolled back.
@@ -230,14 +231,10 @@ if [[ -e "$repo_root/.git" || -L "$repo_root/.git" ]]; then
     origin=$(git -C "$repo_root" remote get-url origin)
     [[ "$origin" == "$repo_url" || "$origin" == "${repo_url%.git}" || "$origin" == git@github.com:dot-luna/luna-next.git ]] || fail 'The checkout has a different origin.'
     changes=$(git -C "$repo_root" status --porcelain --untracked-files=normal)
-    [[ -z "$changes" ]] || fail 'The checkout has local changes; commit or move them before installing.'
+    [[ -z "$changes" ]] || fail "There are local changes in $repo_root; commit or move them before installing."
     detached_commit=
-    retained_refs=
     if ! git -C "$repo_root" symbolic-ref --quiet HEAD >/dev/null; then
         detached_commit=$(git -C "$repo_root" rev-parse --verify 'HEAD^{commit}')
-        # Record existing references before fetching can move a tag. Without any
-        # reference, switching away requires the selected commit to match this HEAD.
-        retained_refs=$(git -C "$repo_root" for-each-ref --contains "$detached_commit" --format='%(refname)' refs/heads refs/remotes refs/tags)
     fi
     printf 'Updating Luna...\n'
     remote_refs=$(retry git -C "$repo_root" ls-remote --refs origin "$branch_ref" "$tag_ref")
@@ -252,29 +249,34 @@ if [[ -e "$repo_root/.git" || -L "$repo_root/.git" ]]; then
         fi
     done <<< "$remote_refs"
     [[ -n "$ref_kind" ]] || fail "No remote branch or tag named $repo_ref."
-    # Fetch just the selected ref. Keep local branch history separate until the
-    # fast-forward check; tags are selected directly through detached HEAD.
+    # Fetch just the selected ref. FETCH_HEAD selects remote tags without replacing
+    # any local tag that may be the only reference retaining a personal commit.
     if [[ "$ref_kind" == branch ]]; then
         selected_ref="refs/remotes/origin/$repo_ref"
-        remote_ref=$branch_ref
+        fetch_ref="+$branch_ref:$selected_ref"
     else
-        selected_ref=$tag_ref
-        remote_ref=$tag_ref
+        selected_ref=FETCH_HEAD
+        fetch_ref=$tag_ref
     fi
-    run retry git -C "$repo_root" fetch --no-tags origin "+$remote_ref:$selected_ref"
-    if [[ -n "$detached_commit" && -z "$retained_refs" ]]; then
-        selected_commit=$(git -C "$repo_root" rev-parse --verify "$selected_ref^{commit}")
-        [[ "$detached_commit" == "$selected_commit" ]] || fail 'Save the unreferenced detached commit on a branch before installing.'
+    run retry git -C "$repo_root" fetch --no-tags origin "$fetch_ref"
+    if [[ -n "$detached_commit" ]]; then
+        # A fetch can move a remote branch, so check references after it completes.
+        # If none remain, keep HEAD on this commit unless the target is identical.
+        retained_refs=$(git -C "$repo_root" for-each-ref --contains "$detached_commit" --format='%(refname)' refs/heads refs/remotes refs/tags)
+        if [[ -z "$retained_refs" ]]; then
+            selected_commit=$(git -C "$repo_root" rev-parse --verify "$selected_ref^{commit}")
+            [[ "$detached_commit" == "$selected_commit" ]] || fail 'Save the unreferenced detached commit on a branch before installing.'
+        fi
     fi
     if [[ "$ref_kind" == branch ]]; then
-        # Protect ignored files during switching and merging as well as the tracked
-        # and untracked edits checked above. Diverged branches fail without a reset.
+        # Protect ignored files while switching. Pull only fast-forward updates;
+        # disable configured rebasing and autostashing so conflicts stop setup.
         if git -C "$repo_root" show-ref --verify --quiet "$branch_ref"; then
             run git -C "$repo_root" switch --no-overwrite-ignore --no-guess "$repo_ref"
         else
             run git -C "$repo_root" switch --no-overwrite-ignore --no-track -c "$repo_ref" "$selected_ref"
         fi
-        run git -C "$repo_root" merge --ff-only --no-autostash --no-overwrite-ignore "$selected_ref"
+        run git -C "$repo_root" pull --ff-only --no-rebase --no-autostash --no-tags origin "$branch_ref"
     else
         run git -C "$repo_root" switch --no-overwrite-ignore --detach "$selected_ref"
     fi

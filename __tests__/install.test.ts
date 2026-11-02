@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, rmdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 // Run: bun test __tests__/install.test.ts
 const script = resolve(import.meta.dir, "../install.sh");
 const mock = join(import.meta.dir, "fixtures/bootstrap-command.ts");
 const repoUrl = "https://github.com/dot-luna/luna-next.git";
 const bash = Bun.which("bash")!;
+const realGit = Bun.which("git")!;
 const shellQuote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
 
 interface Command {
@@ -138,9 +140,10 @@ userTests("root installer", () => {
     expect(commands.find(item => item.args.includes("fetch"))!.args.slice(-4)).toEqual([
       "fetch", "--no-tags", "origin", "+refs/heads/master:refs/remotes/origin/master",
     ]);
-    expect(commands.at(-1)!.args.slice(-5)).toEqual([
-      "merge", "--ff-only", "--no-autostash", "--no-overwrite-ignore", "refs/remotes/origin/master",
+    expect(commands.at(-1)!.args.slice(-7)).toEqual([
+      "pull", "--ff-only", "--no-rebase", "--no-autostash", "--no-tags", "origin", "refs/heads/master",
     ]);
+    expect(commands.findIndex(item => item.args.includes("switch"))).toBeLessThan(commands.findIndex(item => item.args.includes("pull")));
     expect(commands.some(item => item.args.includes("clone") && item.args.includes(repoUrl))).toBe(false);
   });
 
@@ -149,7 +152,9 @@ userTests("root installer", () => {
     for (const state of [{ origin: "https://example.com/other.git" }, { changes: " M file" }, { changes: "?? personal" }]) {
       value.clearLog();
       value.env.BOOTSTRAP_GIT = JSON.stringify(state);
-      value.run([], { success: false });
+      const result = value.run([], { success: false });
+      if ("changes" in state) expect(result.stderr).toContain(`There are local changes in ${value.managed}`);
+      expect(value.commands("git").some(item => item.args.includes("switch") || item.args.includes("pull"))).toBe(false);
       expect(value.commands("bun")).toEqual([]);
       expect(value.commands("luna")).toEqual([]);
     }
@@ -280,14 +285,70 @@ userTests("root installer", () => {
     value.checkout({ refs: { "v1.2.3": "tags" } });
     value.run(["--ref=v1.2.3"]);
     expect(value.commands("git").at(-1)!.args.slice(-4)).toEqual([
-      "switch", "--no-overwrite-ignore", "--detach", "refs/tags/v1.2.3",
+      "switch", "--no-overwrite-ignore", "--detach", "FETCH_HEAD",
     ]);
   });
+
+  for (const mode of ["detached tag", "attached tag", "moved remote branch", "branch update"]) {
+    test(`preserves personal work with a ${mode}`, () => {
+      const remote = join(value.root, "remote");
+      const git = (args: string[]) => {
+        const result = spawn([realGit, ...args], value.env, value.work);
+        expect(result.exitCode, result.stderr).toBe(0);
+        return result.stdout.trim();
+      };
+      mkdirSync(remote);
+      git(["init", "--initial-branch=master", remote]);
+      git(["-C", remote, "config", "user.name", "Bootstrap Test"]);
+      git(["-C", remote, "config", "user.email", "bootstrap@example.invalid"]);
+      writeFileSync(join(remote, "source"), "remote content");
+      git(["-C", remote, "add", "source"]);
+      git(["-C", remote, "commit", "-m", "remote source"]);
+      git(["-C", remote, "tag", "v1"]);
+      let selected = git(["-C", remote, "rev-parse", "HEAD"]);
+      mkdirSync(dirname(value.managed), { recursive: true });
+      git(["clone", remote, value.managed]);
+      git(["-C", value.managed, "config", "user.name", "Bootstrap Test"]);
+      git(["-C", value.managed, "config", "user.email", "bootstrap@example.invalid"]);
+      git(["-C", value.managed, "switch", "--detach"]);
+      writeFileSync(join(value.managed, "personal"), "personal content");
+      git(["-C", value.managed, "add", "personal"]);
+      git(["-C", value.managed, "commit", "-m", "personal work"]);
+      const personal = git(["-C", value.managed, "rev-parse", "HEAD"]);
+      if (mode === "moved remote branch") {
+        git(["-C", value.managed, "update-ref", "refs/remotes/origin/master", personal]);
+      } else {
+        git(["-C", value.managed, "tag", "--force", "v1"]);
+      }
+      if (mode === "attached tag") git(["-C", value.managed, "switch", "master"]);
+      if (mode === "branch update") {
+        writeFileSync(join(remote, "source"), "updated remote content");
+        git(["-C", remote, "commit", "-am", "update remote source"]);
+        selected = git(["-C", remote, "rev-parse", "HEAD"]);
+      }
+      git(["-C", value.managed, "remote", "set-url", "origin", repoUrl]);
+      value.wrapper("yay");
+      value.env.BOOTSTRAP_REAL_GIT = realGit;
+      value.env.BOOTSTRAP_REAL_REMOTE = pathToFileURL(remote).href;
+      value.env.GIT_ALLOW_PROTOCOL = "file";
+      if (mode === "moved remote branch") {
+        const result = value.run(["--ref=master"], { success: false });
+        expect(result.stderr).toContain("unreferenced detached commit");
+        expect(git(["-C", value.managed, "rev-parse", "HEAD"])).toBe(personal);
+        return;
+      }
+      value.run([mode === "branch update" ? "--ref=master" : "--ref=v1"]);
+      expect(git(["-C", value.managed, "rev-parse", "HEAD"])).toBe(selected);
+      expect(git(["-C", value.managed, "rev-parse", "refs/tags/v1"])).toBe(personal);
+      expect(git(["-C", value.managed, "for-each-ref", "--contains", personal, "--format=%(refname)"])).toContain("refs/tags/v1");
+      if (mode === "branch update") expect(readFileSync(join(value.managed, "source"), "utf8")).toBe("updated remote content");
+    });
+  }
 
   test("prefers branches over identically named tags", () => {
     value.checkout({ refs: { stable: "both" } });
     value.run(["--ref=stable"]);
-    expect(value.commands("git").at(-1)!.args).toContain("refs/remotes/origin/stable");
+    expect(value.commands("git").at(-1)!.args).toContain("refs/heads/stable");
   });
 
   test("preserves an unreferenced detached commit", () => {
@@ -313,9 +374,9 @@ userTests("root installer", () => {
     }
   });
 
-  test("stops before building after failed checkout inspection, fetch, or merge", () => {
+  test("stops before building after failed checkout inspection, fetch, or pull", () => {
     value.checkout();
-    for (const command of ["status", "fetch", "merge"]) {
+    for (const command of ["status", "fetch", "pull"]) {
       value.clearLog();
       value.env.BOOTSTRAP_GIT_FAIL = command;
       value.run([], { success: false });
