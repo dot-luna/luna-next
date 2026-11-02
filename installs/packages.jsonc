@@ -65,6 +65,11 @@
       "purpose": "Desktop appearance preference schema",
     },
     {
+      "name": "dbus",
+      "source": "pacman",
+      "purpose": "Persist desktop appearance settings from TTY and SSH sessions",
+    },
+    {
       "name": "dconf",
       "source": "pacman",
       "purpose": "Persist per-user desktop preferences",

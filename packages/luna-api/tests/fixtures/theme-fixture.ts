@@ -13,6 +13,7 @@ export class ThemeFixture {
   wallpaperDir = join(this.root, "data/wallpapers");
   env: Record<string, string> = {
     HOME: this.home,
+    DBUS_SESSION_BUS_ADDRESS: "fixture:mock-gsettings",
     PATH: this.bin,
     THEME_LOG: join(this.root, "commands"),
     THEME_PREFERENCE: join(this.root, "preference"),

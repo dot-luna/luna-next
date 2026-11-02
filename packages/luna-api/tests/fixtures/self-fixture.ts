@@ -25,6 +25,7 @@ export class SelfFixture {
   executable = join(this.home, ".local/bin/luna");
   env: Record<string, string> = {
     HOME: this.home,
+    DBUS_SESSION_BUS_ADDRESS: "fixture:mock-gsettings",
     PATH: this.bin,
     LUNA_ROOT: this.repository,
     SELF_LOG: this.log,

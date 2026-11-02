@@ -333,3 +333,26 @@ test("already installed theme fonts do not require Yay or sudo", async () => {
   expect(commands).toHaveLength(4);
   expect(commands.every((c) => c.name === "pacman" && c.args[0] === "-Qq")).toBe(true);
 });
+
+test.skipIf(!Bun.which("gsettings") || !Bun.which("dbus-run-session"))(
+  "headless theme selection persists through real dconf without touching desktop settings",
+  async () => {
+    unlinkSync(join(f.bin, "gsettings"));
+    symlinkSync(Bun.which("gsettings")!, join(f.bin, "gsettings"));
+    const env = {
+      HOME: f.home,
+      PATH: `${f.bin}:/usr/bin:/bin`,
+      XDG_CONFIG_HOME: join(f.home, ".config"),
+      XDG_DATA_HOME: join(f.home, ".local/share"),
+      XDG_CACHE_HOME: join(f.home, ".cache"),
+      GSETTINGS_BACKEND: "dconf",
+    };
+    const options = { ...f.options, env };
+    data(await Luna.theme.install(f.source("headless"), options));
+    data(await Luna.theme.set("headless", options));
+    expect(data(await Luna.theme.mode(undefined, options))).toBe("dark");
+    data(await Luna.theme.mode("light", options));
+    expect(data(await Luna.theme.mode(undefined, options))).toBe("light");
+    expect(existsSync(join(env.XDG_CONFIG_HOME, "dconf/user"))).toBe(true);
+  },
+);
