@@ -13,7 +13,13 @@ const [name, ...args] = Bun.argv.slice(2);
 const env = process.env;
 appendFileSync(
   env.SELF_LOG!,
-  JSON.stringify({ name, args, cwd: process.cwd(), repository: env.LUNA_ROOT }) + "\n",
+  JSON.stringify({
+    name,
+    args,
+    cwd: process.cwd(),
+    repository: env.LUNA_ROOT,
+    miseData: env.MISE_DATA_DIR,
+  }) + "\n",
 );
 const command = name === "git" && args[0] === "-C" ? args.slice(2) : args;
 if (env.SELF_FAIL === `${name}:${command[0]}`) {

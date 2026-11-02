@@ -248,3 +248,109 @@ test("non-executable hooks fail preflight before authentication or package insta
   });
   expect(f.commands().some((item) => ["sudo", "pacman"].includes(item.name))).toBe(false);
 });
+
+test("a locked app is never shut down by concurrent install or configuration", async () => {
+  const { cpSync } = await import("node:fs");
+  const { locked } = await import("../src/lib/files.ts");
+  const executable = join(f.bin, `worker-${process.pid}-${Date.now()}`);
+  cpSync(Bun.which("sleep")!, executable);
+  f.app("worker", { name: "worker", source: "local", processes: [executable.split("/").at(-1)!] });
+  const worker = Bun.spawn([executable, "30"], {
+    stdin: "ignore",
+    stdout: "ignore",
+    stderr: "ignore",
+  });
+  const messages: string[] = [];
+  try {
+    await locked(
+      { configFile: join(f.home, ".local/state/luna/apps/worker.jsonc"), env: f.env },
+      async () => {
+        for (const operation of [Luna.apps.install, Luna.apps.configure]) {
+          expect(
+            await operation(["worker"], {
+              env: f.env,
+              onProgress: (message) => messages.push(message),
+            }),
+          ).toMatchObject({ succes: false, err: "CONFLICT" });
+          expect(worker.exitCode).toBeNull();
+        }
+      },
+    );
+    expect(messages.some((message) => message.startsWith("Closing"))).toBe(false);
+  } finally {
+    worker.kill();
+    await worker.exited;
+  }
+}, 15000);
+
+test.each([false, true])(
+  "saved Mise data defaults precede integrated Zsh activation (custom ZDOTDIR: %s)",
+  async (custom) => {
+    const { cpSync, mkdirSync } = await import("node:fs");
+    const { setupMise } = await import("../src/self/install/mise.ts");
+    const { integrate } = await import("../src/apps/integration.ts");
+    const data = join(f.root, "custom mise data");
+    f.env.MISE_DATA_DIR = data;
+    const zshHome = custom ? join(f.root, "custom zdot") : f.home;
+    if (custom) {
+      f.env.ZDOTDIR = zshHome;
+      mkdirSync(zshHome);
+    }
+    await setupMise(context());
+    const exported = join(f.home, ".config/luna/zsh/zshrc");
+    mkdirSync(join(exported, ".."), { recursive: true });
+    cpSync(new URL("../../../apps/zsh/config/tools.zsh", import.meta.url), exported);
+    await integrate(exported, join(zshHome, ".zshrc"), "include");
+    const env = { ...f.env };
+    delete env.MISE_DATA_DIR;
+    const result = Bun.spawnSync([Bun.which("zsh")!, "-ic", "[[ -n ${MISE_DATA_DIR:-} ]]"], {
+      env,
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode, result.stderr.toString()).toBe(0);
+    const activations = f
+      .commands()
+      .filter((call) => call.name === "mise" && call.args[0] === "activate");
+    expect(activations).toHaveLength(1);
+    expect(activations[0]?.miseData).toBe(data);
+  },
+);
+
+test("suggested retries preserve forced rebuilds and the no-close-apps choice", async () => {
+  const { chmodSync } = await import("node:fs");
+  const { resolve } = await import("node:path");
+  const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
+  const entry = resolve(import.meta.dir, "../../../src/luna-cli/src/index.ts");
+  f.write(
+    f.home,
+    ".local/bin/luna",
+    `#!${Bun.which("bash")}\nexec ${[process.execPath, entry].map(quote).join(" ")} "$@"\n`,
+  );
+  chmodSync(f.executable, 0o755);
+  f.app("rebuild", { name: "rebuild", source: "local" }, ["build"]);
+  expect(await Luna.apps.install([], { env: f.env })).toMatchObject({ succes: true });
+  const response = await Luna.apps.install([], {
+    env: { ...f.env, APP_FAIL: "rebuild:build" },
+    force: true,
+    closeApps: false,
+    skipFailed: true,
+  });
+  if (!response.succes) throw new Error(response.errMessage);
+  const retry = response.data.failed[0]!.retry;
+  expect(retry).toContain("--force");
+  expect(retry).toContain("--no-close-apps");
+  const run = Bun.spawnSync([Bun.which("bash")!, "-c", retry + " --json"], {
+    env: f.env,
+    stdin: "ignore",
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  expect(run.exitCode, run.stderr.toString()).toBe(0);
+  expect(JSON.parse(run.stdout.toString())).toMatchObject({
+    succes: true,
+    data: { completed: true },
+  });
+  expect(f.hooks().filter((hook) => hook.stage === "build")).toHaveLength(3);
+});

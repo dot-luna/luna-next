@@ -20,11 +20,17 @@ const stateSchema = z.strictObject({
   revision: z.string().optional(),
 });
 
-async function installOne(context: InstallContext, app: CatalogApp, force = false) {
+async function installOne(
+  context: InstallContext,
+  app: CatalogApp,
+  force = false,
+  closeApps = true,
+) {
   if (process.getuid?.() === 0)
     throw new ApiError("INVALID_ENVIRONMENT", "Install apps as a normal user");
   const stateFile = join(context.env.LUNA_STATE_HOME_DIR!, "apps", `${app.id}.jsonc`);
   return locked({ configFile: stateFile, env: context.env }, async () => {
+    if (closeApps) await closeApp(context, app);
     const original = await readOptional(stateFile);
     const saved = original
       ? validate(stateSchema, parse(original, stateFile), stateFile)
@@ -155,11 +161,10 @@ export async function installApps(
     const installed: string[] = [];
     const failed: InstallFailure[] = [];
     for (const app of selected) {
-      const retry = `${quote(join(context.home, ".local/bin/luna"))} install ${quote(app.id)} --install-dir ${quote(context.repository)}`;
+      const retry = `${quote(join(context.home, ".local/bin/luna"))} install ${quote(app.id)} --install-dir ${quote(context.repository)}${force ? " --force" : ""}${closeApps ? "" : " --no-close-apps"}`;
       if (
         await attempt(context, app.id, retry, skipFailed, failed, async () => {
-          if (closeApps) await closeApp(context, app);
-          await installOne(context, app, force);
+          await installOne(context, app, force, closeApps);
         })
       )
         installed.push(app.id);
@@ -200,9 +205,11 @@ export const apps = {
       try {
         const selected = selectApps(await readCatalog(context), names);
         for (const app of selected) {
-          if (options.closeApps !== false) await closeApp(context, app);
           const file = join(context.env.LUNA_STATE_HOME_DIR!, "apps", `${app.id}.jsonc`);
-          await locked({ configFile: file, env: context.env }, () => configureApp(context, app));
+          await locked({ configFile: file, env: context.env }, async () => {
+            if (options.closeApps !== false) await closeApp(context, app);
+            await configureApp(context, app);
+          });
         }
         const configured = selected.map((app) => app.id);
         context.log.finish({ completed: true, configured, logDirectory: context.log.directory });

@@ -60,6 +60,8 @@ from a separate terminal. `closeApps: false` leaves process/profile checks to ho
 
 Mise tools use global selections and refreshed shims, including already installed
 versions. Managed Bash/Zsh startup blocks activate Mise in new interactive shells.
+Zsh data-root defaults are set in `.zshenv` before app includes can activate Mise;
+`ZDOTDIR` is honored when supplied.
 Explicit runtime Mise data paths and personal startup content are retained. Zsh's
 app hook selects Zsh as the login shell only when the account uses another shell;
 this takes effect on the next login. Sudo authentication is refreshed during long

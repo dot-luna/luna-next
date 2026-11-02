@@ -41,7 +41,10 @@ export async function appContext(options: AppOptions = {}, log?: InstallLog) {
   define("LUNA_GIT_APP_INSTALL_DIR", join(env.LUNA_DATA_HOME_DIR!, "apps/git"));
   define("LUNA_LOCAL_APP_INSTALL_DIR", join(env.LUNA_DATA_HOME_DIR!, "apps/local"));
   for (const key of Object.keys(env).filter(
-    (key) => /^LUNA_.*_DIR$/u.test(key) || /^XDG_(CONFIG|DATA|CACHE|STATE)_HOME$/u.test(key),
+    (key) =>
+      /^LUNA_.*_DIR$/u.test(key) ||
+      /^XDG_(CONFIG|DATA|CACHE|STATE)_HOME$/u.test(key) ||
+      ["MISE_DATA_DIR", "ZDOTDIR"].includes(key),
   )) {
     // oxlint-disable-next-line no-control-regex
     if (!isAbsolute(env[key]!) || resolve(env[key]!) === "/" || /[\x00-\x1f\x7f]/u.test(env[key]!))
