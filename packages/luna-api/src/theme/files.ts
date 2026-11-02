@@ -44,8 +44,11 @@ export function parse(source: string, label: string): unknown {
 
 /** Preserve file modes and symlink targets; refuse detected external edits before rename. */
 export async function writeFile(path: string, contents: string, expected: string | null) {
-  const info = await metadata(path);
-  if (info?.isSymbolicLink()) path = await realpath(path);
+  let info = await metadata(path);
+  if (info?.isSymbolicLink()) {
+    path = await realpath(path);
+    info = await metadata(path);
+  }
   if ((await readOptional(path)) !== expected)
     throw new ApiError("CONFLICT", `File changed externally: ${path}`);
   if (contents === expected) return;

@@ -7,7 +7,7 @@ import { metadata } from "./files.ts";
 /** Import declared media without recursion, replacement, or selecting a wallpaper. */
 export async function importWallpapers(context: ThemeContext, root: string, sources: string[]) {
   if (!sources.length) return;
-  const targets: { name: string; path?: string; url?: string }[] = [];
+  const targets: { name: string; path?: string; url?: string; directoryMember?: boolean }[] = [];
   for (const source of sources) {
     if (/^https?:\/\//u.test(source)) {
       const url = new URL(source);
@@ -25,7 +25,8 @@ export async function importWallpapers(context: ThemeContext, root: string, sour
         throw new ApiError("INVALID_PATH", "Theme wallpaper escapes its folder");
       if ((await metadata(path))?.isDirectory()) {
         for (const entry of await readdir(path, { withFileTypes: true })) {
-          if (entry.isFile()) targets.push({ name: entry.name, path: join(path, entry.name) });
+          if (entry.isFile())
+            targets.push({ name: entry.name, path: join(path, entry.name), directoryMember: true });
         }
       } else targets.push({ name: basename(path), path });
     }
@@ -57,8 +58,10 @@ export async function importWallpapers(context: ThemeContext, root: string, sour
         ]);
       else await copyFile(target.path!, staged);
       const mime = await command(context, ["file", "--mime-type", "--brief", "--", staged]);
-      if (!mime.startsWith("image/") && !mime.startsWith("video/"))
+      if (!mime.startsWith("image/") && !mime.startsWith("video/")) {
+        if (target.directoryMember) continue;
         throw new ApiError("INVALID_METADATA", `Unsupported wallpaper media: ${target.name}`);
+      }
       const destination = join(context.wallpaperDir, target.name);
       try {
         await link(staged, destination);

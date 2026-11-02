@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { existsSync, readdirSync, symlinkSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  readdirSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
 import { defaults } from "../src/theme/defaults.ts";
@@ -156,15 +164,44 @@ test("theme-relative wallpapers import without selecting, recursing or overwriti
     '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="red"/></svg>';
   f.write(join(source, "wallpapers/sample.svg"), svg);
   f.write(join(source, "wallpapers/nested/ignored.svg"), svg);
+  f.write(join(source, "wallpapers/README.md"), "Not a wallpaper");
   data(await Luna.theme.install(source, f.options));
   expect(f.read(join(f.wallpaperDir, "sample.svg"))).toBe(svg);
   expect(existsSync(join(f.wallpaperDir, "ignored.svg"))).toBe(false);
+  expect(existsSync(join(f.wallpaperDir, "README.md"))).toBe(false);
   expect(data(await Luna.theme.current(f.options))).toBeNull();
   f.write(join(f.wallpaperDir, "sample.svg"), "personal");
   expect((await Luna.theme.install(source, { ...f.options, force: true })).succes).toBe(false);
   expect(f.read(join(f.wallpaperDir, "sample.svg"))).toBe("personal");
   data(await Luna.theme.remove(["images"], f.options));
   expect(existsSync(join(f.wallpaperDir, "sample.svg"))).toBe(true);
+  const explicit = f.source("unsupported", '{"wallpaper":{"sources":["README.md"]}}');
+  f.write(join(explicit, "README.md"), "Not a wallpaper");
+  expect(await Luna.theme.install(explicit, f.options)).toMatchObject({
+    succes: false,
+    err: "INVALID_METADATA",
+  });
+});
+
+test("selection and T3 writes preserve private symlink target modes", async () => {
+  const target = join(f.root, "private-selection.jsonc");
+  f.write(target, "{}\n");
+  chmodSync(target, 0o600);
+  f.write(f.configFile, "{}\n");
+  unlinkSync(f.configFile);
+  symlinkSync(target, f.configFile);
+  data(await Luna.theme.mode("light", f.options));
+  expect(lstatSync(f.configFile).isSymbolicLink()).toBe(true);
+  expect(statSync(target).mode & 0o777).toBe(0o600);
+  const userdata = join(f.root, "t3");
+  const client = join(f.root, "private-client.json");
+  f.write(client, '{"personal":true}');
+  chmodSync(client, 0o600);
+  f.write(join(userdata, "settings.json"), "{}");
+  symlinkSync(client, join(userdata, "client-settings.json"));
+  data(await Luna.theme.applyT3code({ ...f.options, userdata }));
+  expect(statSync(client).mode & 0o777).toBe(0o600);
+  expect(JSON.parse(f.read(client)).personal).toBe(true);
 });
 
 test("failed desktop application restores exact selection and preference", async () => {
