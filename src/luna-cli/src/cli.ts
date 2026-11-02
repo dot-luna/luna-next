@@ -2,12 +2,13 @@ import { Luna } from "@luna/api";
 import { Command, CommanderError } from "commander";
 import { formatInfo } from "./info/format.ts";
 import { createOutput } from "./lib/output.ts";
+import { addSelfCommands } from "./self/commands.ts";
 
 interface GlobalOptions {
   version?: boolean;
 }
 
-/** Commander owns arguments and help; Luna owns metadata and operation responses. */
+/** Commander owns arguments and help; Luna owns operation responses. */
 export async function runCli(argv: string[]): Promise<number> {
   const delimiter = argv.indexOf("--");
   const wantsJson = argv.slice(0, delimiter < 0 ? undefined : delimiter).includes("--json");
@@ -22,6 +23,10 @@ export async function runCli(argv: string[]): Promise<number> {
       writeOut: output.writeOut,
       writeErr: wantsJson ? () => {} : output.writeErr,
     });
+
+  addSelfCommands(program, output, wantsJson, (value) => {
+    exitCode = value;
+  });
 
   program.action(async () => {
     const versionOnly = program.opts<GlobalOptions>().version;

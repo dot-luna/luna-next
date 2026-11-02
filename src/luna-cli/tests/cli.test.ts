@@ -45,7 +45,7 @@ test("help needs no repository or HOME", async () => {
   expect(response.stdout).toContain("-v, --version");
   expect(response.stdout).not.toContain("--repo");
   expect(response.stdout).not.toContain("-V");
-  expect(response.stdout).not.toContain("Commands:");
+  expect(response.stdout).toContain("self");
   expect(response.stderr).toBe("");
 });
 

@@ -1,4 +1,11 @@
-export type ApiErrorCode = "INVALID_PATH" | "INVALID_METADATA" | "IO_ERROR";
+export type ApiErrorCode =
+  | "INVALID_PATH"
+  | "INVALID_METADATA"
+  | "INVALID_ENVIRONMENT"
+  | "INVALID_ARGUMENT"
+  | "INPUT_REQUIRED"
+  | "COMMAND_FAILED"
+  | "IO_ERROR";
 
 export type SuccessResponse<T> = { succes: true; data: T };
 

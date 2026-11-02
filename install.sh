@@ -45,9 +45,10 @@
 # the source checkout and its CLI build artifacts remain for later operations.
 #
 # After building, wait five seconds before running luna self install with the
-# original flags plus --no-git-pull, since this script prepared the checkout.
+# original flags plus --from-bootstrap, since this script updated the checkout
+# and built/published the CLI. Shared package stages and Git setup still run.
 # Ctrl+C during the pause prints the same command to finish later. The CLI must
-# provide self install with Git pulling enabled by default and --no-git-pull to skip it.
+# provide self install with checkout updates and CLI rebuilding enabled by default.
 #
 # Checks: bash -n install.sh; bun test __tests__/install.test.ts
 set -euo pipefail
@@ -88,9 +89,9 @@ while (( $# > 0 )); do
     esac
 done
 
-# The CLI must not repeat the checkout update completed by this bootstrap.
+# The CLI must not repeat the checkout update or CLI build completed by bootstrap.
 # Use the same arguments for automatic handoff and the printed resume command.
-cli_args+=(--no-git-pull)
+cli_args+=(--from-bootstrap)
 
 # Reject malformed refs before system changes, even when Git is not installed yet.
 # Slash-separated branch names are allowed; Git checks the full ref after installation.

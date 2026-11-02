@@ -20,6 +20,9 @@ export function createOutput(json: boolean) {
   return {
     writeOut,
     writeErr,
+    progress(message: string) {
+      logger?.info(message);
+    },
     /** JSON mode serializes the response unchanged and never calls the text renderer. */
     response<T>(response: CommandResponse<T>, render: (data: T) => string): 0 | 1 {
       if (json) writeOut(JSON.stringify(response) + "\n");

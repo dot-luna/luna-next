@@ -11,9 +11,9 @@ curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install.s
 This installs Git, mise, and Bun, clones Luna into `~/.local/src/luna-next`,
 builds the CLI, and installs `luna` into `~/.local/bin`.
 After a five-second cancellation window, it runs `luna self install` with the
-same flags plus `--no-git-pull`, since the checkout is already prepared.
-Cancelling prints the command to finish setup later. The `self install` command
-is pending implementation; desktop setup is not available yet.
+same flags plus `--from-bootstrap`, skipping the checkout update and CLI rebuild.
+Cancelling prints the command to finish setup later. CLI setup installs shared
+prerequisites and mise tools and configures Git; desktop setup is still pending.
 
 Use `--install-dir=PATH` for another checkout location. `--ref=latest` follows
 Git's default branch; a branch or tag name selects that ref instead.
