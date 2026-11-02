@@ -45,8 +45,9 @@
 # the source checkout and its CLI build artifacts remain for later operations.
 #
 # After building, wait five seconds before running luna self install with the
-# exact original flags. Ctrl+C during the pause prints the command to finish
-# later. The CLI owns all remaining configuration and must provide self install.
+# original flags plus --no-git-pull, since this script prepared the checkout.
+# Ctrl+C during the pause prints the same command to finish later. The CLI must
+# provide self install with Git pulling enabled by default and --no-git-pull to skip it.
 #
 # Checks: bash -n install.sh; bun test __tests__/install.test.ts
 set -euo pipefail
@@ -86,6 +87,10 @@ while (( $# > 0 )); do
         *) fail "Unknown argument: $1" ;;
     esac
 done
+
+# The CLI must not repeat the checkout update completed by this bootstrap.
+# Use the same arguments for automatic handoff and the printed resume command.
+cli_args+=(--no-git-pull)
 
 # Reject malformed refs before system changes, even when Git is not installed yet.
 # Slash-separated branch names are allowed; Git checks the full ref after installation.
@@ -280,7 +285,7 @@ else
     mv -T -- "$staged_checkout" "$repo_root"
     staged_checkout=
 fi
-# Hooks and the CLI use the resolved checkout; user-supplied flags stay unchanged.
+# Hooks and the CLI use the resolved checkout; user-supplied flag values stay unchanged.
 export LUNA_ROOT="$repo_root"
 
 # 6. Build the CLI using the committed lockfile. Bun resolves the API's source

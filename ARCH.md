@@ -15,11 +15,10 @@
 │   └── README.md
 ├── install.sh                     # Prepare the checkout and install the CLI
 ├── installs/                      # Package and web app recipe lists
-│   ├── packages.conf              # Main package groups
-│   ├── packages.git.conf          # Git repository recipes
-│   ├── packages.local.conf        # Local app/package recipes
-│   ├── packages.mise.conf         # Development tools and runtimes
-│   ├── packages.webapp.conf       # Desktop web apps
+│   ├── packages.jsonc              # Packages grouped by installation stage
+│   ├── packages.mise.jsonc         # Development tools and runtimes
+│   ├── packages.webapp.jsonc       # Desktop web apps
+│   ├── example.jsonc              # Documented package recipe examples
 │   └── README.md
 ├── packages/
 │   └── luna-api/                  # Shared Luna APIs for Bun

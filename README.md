@@ -1,7 +1,6 @@
-# Luna Next
+# Luna
 
-Rust configuration libraries, shared themes, wallpaper, an application menu,
-desktop authentication, and the `luna` CLI.
+A Hyprland desktop setup with shared themes, app configurations, and the `luna` CLI.
 
 On Arch Linux, run as your normal user with sudo access:
 
@@ -9,10 +8,12 @@ On Arch Linux, run as your normal user with sudo access:
 curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install.sh | bash
 ```
 
-This prepares package sources and Bun, clones Luna into `~/.local/src/luna-next`,
-builds the logger, API, and CLI, and installs `luna` into `~/.local/bin`.
+This installs Git, mise, and Bun, clones Luna into `~/.local/src/luna-next`,
+builds the CLI, and installs `luna` into `~/.local/bin`.
 After a five-second cancellation window, it runs `luna self install` with the
-same flags. Cancelling prints the command to finish setup later.
+same flags plus `--no-git-pull`, since the checkout is already prepared.
+Cancelling prints the command to finish setup later. The `self install` command
+is pending implementation; desktop setup is not available yet.
 
 Use `--install-dir=PATH` for another checkout location. `--ref=latest` follows
 Git's default branch; a branch or tag name selects that ref instead.

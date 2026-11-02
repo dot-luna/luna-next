@@ -14,6 +14,19 @@ The [`apps.jsonc`](apps.jsonc) index lists each app’s `app.jsonc` JSONC manife
 
 See [`app.example.jsonc`](app.example.jsonc) for a complete manifest example.
 
+Apps can declare an optional `deps` array using the package objects shown in
+[`installs/example.jsonc`](../installs/example.jsonc): `name`, `source`, and optional
+`purpose` and mise `version`. Dependencies must be installed before the app and
+its hooks. Omit `deps` when no additional packages are needed.
+
+Use `deps` only for packages directly tied to the app, such as Zsh plugins.
+General tools, editors, and shared runtimes belong in `installs/`, usually in
+`later`; use an earlier stage when setup needs them.
+
+Each package must have one declaration. Do not add a dependency already listed in
+`installs/`, another app's `name`, or any app's `deps`. Put shared prerequisites in
+an earlier install stage and required apps earlier in `apps.jsonc`.
+
 Hooks run as the user with the app folder as their working directory and Luna's
 environment available. A nonzero exit stops that app's operation; completed steps
 are not automatically undone. Scripts must support repeated runs. Use a shebang
@@ -29,4 +42,5 @@ clone, disposable build workspace, and installation under `LUNA_GIT_APP_CLONE_DI
 The installer must serialize the whole build sequence per app. A failure stops later
 stages; scripts must clean up temporary system dependencies within the build stage.
 
-Hook execution is the manifest design; installer support will be added separately.
+Dependency installation and hook execution are the manifest design; CLI support
+will be added separately.

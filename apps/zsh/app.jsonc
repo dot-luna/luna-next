@@ -2,6 +2,29 @@
   "name": "zsh",
   "source": "pacman",
 
+  "deps": [
+    {
+      "name": "zsh-autosuggestions",
+      "source": "pacman",
+      "purpose": "Suggest commands from shell history",
+    },
+    {
+      "name": "zsh-syntax-highlighting",
+      "source": "pacman",
+      "purpose": "Highlight commands while typing",
+    },
+    {
+      "name": "zsh-completions",
+      "source": "pacman",
+      "purpose": "Complete additional commands and options",
+    },
+    {
+      "name": "fzf-tab",
+      "source": "aur",
+      "purpose": "Select Zsh completions with a fuzzy menu",
+    },
+  ],
+
   "hooks": {
     "before_configure": ["scripts/configure.ts"],
   },

@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, rmdirSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  rmdirSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -20,8 +30,19 @@ interface Command {
 }
 
 function spawn(cmd: string[], env: Record<string, string>, cwd: string, input?: Buffer) {
-  const child = Bun.spawnSync(cmd, { env, cwd, stdin: input ?? "ignore", stdout: "pipe", stderr: "pipe", timeout: 10_000 });
-  return { exitCode: child.exitCode, stdout: child.stdout.toString(), stderr: child.stderr.toString() };
+  const child = Bun.spawnSync(cmd, {
+    env,
+    cwd,
+    stdin: input ?? "ignore",
+    stdout: "pipe",
+    stderr: "pipe",
+    timeout: 10_000,
+  });
+  return {
+    exitCode: child.exitCode,
+    stdout: child.stdout.toString(),
+    stderr: child.stderr.toString(),
+  };
 }
 
 class Fixture {
@@ -34,8 +55,11 @@ class Fixture {
   managed = join(this.home, ".local/src/luna-next");
   binary = join(this.home, ".local/bin/luna");
   env: Record<string, string> = {
-    HOME: this.home, PATH: this.bin, LC_ALL: "C",
-    BOOTSTRAP_BIN: this.bin, BOOTSTRAP_LOG: this.log,
+    HOME: this.home,
+    PATH: this.bin,
+    LC_ALL: "C",
+    BOOTSTRAP_BIN: this.bin,
+    BOOTSTRAP_LOG: this.log,
     BOOTSTRAP_ONCE_MARKER: join(this.root, "once"),
     BOOTSTRAP_LUNA_WRAPPER: join(this.bin, "luna-wrapper"),
     // An inherited checkout must not change the installer's destination.
@@ -49,7 +73,7 @@ class Fixture {
     for (const name of ["bash", "cat", "mkdir", "mktemp", "rm", "install", "mv", "realpath"]) {
       symlinkSync(Bun.which(name)!, join(this.bin, name));
     }
-    for (const name of ["sudo", "pacman", "git", "mise", "makepkg", "bun", "sleep"]) this.wrapper(name);
+    for (const name of ["sudo", "pacman", "git", "mise", "bun", "sleep"]) this.wrapper(name);
     this.wrapper("luna", this.env.BOOTSTRAP_LUNA_WRAPPER);
   }
 
@@ -68,8 +92,13 @@ class Fixture {
 
   commands(name?: string): Command[] {
     const commands: Command[] = existsSync(this.log)
-      ? readFileSync(this.log, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line)) : [];
-    return commands.filter(item => name === undefined || item.name === name);
+      ? readFileSync(this.log, "utf8")
+          .trim()
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => JSON.parse(line))
+      : [];
+    return commands.filter((item) => name === undefined || item.name === name);
   }
 
   checkout(state: Record<string, unknown> = {}) {
@@ -83,52 +112,93 @@ class Fixture {
     writeFileSync(this.binary, "previous executable");
   }
 
-  clearLog() { rmSync(this.log, { force: true }); }
-  staging() { return readdirSync(dirname(this.managed)).filter(name => name.startsWith(".luna-clone.")); }
+  clearLog() {
+    rmSync(this.log, { force: true });
+  }
+  staging() {
+    return readdirSync(dirname(this.managed)).filter((name) => name.startsWith(".luna-clone."));
+  }
 }
 
 // The installer deliberately rejects root; ordinary users exercise every path.
 const userTests = process.getuid?.() === 0 ? describe.skip : describe;
 userTests("root installer", () => {
   let value: Fixture;
-  beforeEach(() => { value = new Fixture(); });
-  afterEach(() => { rmSync(value.root, { recursive: true, force: true }); });
+  beforeEach(() => {
+    value = new Fixture();
+  });
+  afterEach(() => {
+    rmSync(value.root, { recursive: true, force: true });
+  });
 
-  test("prepares sources, builds API then CLI, and hands off with default flags", () => {
+  test("installs only bootstrap tools, builds the CLI directly, and hands off with default flags", () => {
     const result = value.run();
     expect(value.commands("pacman")[0]!.args).toEqual([
-      "-Syu", "--needed", "--noconfirm", "--", "base-devel", "ca-certificates", "curl", "git", "mise", "sudo",
+      "-Syu",
+      "--needed",
+      "--noconfirm",
+      "--",
+      "ca-certificates",
+      "git",
+      "mise",
     ]);
-    expect(value.commands("makepkg")[0]!.args).toEqual(["--syncdeps", "--install", "--needed", "--noconfirm"]);
-    expect(value.commands("mise")[0]!.args).toEqual(["--cd", value.home, "use", "--global", "--yes", "bun@latest"]);
+    expect(value.commands("makepkg")).toEqual([]);
+    expect(value.commands("mise")[0]!.args).toEqual([
+      "--cd",
+      value.home,
+      "use",
+      "--global",
+      "--yes",
+      "bun@latest",
+    ]);
     const clone = value.commands("git").at(-1)!.args;
-    expect(clone.slice(0, -1)).toEqual(["clone", "--branch", "master", "--single-branch", "--", repoUrl]);
+    expect(clone.slice(0, -1)).toEqual([
+      "clone",
+      "--branch",
+      "master",
+      "--single-branch",
+      "--",
+      repoUrl,
+    ]);
     expect(dirname(clone.at(-1)!)).toBe(dirname(value.managed));
     expect(existsSync(clone.at(-1)!)).toBe(false);
     expect(existsSync(join(value.managed, ".git"))).toBe(true);
-    expect(value.commands("bun").map(item => item.args)).toEqual([
+    expect(value.commands("bun").map((item) => item.args)).toEqual([
       ["install", "--frozen-lockfile"],
-      ["run", "--cwd", "packages/luna-api", "build"],
       ["run", "--cwd", "src/luna-cli", "build"],
     ]);
     expect(value.commands("sleep")[0]!.args).toEqual(["5"]);
-    expect(value.commands("luna")[0]).toMatchObject({ args: ["self", "install"], repo: value.managed });
+    expect(value.commands("luna")[0]).toMatchObject({
+      args: ["self", "install", "--no-git-pull"],
+      repo: value.managed,
+    });
     expect(existsSync(value.binary)).toBe(true);
     expect(result.stdout + result.stderr).not.toContain("routine output");
     expect(result.stdout).toContain("self install called");
-    expect(readdirSync(dirname(value.binary)).filter(name => name.startsWith(".luna."))).toEqual([]);
+    expect(readdirSync(dirname(value.binary)).filter((name) => name.startsWith(".luna."))).toEqual(
+      [],
+    );
   });
 
   test("accepts a relative checkout and piped input, preserving the original flags", () => {
     value.run(["--install-dir=custom checkout"], { piped: true });
     expect(value.commands("luna")[0]).toMatchObject({
-      args: ["self", "install", "--install-dir=custom checkout"], repo: join(value.work, "custom checkout"),
+      args: ["self", "install", "--install-dir=custom checkout", "--no-git-pull"],
+      repo: join(value.work, "custom checkout"),
     });
   });
 
-  test("reuses an existing yay installation", () => {
-    value.wrapper("yay");
+  test("does not set up yay, whether it is already installed or not", () => {
     value.run();
+    expect(value.commands("makepkg")).toEqual([]);
+    expect(
+      value.commands("git").some((item) => item.args.includes("https://aur.archlinux.org/yay.git")),
+    ).toBe(false);
+    value.clearLog();
+    value.wrapper("yay");
+    value.checkout();
+    value.run();
+    expect(value.commands("yay")).toEqual([]);
     expect(value.commands("makepkg")).toEqual([]);
   });
 
@@ -136,24 +206,46 @@ userTests("root installer", () => {
     value.checkout();
     value.run();
     const commands = value.commands("git");
-    expect(commands.find(item => item.args.includes("fetch"))!.args.slice(-4)).toEqual([
-      "fetch", "--no-tags", "origin", "+refs/heads/master:refs/remotes/origin/master",
+    expect(commands.find((item) => item.args.includes("fetch"))!.args.slice(-4)).toEqual([
+      "fetch",
+      "--no-tags",
+      "origin",
+      "+refs/heads/master:refs/remotes/origin/master",
     ]);
     expect(commands.at(-1)!.args.slice(-7)).toEqual([
-      "pull", "--ff-only", "--no-rebase", "--no-autostash", "--no-tags", "origin", "refs/heads/master",
+      "pull",
+      "--ff-only",
+      "--no-rebase",
+      "--no-autostash",
+      "--no-tags",
+      "origin",
+      "refs/heads/master",
     ]);
-    expect(commands.findIndex(item => item.args.includes("switch"))).toBeLessThan(commands.findIndex(item => item.args.includes("pull")));
-    expect(commands.some(item => item.args.includes("clone") && item.args.includes(repoUrl))).toBe(false);
+    expect(commands.findIndex((item) => item.args.includes("switch"))).toBeLessThan(
+      commands.findIndex((item) => item.args.includes("pull")),
+    );
+    expect(
+      commands.some((item) => item.args.includes("clone") && item.args.includes(repoUrl)),
+    ).toBe(false);
   });
 
   test("rejects unrelated origins and tracked or untracked edits", () => {
     value.checkout();
-    for (const state of [{ origin: "https://example.com/other.git" }, { changes: " M file" }, { changes: "?? personal" }]) {
+    for (const state of [
+      { origin: "https://example.com/other.git" },
+      { changes: " M file" },
+      { changes: "?? personal" },
+    ]) {
       value.clearLog();
       value.env.BOOTSTRAP_GIT = JSON.stringify(state);
       const result = value.run([], { success: false });
-      if ("changes" in state) expect(result.stderr).toContain(`There are local changes in ${value.managed}`);
-      expect(value.commands("git").some(item => item.args.includes("switch") || item.args.includes("pull"))).toBe(false);
+      if ("changes" in state)
+        expect(result.stderr).toContain(`There are local changes in ${value.managed}`);
+      expect(
+        value
+          .commands("git")
+          .some((item) => item.args.includes("switch") || item.args.includes("pull")),
+      ).toBe(false);
       expect(value.commands("bun")).toEqual([]);
       expect(value.commands("luna")).toEqual([]);
     }
@@ -167,7 +259,10 @@ userTests("root installer", () => {
     ]) {
       value.clearLog();
       value.run(["--install-dir", destination!]);
-      expect(value.commands("luna")[0]).toMatchObject({ repo: selected, args: ["self", "install", "--install-dir", destination] });
+      expect(value.commands("luna")[0]).toMatchObject({
+        repo: selected,
+        args: ["self", "install", "--install-dir", destination, "--no-git-pull"],
+      });
     }
   });
 
@@ -184,12 +279,11 @@ userTests("root installer", () => {
     expect(existsSync(join(value.managed, "src/luna-cli"))).toBe(true);
   });
 
-  test("falls back from an invalid TMPDIR and removes temporary downloads", () => {
+  test("falls back from an invalid TMPDIR and cleans checkout staging", () => {
     value.env.TMPDIR = join(value.root, "missing/tmp");
     value.run();
     expect(existsSync(value.binary)).toBe(true);
-    const clone = value.commands("git").find(item => item.args.includes("https://aur.archlinux.org/yay.git"))!;
-    expect(existsSync(dirname(clone.args.at(-1)!))).toBe(false);
+    expect(value.staging()).toEqual([]);
   });
 
   test("keeps contents of a nonempty checkout directory", () => {
@@ -215,7 +309,7 @@ userTests("root installer", () => {
     value.run([], { success: false });
     expect(readdirSync(value.managed)).toEqual([]);
     expect(value.staging()).toEqual([]);
-    expect(value.commands("git").filter(item => item.args.includes("clone"))).toHaveLength(3);
+    expect(value.commands("git").filter((item) => item.args.includes("clone"))).toHaveLength(3);
   });
 
   test("retries temporary Git and Bun downloads without mixing failed output", () => {
@@ -228,7 +322,9 @@ userTests("root installer", () => {
       expect(value.commands("luna")).toHaveLength(1);
       expect(result.stdout + result.stderr).not.toContain("discard this failed attempt");
       const [name, action] = operation.split(":");
-      expect(value.commands(name).filter(item => item.args.includes(action!)).length).toBeGreaterThanOrEqual(2);
+      expect(
+        value.commands(name).filter((item) => item.args.includes(action!)).length,
+      ).toBeGreaterThanOrEqual(2);
     }
   });
 
@@ -236,7 +332,7 @@ userTests("root installer", () => {
     value.checkout();
     value.env.BOOTSTRAP_FAIL_ONCE = "git:fetch";
     value.run();
-    expect(value.commands("git").filter(item => item.args.includes("fetch"))).toHaveLength(2);
+    expect(value.commands("git").filter((item) => item.args.includes("fetch"))).toHaveLength(2);
   });
 
   test("preserves files added to the destination during a clone", () => {
@@ -248,7 +344,15 @@ userTests("root installer", () => {
   });
 
   test("rejects bad flags before changing the system", () => {
-    for (const args of [["--repo", value.work], ["--install-dir"], ["--install-dir="], ["--ref"], ["--ref="], ["--help"], ["--unexpected"]]) {
+    for (const args of [
+      ["--repo", value.work],
+      ["--install-dir"],
+      ["--install-dir="],
+      ["--ref"],
+      ["--ref="],
+      ["--help"],
+      ["--unexpected"],
+    ]) {
       value.run(args, { success: false });
     }
     expect(value.commands()).toEqual([]);
@@ -258,7 +362,12 @@ userTests("root installer", () => {
     value.env.BOOTSTRAP_GIT = JSON.stringify({ default: "main" });
     value.run(["--ref=latest"]);
     expect(value.commands("git").at(-1)!.args).toContain("main");
-    expect(value.commands("luna")[0]!.args).toEqual(["self", "install", "--ref=latest"]);
+    expect(value.commands("luna")[0]!.args).toEqual([
+      "self",
+      "install",
+      "--ref=latest",
+      "--no-git-pull",
+    ]);
   });
 
   test("clones explicit branches and tags without looking up the default branch", () => {
@@ -267,24 +376,35 @@ userTests("root installer", () => {
       const args = ["--install-dir", join(value.work, ref), "--ref=" + ref];
       value.run(args);
       expect(value.commands("git").at(-1)!.args).toContain(ref);
-      expect(value.commands("git").some(item => item.args.includes("--symref"))).toBe(false);
-      expect(value.commands("luna")[0]!.args).toEqual(["self", "install", ...args]);
+      expect(value.commands("git").some((item) => item.args.includes("--symref"))).toBe(false);
+      expect(value.commands("luna")[0]!.args).toEqual([
+        "self",
+        "install",
+        ...args,
+        "--no-git-pull",
+      ]);
     }
   });
 
   test("switches an existing checkout to the requested remote branch", () => {
     value.checkout({ refs: { "feature/cli": "heads" } });
     value.run(["--ref", "feature/cli"]);
-    expect(value.commands("git").find(item => item.args.includes("switch"))!.args.slice(-4)).toEqual([
-      "--no-track", "-c", "feature/cli", "refs/remotes/origin/feature/cli",
-    ]);
+    expect(
+      value
+        .commands("git")
+        .find((item) => item.args.includes("switch"))!
+        .args.slice(-4),
+    ).toEqual(["--no-track", "-c", "feature/cli", "refs/remotes/origin/feature/cli"]);
   });
 
   test("uses detached HEAD for tags", () => {
     value.checkout({ refs: { "v1.2.3": "tags" } });
     value.run(["--ref=v1.2.3"]);
     expect(value.commands("git").at(-1)!.args.slice(-4)).toEqual([
-      "switch", "--no-overwrite-ignore", "--detach", "FETCH_HEAD",
+      "switch",
+      "--no-overwrite-ignore",
+      "--detach",
+      "FETCH_HEAD",
     ]);
   });
 
@@ -339,8 +459,11 @@ userTests("root installer", () => {
       value.run([mode === "branch update" ? "--ref=master" : "--ref=v1"]);
       expect(git(["-C", value.managed, "rev-parse", "HEAD"])).toBe(selected);
       expect(git(["-C", value.managed, "rev-parse", "refs/tags/v1"])).toBe(personal);
-      expect(git(["-C", value.managed, "for-each-ref", "--contains", personal, "--format=%(refname)"])).toContain("refs/tags/v1");
-      if (mode === "branch update") expect(readFileSync(join(value.managed, "source"), "utf8")).toBe("updated remote content");
+      expect(
+        git(["-C", value.managed, "for-each-ref", "--contains", personal, "--format=%(refname)"]),
+      ).toContain("refs/tags/v1");
+      if (mode === "branch update")
+        expect(readFileSync(join(value.managed, "source"), "utf8")).toBe("updated remote content");
     });
   }
 
@@ -354,7 +477,7 @@ userTests("root installer", () => {
     value.checkout({ detached: true, head: "b".repeat(40) });
     const result = value.run([], { success: false });
     expect(result.stderr).toContain("unreferenced detached commit");
-    expect(value.commands("git").some(item => item.args.includes("switch"))).toBe(false);
+    expect(value.commands("git").some((item) => item.args.includes("switch"))).toBe(false);
   });
 
   test("stops before building when the ref or remote default is missing", () => {
@@ -408,14 +531,14 @@ userTests("root installer", () => {
     expect(value.commands("luna")).toEqual([]);
   });
 
-  test("API build failures stop before compiling the CLI and preserve the installed binary", () => {
-    value.previousBinary();
+  test("builds the CLI without invoking a separate API build", () => {
     value.env.BOOTSTRAP_BUILD_FAIL = "packages/luna-api";
-    const result = value.run([], { success: false });
-    expect(result.exitCode).toBe(17);
-    expect(readFileSync(value.binary, "utf8")).toBe("previous executable");
-    expect(value.commands("bun").some(item => item.args.includes("src/luna-cli"))).toBe(false);
-    expect(value.commands("luna")).toEqual([]);
+    value.run();
+    expect(value.commands("bun").some((item) => item.args.includes("packages/luna-api"))).toBe(
+      false,
+    );
+    expect(existsSync(value.binary)).toBe(true);
+    expect(value.commands("luna")).toHaveLength(1);
   });
 
   test("propagates a CLI setup failure", () => {
@@ -427,7 +550,10 @@ userTests("root installer", () => {
 
   test("an interrupt during the pause prints an executable, correctly quoted resume command", () => {
     value.env.BOOTSTRAP_CANCEL = "2";
-    const args = ["--install-dir=" + join(value.work, "manual ' checkout"), "--ref=feature/new-cli"];
+    const args = [
+      "--install-dir=" + join(value.work, "manual ' checkout"),
+      "--ref=feature/new-cli",
+    ];
     const result = value.run(args, { success: false, piped: true });
     expect(result.exitCode).toBe(130);
     expect(result.stdout).toContain("Other settings are not configured");
@@ -435,7 +561,7 @@ userTests("root installer", () => {
     const recovery = result.stdout.split("To finish, run:\n")[1]!.trim();
     const resumed = spawn([bash, "-c", recovery], value.env, value.work);
     expect(resumed.exitCode, resumed.stderr).toBe(0);
-    expect(value.commands("luna")[0]!.args).toEqual(["self", "install", ...args]);
+    expect(value.commands("luna")[0]!.args).toEqual(["self", "install", ...args, "--no-git-pull"]);
   });
 
   test("termination during the pause skips setup and prints the resume command", () => {

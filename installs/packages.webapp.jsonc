@@ -1,0 +1,8 @@
+// Each web app has only "name" and "url".
+// The CLI must install web apps last, after all packages and Chromium setup are complete.
+[
+  {
+    "name": "YouTube",
+    "url": "https://www.youtube.com/",
+  },
+]

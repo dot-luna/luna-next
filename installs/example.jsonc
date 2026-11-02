@@ -1,0 +1,21 @@
+[
+  // System package entries go in packages.jsonc's before_cli, after_cli, or later array.
+  {
+    "name": "mise",
+    "source": "pacman",
+    "purpose": "Manage development tools and runtimes",
+  },
+  {
+    "name": "ttf-outfit",
+    "source": "aur",
+    "purpose": "Default interface font",
+  },
+
+  // Tool recipes go in packages.mise.jsonc.
+  {
+    "name": "node",
+    "source": "mise",
+    "version": "lts",
+    "purpose": "Node.js long-term support runtime",
+  },
+]

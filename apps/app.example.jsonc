@@ -8,6 +8,18 @@
   // Optional command aliases for this app.
   "alias": ["example"],
 
+  // Optional packages directly tied to this app, such as its plugins.
+  // Use the same package objects as installs/. General tools and runtimes stay there.
+  // Omit packages already declared in installs/ or any app manifest (name or deps).
+  // Dependencies must be installed before this app and its hooks.
+  "deps": [
+    {
+      "name": "example-app-plugin",
+      "source": "pacman",
+      "purpose": "Plugin for this app",
+    },
+  ],
+
   // Optional: omit exports when there are no configuration files to install.
   // Export destinations are replaced without backups.
   "exports": [
