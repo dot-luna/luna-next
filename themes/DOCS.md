@@ -32,17 +32,17 @@ unrelated text are never replaced with resolved data.
 
 `mode` is `dark` or `light`. All other colors are opaque `"#RRGGBB"` strings.
 
-| Fields | Purpose |
-| --- | --- |
-| `background`, `dark_background`, `darker_background`, `lighter_background` | Normal, lower, deepest, and raised surfaces. |
-| `foreground`, `light_foreground`, `bright_foreground` | Readable text/icons with increasing emphasis. |
-| `dark_foreground` | Disabled/decorative elements; not ordinary secondary text. |
-| `accent`, `selection`, `secondary_accent` | Primary fill, selected-content fill, supporting accent. |
-| `muted` | Subdued decoration/fills; use `bright_foreground` for text on it. |
-| `link`, `comment` | Readable links and code comments. |
-| `error`, `warning`, `notice`, `success`, `info` | Status text, icons, or fills. |
-| `accent_foreground`, `selection_foreground`, `secondary_accent_foreground` | Text/icons on the corresponding fill. |
-| `error_foreground`, `warning_foreground`, `notice_foreground`, `success_foreground`, `info_foreground` | Text/icons on status fills. |
+| Fields                                                                                                                  | Purpose                                                              |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `background`, `dark_background`, `darker_background`, `lighter_background`                                              | Normal, lower, deepest, and raised surfaces.                         |
+| `foreground`, `light_foreground`, `bright_foreground`                                                                   | Readable text/icons with increasing emphasis.                        |
+| `dark_foreground`                                                                                                       | Disabled/decorative elements; not ordinary secondary text.           |
+| `accent`, `selection`, `secondary_accent`                                                                               | Primary fill, selected-content fill, supporting accent.              |
+| `muted`                                                                                                                 | Subdued decoration/fills; use `bright_foreground` for text on it.    |
+| `link`, `comment`                                                                                                       | Readable links and code comments.                                    |
+| `error`, `warning`, `notice`, `success`, `info`                                                                         | Status text, icons, or fills.                                        |
+| `accent_foreground`, `selection_foreground`, `secondary_accent_foreground`                                              | Text/icons on the corresponding fill.                                |
+| `error_foreground`, `warning_foreground`, `notice_foreground`, `success_foreground`, `info_foreground`                  | Text/icons on status fills.                                          |
 | `error_emphasis`, `warning_emphasis`, `success_emphasis`, `info_emphasis`, `link_emphasis`, `secondary_accent_emphasis` | Stronger role variants. Filled variants reuse their base foreground. |
 
 Changing a fill without its foreground derives readable black or white. Changing
@@ -58,17 +58,17 @@ palettes must be checked by their author.
 native settings; unsupported effects are left to each app. App layouts, keybindings,
 monitor scaling, font sizes, and package names stay outside themes.
 
-| Path within `appearance` | Type and units |
-| --- | --- |
-| `gaps.inner`, `gaps.outer` | Nonnegative integers; gaps between windows and screen edges, in layout pixels. |
-| `border_width` | Nonnegative integer, layout pixels. |
-| `rounding` | Integer 0–100, layout pixels. |
-| `opacity.active`, `opacity.inactive`, `opacity.fullscreen` | Numbers 0–1. |
-| `blur.enabled`, `shadow.enabled` | Booleans. |
-| `blur.size` | Positive integer. |
-| `blur.passes` | Integer 1–10. |
-| `shadow.range` | Integer 0–100, pixels. |
-| `shadow.falloff` | Integer 1–4; shadow falloff strength. |
+| Path within `appearance`                                   | Type and units                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `gaps.inner`, `gaps.outer`                                 | Nonnegative integers; gaps between windows and screen edges, in layout pixels. |
+| `border_width`                                             | Nonnegative integer, layout pixels.                                            |
+| `rounding`                                                 | Integer 0–100, layout pixels.                                                  |
+| `opacity.active`, `opacity.inactive`, `opacity.fullscreen` | Numbers 0–1.                                                                   |
+| `blur.enabled`, `shadow.enabled`                           | Booleans.                                                                      |
+| `blur.size`                                                | Positive integer.                                                              |
+| `blur.passes`                                              | Integer 1–10.                                                                  |
+| `shadow.range`                                             | Integer 0–100, pixels.                                                         |
+| `shadow.falloff`                                           | Integer 1–4; shadow falloff strength.                                          |
 
 `fonts.ui` and `fonts.mono` are nonempty font family names, up to 200 characters,
 without control characters. Defaults are Outfit and Iosevka Nerd Font. Install fonts
@@ -95,10 +95,10 @@ Selection changes do not reload applications. Hyprland reads through the install
 CLI on startup/reload; other clients can use `luna theme get --json` or the Rust API.
 There are no watchers or generated JSON theme files.
 
-`luna configure kitty starship` regenerates the terminal's native colors/font and
-the prompt palette from the selection. Restart Kitty after configuration; Starship
-reads its config at the next prompt. See [Kitty](../apps/kitty/DOCS.md) and
-[Starship](../apps/starship/DOCS.md) for paths and overrides.
+Kitty's configuration hook regenerates the terminal's native colors and font from
+the selection. Reload or restart Kitty afterward; Starship follows the terminal's
+palette. See [Kitty manifest](../apps/kitty/app.jsonc) and the
+[Starship manifest](../apps/starship/app.jsonc) for export paths and overrides.
 
 `wallpaper.sources` accepts theme-relative files/directories or public HTTP(S) media
 URLs. Local paths must stay inside the theme folder. Installation imports through
@@ -113,5 +113,4 @@ From the repository root:
 ```sh
 cargo test -p luna-next --test themes
 cargo test -p ln-cli --test themes
-python3 -m unittest discover -s apps/hypr/tests -v
 ```
