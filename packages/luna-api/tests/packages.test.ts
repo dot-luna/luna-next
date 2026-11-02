@@ -87,3 +87,23 @@ test("a failed local build is retried instead of treating the link as an install
   expect((await s.apps.install(["local"])).ok).toBe(true);
   expect(s.calls.filter(call => call.argv[0]?.endsWith("/build"))).toHaveLength(2);
 });
+
+test("Git directory overrides cannot overlap configuration, state, local links, or locks", async () => {
+  const s = await setup();
+  await s.app("app", { name: "app", source: "git", url: "https://example.com/app.git" });
+  const config = `${s.env.HOME}/.config/luna`;
+  await s.file(`${config}/app/settings.conf`, "personal settings");
+  const reserved = [config, `${s.env.HOME}/.local/share/luna/state`, `${s.env.HOME}/.local/share/luna/apps/local`, `${s.env.HOME}/.cache/luna/locks`];
+  for (const variable of ["LUNA_GIT_APP_CLONE_DIR", "LUNA_GIT_APP_BUILD_DIR", "LUNA_GIT_APP_INSTALL_DIR"]) {
+    for (const path of reserved) {
+      for (const selected of [path, `${path}/nested`]) {
+        s.env[variable] = selected;
+        const response = await s.apps.uninstall(["app"]);
+        expect(!response.ok && response.error.code).toBe("INVALID_PATH");
+        expect(await Bun.file(`${config}/app/settings.conf`).text()).toBe("personal settings");
+      }
+    }
+    delete s.env[variable];
+  }
+  expect(s.calls).toHaveLength(0);
+});

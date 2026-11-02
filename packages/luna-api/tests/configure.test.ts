@@ -35,6 +35,19 @@ test("JSON integration preserves user values including arrays and null", async (
   expect(await Bun.file(destination).json()).toEqual({ nested: { keep: "user", missing: 1 }, array: [], nil: null, personal: true });
 });
 
+test("parent exports publish before nested split exports regardless of manifest order", async () => {
+  const s = await setup();
+  await s.app("app", { name: "app", source: "pacman", exports: [
+    { source: "config/entry", target: "app/entry" },
+    { source: "config", target: "app", exclude: ["entry"] },
+  ] });
+  await s.file(`${s.repository}/apps/app/config/entry`, "entry");
+  await s.file(`${s.repository}/apps/app/config/other`, "other");
+  expect((await s.apps.configure(["app"])).ok).toBe(true);
+  expect(await Bun.file(`${s.env.HOME}/.config/luna/app/entry`).text()).toBe("entry");
+  expect(await Bun.file(`${s.env.HOME}/.config/luna/app/other`).text()).toBe("other");
+});
+
 test("include integration is explicit, prepended, and idempotent", async () => {
   const s = await setup();
   const destination = `${s.env.HOME}/.zshrc`;
