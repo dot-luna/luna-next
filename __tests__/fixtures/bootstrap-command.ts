@@ -1,11 +1,11 @@
 import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 
 // Each wrapper names the command explicitly, so symlink resolution cannot change
 // which fake tool runs. No package manager, download, or desktop command is real.
 const [name, ...args] = Bun.argv.slice(2);
 const env = process.env;
-appendFileSync(env.BOOTSTRAP_LOG!, JSON.stringify({ name, args, cwd: process.cwd(), repo: env.LUNA_NEXT_ROOT }) + "\n");
+appendFileSync(env.BOOTSTRAP_LOG!, JSON.stringify({ name, args, cwd: process.cwd(), repo: env.LUNA_ROOT }) + "\n");
 const command = name === "git" && args[0] === "-C" ? args.slice(2) : args;
 const operation = name === "mise" && args.includes("use") ? "use" : command[0];
 
@@ -83,17 +83,15 @@ if (name === "sudo" && args[0] !== "-v") {
 } else if (name === "bun" && args[0] === "run") {
   const pkg = args[args.indexOf("--cwd") + 1]!;
   if (pkg === env.BOOTSTRAP_BUILD_FAIL) fail("simulated dependency build failure");
-  if (pkg === "packages/luna-api" && !existsSync("target/luna-logger/index.js")) fail("logger must build before API");
-  if (pkg === "src/luna-cli" && !existsSync("target/luna-api/index.js")) fail("API must build before CLI");
-  if (pkg !== "src/luna-cli") {
-    const output = join("target", basename(pkg), "index.js");
-    mkdirSync(join("target", basename(pkg)), { recursive: true });
-    writeFileSync(output, "built dependency");
-  } else {
+  if (pkg === "packages/luna-api") {
+    mkdirSync("packages/luna-api/dist", { recursive: true });
+    writeFileSync("packages/luna-api/dist/index.js", "export {};\n");
+  } else if (pkg === "src/luna-cli") {
+    if (!existsSync("packages/luna-api/dist/index.js")) fail("API must build before CLI");
     mkdirSync("target", { recursive: true });
     copyFileSync(env.BOOTSTRAP_LUNA_WRAPPER!, "target/luna-bun");
     chmodSync("target/luna-bun", 0o755);
-  }
+  } else fail("unexpected build target");
 } else if (name === "sleep" && env.BOOTSTRAP_CANCEL) {
   // Signal only the installer, then remain alive until its EXIT cleanup kills us.
   process.kill(process.ppid, Number(env.BOOTSTRAP_CANCEL));

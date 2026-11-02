@@ -16,5 +16,5 @@ same flags. Cancelling prints the command to finish setup later.
 
 Use `--install-dir=PATH` for another checkout location. `--ref=latest` follows
 Git's default branch; a branch or tag name selects that ref instead.
-See [installer options and recovery](install.sh), [CLI commands](src/ln-cli/DOCS.md),
+See [installer options and recovery](install.sh), [CLI usage](src/luna-cli/README.md),
 and the [package lists](installs/README.md).

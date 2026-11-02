@@ -81,7 +81,7 @@ border colors come from accent/muted and shadow hues from the darker backgrounds
 
 ## Installation and use
 
-See [CLI commands](../src/ln-cli/DOCS.md#themes). Theme names start with a lowercase
+See [CLI usage](../src/luna-cli/README.md). Theme names start with a lowercase
 letter or digit and contain lowercase letters, digits, underscores, or hyphens.
 Copies live in `$XDG_DATA_HOME/luna-next/themes`; selection is
 `$XDG_CONFIG_HOME/luna-next/theme.conf`, normally under `~/.local/share` and

@@ -50,5 +50,5 @@ live desktop. Offscreen tests do not prove Wayland placement or hardware decodin
 - [HOCON](../../../packages/hocon/DOCS.md)
 - [QML adapter](../../../packages/hocon-qml/DOCS.md)
 - [Shared app operations](../../../packages/luna-next/DOCS.md)
-- [CLI](../../../src/ln-cli/DOCS.md)
+- [CLI](../../../src/luna-cli/README.md)
 - [Wallpaper renderer](../../../src/luna-wallpaper/DOCS.md)

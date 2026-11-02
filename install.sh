@@ -25,9 +25,9 @@
 #   3. Build and install yay through makepkg if it is not already available.
 #   4. Install mise's global bun@latest and add it to this script's PATH.
 #   5. Clone the selected Git ref, or safely update an existing Luna checkout.
-#   6. Run bun install --frozen-lockfile at the checkout root. Build dependencies
-#      in order with bun run --cwd packages/luna-logger build, then
-#      bun run --cwd packages/luna-api build, then bun run --cwd src/luna-cli build.
+#   6. Run bun install --frozen-lockfile at the checkout root, then
+#      bun run --cwd packages/luna-api build and
+#      bun run --cwd src/luna-cli build.
 #      Each package must provide a build script; the CLI build must produce
 #      target/luna-bun.
 #   7. Publish that binary as ~/.local/bin/luna with executable permissions.
@@ -296,18 +296,16 @@ else
     staged_checkout=
 fi
 # Hooks and the CLI use the resolved checkout; user-supplied flags stay unchanged.
-export LUNA_NEXT_ROOT="$repo_root"
+export LUNA_ROOT="$repo_root"
 
-# 7. Build logger, API, then CLI using the committed lockfile. Stage beside the
-# destination so a failed dependency build, CLI build, or copy keeps the old CLI.
+# 7. Build the API and CLI using the committed lockfile. Stage beside the destination
+# so a failed install, build, or copy keeps the old CLI.
 printf 'Building Luna CLI...\n'
 # Keep directory changes inside a subshell so relative flags forwarded later still
 # refer to the directory from which the user started the installer.
 (
     cd -- "$repo_root"
     run bun install --frozen-lockfile
-    # The API depends on the logger; the CLI depends on both workspace packages.
-    run bun run --cwd packages/luna-logger build
     run bun run --cwd packages/luna-api build
     run bun run --cwd src/luna-cli build
 )

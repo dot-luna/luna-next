@@ -2,6 +2,10 @@
 
 - Treat this file as repository policy. Skills in `.agents/skills/` provide
   task-specific guidance; explicit user instructions take precedence.
+- Use `Luna` for product, package, CLI, and runtime names. `luna-next` is only
+  the repository name, including its Git URLs and checkout directory. Prefix
+  environment variables with `LUNA_` (for example, `LUNA_ROOT`), never
+  `LUNA_NEXT_`; do not add aliases for the old prefix.
 - Keep changes focused on the requested task. Preserve unrelated working-tree
   edits and include only intended files when committing.
 - This repository is in active development. Do not add legacy migrations,
@@ -40,7 +44,7 @@
 - Apps own their JSON Schemas. Use the HOCON helper's optional schema validation
   on resolved values; keep schema reference resolution offline and defaults in
   the app. Do not duplicate schema rules in handwritten validators.
-- Keep shared application operations in `packages/luna-next`; CLI code handles
+- Keep shared application operations in `packages/luna-api`; CLI code handles
   arguments, prompts, and output. Standard wallpaper config mutations validate
   and save atomically, then explicitly reload the running renderer. Keep full
   process replacement for `restart`; do not add configuration file watchers. Failed
