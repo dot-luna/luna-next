@@ -1,8 +1,7 @@
 # Luna Next polkit agent
 
 Requires Quickshell 0.3.2+ with `Quickshell.Services.Polkit`, Qt Quick Controls,
-polkit, a Wayland session, and a systemd user manager. Runtime packages are in
-[the main package list](../../installs/packages.jsonc).
+polkit, a Wayland session, and a systemd user manager.
 
 Install the CLI and app with `luna install --local cli polkit`, then run
 `luna polkit start` from the desktop session. Other authentication agents must
