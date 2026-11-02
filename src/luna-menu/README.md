@@ -5,7 +5,7 @@ sections are placeholders. Free Hugeicons are bundled; application icons use the
 installed desktop entries.
 
 ```sh
-luna install menu
+luna install luna-menu
 luna menu
 ```
 

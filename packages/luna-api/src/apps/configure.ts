@@ -6,6 +6,7 @@ import type { InstallContext } from "../self/install/command.ts";
 import { inside, type CatalogApp } from "./catalog.ts";
 import { runHooks } from "./hooks.ts";
 import { integrate, userDestination } from "./integration.ts";
+import { configureAliases } from "./aliases.ts";
 
 export async function configureApp(context: InstallContext, app: CatalogApp) {
   context.progress(`Configuring ${app.id}...`);
@@ -33,5 +34,6 @@ export async function configureApp(context: InstallContext, app: CatalogApp) {
     if (item.user_config && destination)
       await integrate(target, destination, item.user_config.dest_mode);
   }
+  await configureAliases(context, app);
   await runHooks(context, app, "after_configure");
 }

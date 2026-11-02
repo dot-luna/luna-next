@@ -24,7 +24,10 @@
 - Document only what users need for that package. List external dependencies
   only when they need separate installation. Omit generic toolchain reminders
   and other packages' requirements; link elsewhere only when needed for use.
-- Put implementation in `src/` and tests and fixtures in `tests/`.
+- Put implementation in `src/`. Keep tests and fixtures for `packages/` and
+  `src/` packages with their owning package, usually in `tests/`.
+- Put app configuration tests in root `__tests__/apps/<app>/`, and shared app
+  tests in `__tests__/apps/`. Tests beside app scripts may stay alongside them.
 - Split implementation into focused modules by responsibility. Keep entry points
   small and related logic together so files are easy to read and understand;
   avoid giant files and unnecessary abstractions.

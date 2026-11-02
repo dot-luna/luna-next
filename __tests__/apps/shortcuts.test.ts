@@ -17,7 +17,7 @@ hl = {
 dofile(arg[1])
 `,
     "--",
-    fileURLToPath(new URL(`../${app}/config/hyprland.lua`, import.meta.url)),
+    fileURLToPath(new URL(`../../apps/${app}/config/hyprland.lua`, import.meta.url)),
   ]);
   expect(result.exitCode, result.stderr.toString()).toBe(0);
   return result.stdout.toString().trim();

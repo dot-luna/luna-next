@@ -49,7 +49,7 @@ else process.exit(2);
     chmodSync(join(f.bin, "qs"), 0o755);
     f.write(f.home, ".config/luna/unrelated/value", "keep");
     const options = { repository: f.repository, env: f.env };
-    const installed = await Luna.apps.install(["menu"], options);
+    const installed = await Luna.apps.install(["luna-menu"], options);
     expect(installed).toMatchObject({
       succes: true,
       data: { installed: ["luna-menu"], completed: true },
@@ -64,7 +64,7 @@ else process.exit(2);
     ).toBe(true);
     f.write(f.home, ".config/luna/menu/stale.qml", "remove");
     writeFileSync(running, "running");
-    expect(await Luna.apps.configure(["menu"], options)).toMatchObject({
+    expect(await Luna.apps.configure(["luna-menu"], options)).toMatchObject({
       succes: true,
       data: ["luna-menu"],
     });

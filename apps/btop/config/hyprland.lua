@@ -3,7 +3,7 @@ hl.window_rule({
   match = { class = "^luna-next-btop$" },
   float = true,
   center = true,
-  size = { 875, 600 },
+  size = { 1200, 800 },
 })
 
 hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd(

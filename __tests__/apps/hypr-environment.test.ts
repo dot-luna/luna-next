@@ -7,7 +7,7 @@ for (const existing of [
   "/fixture/home/.local/lib/qt6/qml:/system/qml",
 ]) {
   test(`Hyprland publishes QML imports once while retaining ${existing || "an empty path"}`, () => {
-    const path = fileURLToPath(new URL("../hypr/config/env.lua", import.meta.url));
+    const path = fileURLToPath(new URL("../../apps/hypr/config/env.lua", import.meta.url));
     const script = `
 local env = { HOME = "/fixture/home", QML_IMPORT_PATH = arg[2] }
 os.getenv = function(name) return env[name] end

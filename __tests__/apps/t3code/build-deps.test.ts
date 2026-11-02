@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { withBuildDependencies, type Runner } from "../scripts/build-deps.ts";
+import { withBuildDependencies, type Runner } from "../../../apps/t3code/scripts/build-deps.ts";
 
 type Package = { explicit: boolean; requires: string[] };
 type Fixture = {

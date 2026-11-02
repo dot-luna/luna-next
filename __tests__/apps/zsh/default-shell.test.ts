@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setDefaultShell } from "../scripts/default-shell.ts";
+import { setDefaultShell } from "../../../apps/zsh/scripts/default-shell.ts";
 
 test("Zsh uses the account shell, changes it only when needed and validates registration", async () => {
   const root = mkdtempSync(join(tmpdir(), "luna-shell "));

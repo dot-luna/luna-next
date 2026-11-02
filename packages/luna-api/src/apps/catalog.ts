@@ -31,6 +31,7 @@ export async function readCatalog(context: InstallContext) {
   );
   const apps: CatalogApp[] = [];
   const selectors = new Map<string, string>();
+  const aliases = new Set<string>();
   const packages = await readPackages(context, false);
   const owned = new Set(
     [...packages.before_cli, ...packages.after_cli, ...packages.later, ...packages.mise].map(
@@ -48,10 +49,15 @@ export async function readCatalog(context: InstallContext) {
         throw new ApiError("INVALID_METADATA", `Duplicate package declaration: ${packageName}`);
       owned.add(packageName);
     }
-    for (const selector of new Set([id, manifest.name, ...(manifest.alias ?? [])])) {
+    for (const selector of new Set([id, manifest.name])) {
       if (selectors.has(selector))
         throw new ApiError("INVALID_METADATA", `Ambiguous app selector: ${selector}`);
       selectors.set(selector, id);
+    }
+    for (const alias of manifest.alias ?? []) {
+      if (aliases.has(alias))
+        throw new ApiError("INVALID_METADATA", `Duplicate shell alias: ${alias}`);
+      aliases.add(alias);
     }
     for (const paths of Object.values(manifest.hooks ?? {}))
       for (const hook of paths) {
@@ -69,9 +75,7 @@ export function selectApps(apps: CatalogApp[], names: string[]) {
   if (!names.length) return apps;
   const selected = new Set<CatalogApp>();
   for (const name of names) {
-    const app = apps.find((item) =>
-      [item.id, item.manifest.name, ...(item.manifest.alias ?? [])].includes(name),
-    );
+    const app = apps.find((item) => [item.id, item.manifest.name].includes(name));
     if (!app) throw new ApiError("INVALID_ARGUMENT", `Unknown app: ${name}`);
     selected.add(app);
   }

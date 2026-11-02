@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-const hook = resolve(import.meta.dir, "../scripts/install.ts");
+const hook = resolve(import.meta.dir, "../../../apps/t3code/scripts/install.ts");
 
 test("installed T3 launcher retains concrete artifact/theme/profile paths and forwards arguments", async () => {
   const root = mkdtempSync(join(tmpdir(), "luna-t3-install = ' % $ "));

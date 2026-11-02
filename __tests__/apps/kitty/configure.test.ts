@@ -15,9 +15,14 @@ import { defaults } from "../../../packages/luna-api/src/theme/defaults.ts";
 test("generated Kitty colors are valid hex values with no template punctuation", () => {
   const root = mkdtempSync(join(tmpdir(), "luna-kitty "));
   try {
-    cpSync(new URL("../config", import.meta.url), join(root, "config"), { recursive: true });
+    cpSync(new URL("../../../apps/kitty/config", import.meta.url), join(root, "config"), {
+      recursive: true,
+    });
     mkdirSync(join(root, "scripts"));
-    cpSync(new URL("../scripts/configure.ts", import.meta.url), join(root, "scripts/configure.ts"));
+    cpSync(
+      new URL("../../../apps/kitty/scripts/configure.ts", import.meta.url),
+      join(root, "scripts/configure.ts"),
+    );
     mkdirSync(join(root, "bin"));
     const cli = join(root, "bin/luna");
     writeFileSync(

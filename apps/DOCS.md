@@ -29,7 +29,7 @@ The installer must serialize the whole build sequence per app. A failure stops l
 stages; scripts must clean up temporary system dependencies within the build stage.
 
 Use `luna install [names...]` to install/configure, or `luna configure [names...]`
-for configuration only. Names can be IDs, package names, or aliases. Selection
+for configuration only. Names can be directory IDs or package names. Selection
 always follows `apps.jsonc` order; omitted names select all. `--force` reruns
 installation/build hooks. Pacman/AUR packages are checked with `pacman -Qq`;
 mise tools resolve requested versions/aliases against installed versions. Dependencies run before app hooks.
@@ -42,6 +42,17 @@ Only the current user's processes are targeted, with a five-second warning and
 SIGTERM/SIGKILL escalation. The installer never terminates its own hosting app;
 retry from another terminal. `--no-close-apps` disables this behavior.
 `--skip-failed` retains individual app errors/logs and attempts the remaining apps.
+
+## Shell aliases
+
+`alias` declares Zsh shortcuts, such as `ff` for Fastfetch. Configuring an app with
+aliases writes `$LUNA_CONFIG_HOME_DIR/aliases/<id>.zsh`; Luna's Zsh startup loads
+these files. The command defaults to the package `name`. Optional `alias_command`
+sets the complete command as argv, such as `["luna", "menu"]` for Luna Menu.
+
+Existing personal aliases/functions are kept, and settings later in the user's
+`.zshrc` can override Luna's aliases. After changing aliases, reconfigure the app
+and Zsh (for example, `luna configure fastfetch zsh`), then open a new terminal.
 
 ## Exports and personal settings
 

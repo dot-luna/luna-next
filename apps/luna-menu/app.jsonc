@@ -2,6 +2,7 @@
   "name": "luna-menu",
   "source": "local",
   "alias": ["menu"],
+  "alias_command": ["luna", "menu"],
   "deps": [
     {"name": "quickshell", "source": "pacman", "purpose": "Render Luna's application menu"},
     {"name": "xdg-terminal-exec", "source": "pacman", "purpose": "Launch terminal applications from desktop entries"},

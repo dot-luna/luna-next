@@ -90,20 +90,23 @@ See [theme format and behavior](../../themes/DOCS.md).
 
 `luna menu` opens the menu; `show`, `hide`, `toggle`, `start`, `stop`, and `status`
 control it. Show/toggle start a missing instance; start keeps it hidden.
-Install with `luna install menu`. Use `--install-dir PATH` on menu commands to
+Install with `luna install luna-menu`. Use `--install-dir PATH` on menu commands to
 test source QML. Only Apps is implemented; other main sections are placeholders.
 See [menu controls and appearance](../luna-menu/DOCS.md).
 
 ## Apps and web apps
 
 - `luna install [names...] [--force] [--install-dir PATH]`: install and configure
-  selected apps; omit names for all. Match directory IDs, package names, or aliases.
+  selected apps; omit names for all. Match directory IDs or package names.
 - `luna configure [names...] [--install-dir PATH]`: configure without installing.
   `config` and `confi` are aliases. Apps always follow catalog order.
 - `luna webapp install [name] [url]`: prompt for missing values in a terminal.
   JSON mode requires both values and never prompts.
 - `luna webapp list`, `luna webapp launch <name>`,
   `luna webapp uninstall <name>`: manage apps by exact display name.
+
+App manifests can declare Zsh shortcuts such as `ff` for `fastfetch`. After changing
+them, reconfigure the app and Zsh (`luna configure fastfetch zsh`), then open a new terminal.
 
 The `webapp` group accepts `--data-dir`, `--applications-dir`, `--launcher`,
 `--profile-root`, and `--chromium` for explicit paths/browser selection. Generated

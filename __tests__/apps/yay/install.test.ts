@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const app = new URL("../", import.meta.url).pathname;
+const app = new URL("../../../apps/yay/", import.meta.url).pathname;
 
 test("yay installs from its build workspace and propagates makepkg failures", () => {
   const root = mkdtempSync(join(tmpdir(), "luna-yay-test-"));

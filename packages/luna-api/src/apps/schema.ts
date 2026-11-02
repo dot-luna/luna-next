@@ -22,6 +22,7 @@ export const appSchema = packageRecipeSchema
     version: z.string().min(1).regex(printable).nullable().optional(),
     url: z.string().min(1).regex(printable).nullable().optional(),
     alias: z.array(appNameSchema).optional(),
+    alias_command: z.array(z.string().min(1).regex(printable)).min(1).optional(),
     processes: z
       .array(
         z

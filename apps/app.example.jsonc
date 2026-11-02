@@ -5,8 +5,12 @@
   // Package source: pacman, aur, git, local, or mise.
   "source": "pacman",
 
-  // Optional command aliases for this app.
+  // Optional Zsh aliases, generated when this app is configured.
   "alias": ["example"],
+
+  // Optional command argv for these aliases; defaults to [name].
+  // Luna Menu uses ["luna", "menu"].
+  "alias_command": ["example-app"],
 
   // Optional executable basenames closed before installation/configuration.
   "processes": ["example-app"],

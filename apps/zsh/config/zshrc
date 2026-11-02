@@ -46,5 +46,11 @@
 
     source "$luna_zsh_dir/completion.zsh"
     source "$luna_zsh_dir/tools.zsh"
+    if [[ -o interactive ]]; then
+        local luna_alias_file
+        for luna_alias_file in "$LUNA_CONFIG_HOME_DIR"/aliases/*.zsh(N); do
+            source "$luna_alias_file"
+        done
+    fi
     source "$luna_zsh_dir/plugins.zsh"
 }

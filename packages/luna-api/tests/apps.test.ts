@@ -47,7 +47,7 @@ test("selected apps follow catalog order; dependencies and installation precede 
     stages.filter((stage) => !stage.includes("build")),
   );
   f.app("second", { name: "second-package", source: "local" }, stages);
-  expect(data(await Luna.apps.install(["second", "one"], options())).installed).toEqual([
+  expect(data(await Luna.apps.install(["second", "first-package"], options())).installed).toEqual([
     "first",
     "second",
   ]);
@@ -313,14 +313,14 @@ test("self install validates web app catalog before sudo and does not mark faile
   expect(f.commands().some((c) => c.name === "pacman" && c.args.includes("zed"))).toBe(false);
 });
 
-test("CLI install and configure aliases share app APIs and preserve JSON responses", async () => {
+test("CLI install and configure command aliases preserve JSON responses", async () => {
   f.app("cli-app", { name: "cli-package", source: "pacman", alias: ["short"] });
   const entry = resolve(import.meta.dir, "../../../src/luna-cli/src/index.ts");
   for (const args of [
-    ["install", "short"],
+    ["install", "cli-app"],
     ["configure", "cli-app"],
     ["config", "cli-package"],
-    ["confi", "short"],
+    ["confi", "cli-app"],
   ]) {
     const child = Bun.spawn([process.execPath, entry, ...args, "--json"], {
       env: f.env,

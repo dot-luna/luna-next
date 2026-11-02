@@ -7,7 +7,7 @@ Super+Space toggles it through Luna's Hyprland bindings.
 The default renderer is `$LUNA_CONFIG_HOME_DIR/menu` (otherwise
 `$XDG_CONFIG_HOME/luna/menu`, then `~/.config/luna/menu`). For source testing, use
 `luna menu --install-dir /absolute/checkout`. Quickshell must already be installed
-when using source QML without `luna install menu`.
+when using source QML without `luna install luna-menu`.
 
 ## Controls
 
@@ -32,11 +32,14 @@ The header, fixed-height body, row spacing, selection, and font scaling follow
 that menu. UI icons use the free Hugeicons set, documented in
 [icons/README.md](src/shell/icons/README.md), with its MIT notice.
 
-`luna install menu` installs Quickshell and `xdg-terminal-exec`, then exports the QML
+`luna install luna-menu` installs Quickshell and `xdg-terminal-exec`, then exports the QML
 to Luna's menu configuration directory. Configuration replaces that owned directory without
 backups and restarts an already-running menu hidden; a stopped menu stays stopped.
 No separate systemd service is required. Hyprland starts it hidden at login, and
 the shortcut can start it on demand.
+
+The Zsh alias `menu` runs `luna menu`, including subcommands. Reconfigure with
+`luna configure luna-menu zsh` and open a new terminal to load it.
 
 The API resolves a theme snapshot at process startup through `LUNA_MENU_THEME`.
 The renderer never reads or watches theme files. Stop and start the menu after
@@ -54,7 +57,7 @@ environment. Responses contain `{running, shellDirectory}`. Missing QML returns
 ```sh
 /usr/lib/qt6/bin/qmllint src/luna-menu/src/shell/*.qml
 python3 -m unittest discover -s src/luna-menu/tests -v
-bun test packages/luna-api/tests/menu.test.ts apps/luna-menu/tests apps/tests/hypr-environment.test.ts
+bun test packages/luna-api/tests/menu.test.ts __tests__/apps/luna-menu __tests__/apps/hypr-environment.test.ts
 ```
 
 QML tests require Quickshell and `dbus-run-session`. They use private XDG paths,

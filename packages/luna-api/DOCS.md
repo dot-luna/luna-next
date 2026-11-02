@@ -111,13 +111,13 @@ See the [menu docs](../../src/luna-menu/DOCS.md).
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.
 `Luna.apps.configure(names?, options?)` runs configuration only. Omit names to
-select all; names match directory IDs, package names, or aliases. Installation returns `{ installed, failed, completed, logDirectory }`; configuration
+select all; names match directory IDs or package names. Installation returns `{ installed, failed, completed, logDirectory }`; configuration
 returns selected IDs. Both preserve `apps/apps.jsonc` order, irrespective of argument order.
 Options: `repository`, `env`, `onProgress`, and install-only `force` to rerun
 installation/build hooks even for installed apps. Install also accepts `skipFailed`;
 both operations accept `closeApps`. Run installation as a normal user.
 
-See [app manifests and lifecycle](../../apps/DOCS.md) for hooks, exports, settings,
+See [app manifests and lifecycle](../../apps/DOCS.md) for hooks, Zsh aliases, exports, settings,
 Git refs, build cleanup, and retry behavior. Invalid catalogs fail before package
 or hook changes. Failed operations retain completed changes for a later retry.
 
