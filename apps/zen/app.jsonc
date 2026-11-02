@@ -1,0 +1,10 @@
+{
+  "name": "zen-browser-bin",
+  "source": "aur",
+  "processes": ["zen", "zen-bin"],
+
+  // The hook consumes app settings directly and publishes only its declared profile files.
+  "hooks": {
+    "after_configure": ["scripts/setup-profile.ts"],
+  },
+}

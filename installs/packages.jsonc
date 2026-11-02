@@ -1,0 +1,316 @@
+{
+  // Before building and installing the CLI: bootstrap tools and mise.
+  "before_cli": [
+    {
+      "name": "coreutils",
+      "source": "pacman",
+      "purpose": "Basic file and shell utilities",
+    },
+    {
+      "name": "curl",
+      "source": "pacman",
+      "purpose": "Transfer files over HTTP and other protocols",
+    },
+    {
+      "name": "mise",
+      "source": "pacman",
+      "purpose": "Manage development tools and runtime versions",
+    },
+    {
+      "name": "neovim",
+      "source": "pacman",
+      "purpose": "Git editor configured before app installation",
+    },
+  ],
+  // After the CLI is ready, before installing apps/: shared build tools, setup helpers, and runtimes.
+  "after_cli": [
+    {
+      "name": "gcc",
+      "source": "pacman",
+      "purpose": "C and C++ compiler toolchain",
+    },
+    {
+      "name": "cmake",
+      "source": "pacman",
+      "purpose": "Configure, build, and install native projects",
+    },
+    {
+      "name": "ninja",
+      "source": "pacman",
+      "purpose": "Fast build runner",
+    },
+    {
+      "name": "util-linux",
+      "source": "pacman",
+      "purpose": "System utilities and process locking",
+    },
+    {
+      "name": "unzip",
+      "source": "pacman",
+      "purpose": "Extract ZIP archives from the terminal",
+    },
+    {
+      "name": "gtk3",
+      "source": "pacman",
+      "purpose": "GTK applications and desktop-entry launching",
+    },
+    {
+      "name": "glib2",
+      "source": "pacman",
+      "purpose": "Read and apply system appearance preferences with GSettings",
+    },
+    {
+      "name": "gsettings-desktop-schemas",
+      "source": "pacman",
+      "purpose": "Desktop appearance preference schema",
+    },
+    {
+      "name": "dbus",
+      "source": "pacman",
+      "purpose": "Persist desktop appearance settings from TTY and SSH sessions",
+    },
+    {
+      "name": "dconf",
+      "source": "pacman",
+      "purpose": "Persist per-user desktop preferences",
+    },
+    {
+      "name": "xdg-desktop-portal-gtk",
+      "source": "pacman",
+      "purpose": "Provide GTK file pickers and expose system appearance preferences to portal applications",
+    },
+    {
+      "name": "libsecret",
+      "source": "pacman",
+      "purpose": "Store application credentials in the desktop keyring",
+    },
+    {
+      "name": "gnome-keyring",
+      "source": "pacman",
+      "purpose": "Desktop secret storage and login-keyring unlocking",
+    },
+    {
+      "name": "nss",
+      "source": "pacman",
+      "purpose": "Network security libraries for desktop applications",
+    },
+    {
+      "name": "libnotify",
+      "source": "pacman",
+      "purpose": "Desktop notifications",
+    },
+    {
+      "name": "libxss",
+      "source": "pacman",
+      "purpose": "X11 idle-state support for desktop applications",
+    },
+    {
+      "name": "libxtst",
+      "source": "pacman",
+      "purpose": "X11 input support for desktop applications",
+    },
+    {
+      "name": "base-devel",
+      "source": "pacman",
+      "purpose": "Build packages from source",
+    },
+  ],
+  // After apps/: shared desktop helpers and standalone utilities. Web apps run last.
+  "later": [
+    {
+      "name": "xdg-utils",
+      "source": "pacman",
+      "purpose": "Open files and URLs with desktop applications",
+    },
+    {
+      "name": "zip",
+      "source": "pacman",
+      "purpose": "Create ZIP archives from the terminal",
+    },
+    {
+      "name": "7zip",
+      "source": "pacman",
+      "purpose": "Create 7z archives and extract additional formats, including RAR",
+    },
+    {
+      "name": "zed",
+      "source": "pacman",
+      "purpose": "Code editor",
+    },
+    {
+      "name": "github-cli",
+      "source": "pacman",
+      "purpose": "GitHub repository workflows",
+    },
+    {
+      "name": "fuse2",
+      "source": "pacman",
+      "purpose": "Run AppImage applications",
+    },
+    {
+      "name": "fuse3",
+      "source": "pacman",
+      "purpose": "Run AppImages using the FUSE 3 runtime",
+    },
+    {
+      "name": "fzf",
+      "source": "pacman",
+      "purpose": "Search shell history, files, and directories interactively",
+    },
+    {
+      "name": "zoxide",
+      "source": "pacman",
+      "purpose": "Jump to frequently used directories with cd",
+    },
+    {
+      "name": "eza",
+      "source": "pacman",
+      "purpose": "List files with colors, icons, and Git status",
+    },
+    {
+      "name": "fd",
+      "source": "pacman",
+      "purpose": "Find files and directories for fuzzy selection",
+    },
+
+    // Desktop apps; their default handlers are declared in defaults.jsonc.
+    {
+      "name": "evince",
+      "source": "pacman",
+      "purpose": "View PDF documents",
+    },
+    {
+      "name": "gnome-disk-utility",
+      "source": "pacman",
+      "purpose": "Manage disks, partitions, and drive health",
+    },
+    {
+      "name": "hyprpicker",
+      "source": "pacman",
+      "purpose": "Pick colors from the screen",
+    },
+    {
+      "name": "imv",
+      "source": "pacman",
+      "purpose": "View supported image formats",
+    },
+    {
+      "name": "nautilus",
+      "source": "pacman",
+      "purpose": "Browse and manage files",
+    },
+    {
+      "name": "sushi",
+      "source": "pacman",
+      "purpose": "Preview selected files in Nautilus",
+    },
+
+    // Terminal tools and media helpers.
+    {
+      "name": "man-db",
+      "source": "pacman",
+      "purpose": "Read system and command manual pages",
+    },
+    {
+      "name": "tldr",
+      "source": "pacman",
+      "purpose": "Read concise command examples",
+    },
+    {
+      "name": "lazygit",
+      "source": "pacman",
+      "purpose": "Manage Git repositories in a terminal interface",
+    },
+    {
+      "name": "jq",
+      "source": "pacman",
+      "purpose": "Query and transform JSON from the terminal",
+    },
+    {
+      "name": "ffmpeg",
+      "source": "pacman",
+      "purpose": "Convert and process audio and video",
+    },
+    {
+      "name": "qrencode",
+      "source": "pacman",
+      "purpose": "Generate QR codes",
+    },
+
+    // Package installation only; Docker service and app integration follow separately.
+    {
+      "name": "docker",
+      "source": "pacman",
+      "purpose": "Run containers",
+    },
+    {
+      "name": "docker-compose",
+      "source": "pacman",
+      "purpose": "Manage multi-container applications",
+    },
+    {
+      "name": "docker-buildx",
+      "source": "pacman",
+      "purpose": "Build container images with BuildKit",
+    },
+    {
+      "name": "lazydocker",
+      "source": "pacman",
+      "purpose": "Manage Docker containers in a terminal interface",
+    },
+
+    // System tools; service setup and snapshot policies remain separate work.
+    {
+      "name": "snapper",
+      "source": "pacman",
+      "purpose": "Manage filesystem snapshots and rollback",
+    },
+    {
+      "name": "ufw",
+      "source": "pacman",
+      "purpose": "Manage firewall rules",
+    },
+    {
+      "name": "bluez",
+      "source": "pacman",
+      "purpose": "Provide the Bluetooth service used by bluetoothctl",
+    },
+    {
+      "name": "bluez-utils",
+      "source": "pacman",
+      "purpose": "Manage Bluetooth devices with bluetoothctl",
+    },
+    {
+      "name": "brightnessctl",
+      "source": "pacman",
+      "purpose": "Control hardware display and keyboard backlights",
+    },
+    {
+      "name": "wireplumber",
+      "source": "pacman",
+      "purpose": "Provide wpctl for PipeWire audio device and volume controls",
+    },
+    {
+      "name": "wl-clipboard",
+      "source": "pacman",
+      "purpose": "Copy and paste Wayland clipboard data with wl-copy and wl-paste",
+    },
+
+    // Native messaging and recording apps.
+    {
+      "name": "discord",
+      "source": "pacman",
+      "purpose": "Use Discord chat, voice, and video in the desktop app",
+    },
+    {
+      "name": "telegram-desktop",
+      "source": "pacman",
+      "purpose": "Use Telegram messaging in the desktop app",
+    },
+    {
+      "name": "obs-studio",
+      "source": "pacman",
+      "purpose": "Record and stream video with OBS Studio",
+    },
+  ],
+}

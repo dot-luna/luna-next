@@ -1,0 +1,17 @@
+{
+  "name": "t3code",
+  "source": "git",
+  "processes": ["t3code", "t3-code", "T3 Code", "T3-Code.AppImage"],
+  "url": "https://github.com/pingdotgg/t3code.git",
+  "version": "latest",
+  "git_include_prereleases": true,
+  "git_release_tag_pattern": "v[0-9]*",
+
+  // Build scripts use a disposable workspace; the selected Git clone stays untouched.
+  "hooks": {
+    "before_build": ["scripts/prepare-build.ts"],
+    "build": ["scripts/build.ts"],
+    "after_build": ["scripts/install.ts"],
+    "after_configure": ["scripts/configure.ts"],
+  },
+}

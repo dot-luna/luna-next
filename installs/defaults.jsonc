@@ -1,0 +1,48 @@
+{
+  // Applied after setup; use luna defaults list, set, or reset to manage active choices.
+
+  // Terminal: Kitty (desktop entry for xdg-terminal-exec).
+  "terminal": "kitty.desktop",
+
+  // Shell: Zsh (executable name).
+  "shell": "zsh",
+
+  // Browser: Zen (web links and HTML files).
+  "x-scheme-handler/http": "zen.desktop",
+  "x-scheme-handler/https": "zen.desktop",
+  "text/html": "zen.desktop",
+  "application/xhtml+xml": "zen.desktop",
+
+  // PDF viewer: Document Viewer (evince).
+  "application/pdf": "org.gnome.Evince.desktop",
+
+  // Image viewer: imv for every image MIME type it supports.
+  "image/*": "imv.desktop",
+
+  // Video player: mpv for every video MIME type it supports.
+  "video/*": "mpv.desktop",
+
+  // File manager and directory handler: Files (nautilus).
+  "inode/directory": "org.gnome.Nautilus.desktop",
+
+  // Bluetooth controls: bluetoothctl (bluez-utils), backed by bluez; service setup is TODO.
+  // Backlight controls: brightnessctl; hardware detection and bindings are TODO.
+  // Audio controls: wpctl (wireplumber) is a candidate; confirm session integration before making it default.
+  // TODO: Choose our screenshot tool and define its capture/edit actions.
+  // TODO: Decide whether Pinta should be included for image editing.
+  // TODO: Choose a minimal Markdown editor for simple edits without a vault/plugin workflow.
+  // TODO: Choose a high-quality local dictation model and backend; assess accuracy and hardware needs.
+  // TODO: Decide whether nmtui is needed before adding NetworkManager to the install list.
+  // TODO: Configure Neovim and editor defaults; it is already a Git setup prerequisite.
+  // https://github.com/dot-luna/luna-next/issues/42
+  // TODO: Add Lazygit configuration and launch support.
+  // https://github.com/dot-luna/luna-next/issues/43
+  // TODO: Integrate Docker, Compose, Buildx, and Lazydocker, including service setup and authorization.
+  // https://github.com/dot-luna/luna-next/issues/44
+  // TODO: Add Snapper snapshots, rollback, and package-update integration.
+  // https://github.com/dot-luna/luna-next/issues/45
+  // TODO: Add hardware-specific NVIDIA drivers, graphics/video libraries, and Wayland support.
+  // https://github.com/dot-luna/luna-next/issues/46
+  // TODO: Choose and integrate a fan/hardware-control app for supported devices.
+  // https://github.com/dot-luna/luna-next/issues/47
+}

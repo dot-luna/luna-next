@@ -16,7 +16,7 @@ from _support import APP, QUICKSHELL, SHELL, THEME, desktop_entries, isolated_en
                      "Quickshell and dbus-run-session are required")
 class MenuTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="luna-next-menu ' ")
+        self.temporary = tempfile.TemporaryDirectory(prefix="luna-menu ' ")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.env = isolated_environment(self.root)
@@ -39,23 +39,25 @@ class MenuTests(unittest.TestCase):
         return directory
 
     def test_real_shell_validates_hidden_ui_and_rejects_invalid_theme_input(self):
-        self.env["LUNA_NEXT_MENU_VALIDATE"] = "1"
+        self.env["LUNA_MENU_VALIDATE"] = "1"
         shell = self.offscreen_shell()
         result = self.run_shell(shell)
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
-        self.assertIn("Luna Next menu validation passed", output)
+        self.assertIn("Luna menu validation passed", output)
         for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
             self.assertNotIn(error, output)
         for theme in ("not json", "null", "{}", json.dumps(dict(THEME, fonts={})),
-                      json.dumps(dict(THEME, appearance={"rounding": -1, "border_width": 1}))):
+                      json.dumps(dict(THEME, appearance={"rounding": -1, "border_width": 1})),
+                      json.dumps(dict(THEME, appearance=dict(THEME["appearance"], blur=None))),
+                      json.dumps(dict(THEME, appearance=dict(THEME["appearance"], blur={"enabled": "false"})))):
             with self.subTest(theme=theme):
-                self.env["LUNA_NEXT_MENU_THEME"] = theme
+                self.env["LUNA_MENU_THEME"] = theme
                 result = self.run_shell(shell)
                 output = result.stdout + result.stderr
                 self.assertNotEqual(result.returncode, 0, output)
-                self.assertIn("Luna Next menu theme:", output)
-                self.assertNotIn("Luna Next menu validation passed", output)
+                self.assertIn("Luna menu theme:", output)
+                self.assertNotIn("Luna menu validation passed", output)
 
     def test_production_content_keyboard_mouse_search_and_native_desktop_entries(self):
         desktop_entries(self.root)
@@ -88,7 +90,7 @@ ShellRoot {
         result = self.run_shell(self.root, timeout=25)
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
-        summary = re.search(r"LUNA_NEXT_MENU_TEST_RESULT (\{[^\n]+\})", output)
+        summary = re.search(r"LUNA_MENU_TEST_RESULT (\{[^\n]+\})", output)
         self.assertIsNotNone(summary, output)
         counts = json.loads(summary.group(1))
         self.assertEqual(counts["failed"], 0, output)
@@ -99,14 +101,31 @@ ShellRoot {
         for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
             self.assertNotIn(error, output)
         launches = [json.loads(line) for line in (self.root / "launched.jsonl").read_text().splitlines()]
-        self.assertEqual(len(launches), 2)
+        self.assertEqual(len(launches), 6)
         native = next(entry for entry in launches if entry["kind"] == "record-app")
-        terminal = next(entry for entry in launches if entry["kind"] == "xdg-terminal-exec")
+        terminal = next(entry for entry in launches if entry["kind"] == "xdg-terminal-exec" and entry["args"][0] == "--")
+        about = next(entry for entry in launches if entry["args"][0] == "--app-id=luna-next-fastfetch")
+        self.assertEqual(about["args"], ["--app-id=luna-next-fastfetch", "--title=Fastfetch", "--", "bash", "-c",
+                                         'fastfetch; status=$?; read -r -s -n 1; exit "$status"'])
         self.assertEqual(native["args"], ["literal argument; $HOME"])
         self.assertEqual(terminal["args"], ["--", "record-app", "literal argument; $HOME"])
+        urls = [entry["args"] for entry in launches if entry["kind"] == "xdg-open"]
+        self.assertCountEqual(urls, [["https://example.com/a?x=1&y=2"],
+            ["https://duckduckgo.com/?q=caf%C3%A9%20%26%20cats%20%23%3F%20%24(touch%20UNEXPECTED)"]])
+        command = next(entry for entry in launches if entry["kind"] == "xdg-terminal-exec" and "luna-menu" in entry["args"])
+        self.assertEqual(command["args"], ["--", "bash", "-c",
+            '"$1" -lc "$2"; status=$?; read -r -s -n 1; exit "$status"',
+            "luna-menu", self.env.get("SHELL") or "/bin/sh", 'printf "%s" "a b" | cat'])
         self.assertEqual(native["cwd"], str(self.root / "working directory"))
         self.assertEqual(terminal["cwd"], native["cwd"])
         self.assertFalse((self.root / "UNEXPECTED").exists())
+        sessions = [json.loads(line) for line in (self.root / "session.jsonl").read_text().splitlines()]
+        self.assertCountEqual(sessions, [
+            {"command": "systemctl", "args": ["reboot"]},
+            {"command": "systemctl", "args": ["poweroff"]},
+            {"command": "systemctl", "args": ["poweroff"]},  # The explicitly denied request.
+            {"command": "hyprctl", "args": ["eval", "hl.dispatch(hl.dsp.exit())"]},
+        ])
 
     def test_real_ipc_show_resets_root_and_hide_toggle_control_visibility(self):
         shell = self.offscreen_shell()
@@ -119,6 +138,7 @@ ShellRoot {
         function state(): string {
             return JSON.stringify({visible: shell.menuWindow.visible,
                 apps: shell.menuWindow.content.appsView,
+                section: shell.menuWindow.content.section,
                 query: shell.menuWindow.content.query});
         }
         function enterApps(): void { shell.menuWindow.content.activate(0); }
@@ -153,13 +173,15 @@ ShellRoot {
                     if process.poll() is not None or time.monotonic() >= deadline:
                         self.fail("Menu did not become ready:\n" + log_path.read_text())
                     time.sleep(0.025)
-                self.assertEqual(state(), {"visible": False, "apps": False, "query": ""})
+                self.assertEqual(state(), {"visible": False, "apps": False, "section": "root", "query": ""})
                 self.assertEqual(call("menu", "show"), "")
                 self.assertTrue(state()["visible"])
                 call("test", "enterApps")
                 self.assertTrue(state()["apps"])
                 call("menu", "show")
-                self.assertEqual(state(), {"visible": True, "apps": False, "query": ""})
+                self.assertEqual(state(), {"visible": True, "apps": False, "section": "root", "query": ""})
+                call("menu", "system")
+                self.assertEqual(state(), {"visible": True, "apps": False, "section": "system", "query": ""})
                 call("menu", "hide")
                 self.assertFalse(state()["visible"])
                 call("menu", "toggle")

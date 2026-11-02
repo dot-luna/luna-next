@@ -1,9 +1,26 @@
+# Luna UI priorities
+
+- Keep the UI minimal. Show only what helps users complete their current task.
+- Design for the keyboard first, with full mouse support. Support navigation,
+  selection, activation, and dismissal through both.
+- Use polished, natural animations that respond immediately. Never delay input,
+  focus, navigation, or actions to wait for an animation.
+- Keep visible text brief and useful. Omit meta text, explanatory filler,
+  redundant labels, and information with no user benefit. Use recognizable icons
+  where they communicate clearly; retain essential labels and accessible names.
+
 # Repository conventions
 
 - Treat this file as repository policy. Skills in `.agents/skills/` provide
   task-specific guidance; explicit user instructions take precedence.
+- Use `Luna` for product, package, CLI, and runtime names. `luna-next` is only
+  the repository name, including its Git URLs and checkout directory. Prefix
+  environment variables with `LUNA_` (for example, `LUNA_ROOT`), never
+  `LUNA_NEXT_`; do not add aliases for the old prefix.
 - Keep changes focused on the requested task. Preserve unrelated working-tree
   edits and include only intended files when committing.
+- Use free Hugeicons for Luna's UI icons, with the upstream license notice.
+  Do not introduce Lucide icons.
 - This repository is in active development. Do not add legacy migrations,
   backward-compatibility layers, or old-format fallbacks.
 - Installing or configuring apps replaces the declared destination files and
@@ -18,7 +35,10 @@
 - Document only what users need for that package. List external dependencies
   only when they need separate installation. Omit generic toolchain reminders
   and other packages' requirements; link elsewhere only when needed for use.
-- Put implementation in `src/` and tests and fixtures in `tests/`.
+- Put implementation in `src/`. Keep tests and fixtures for `packages/` and
+  `src/` packages with their owning package, usually in `tests/`.
+- Put app configuration tests in root `__tests__/apps/<app>/`, and shared app
+  tests in `__tests__/apps/`. Tests beside app scripts may stay alongside them.
 - Split implementation into focused modules by responsibility. Keep entry points
   small and related logic together so files are easy to read and understand;
   avoid giant files and unnecessary abstractions.
@@ -31,29 +51,27 @@
   apply it when adding or changing implementation too. Explain meaningful public
   contracts and non-obvious mechanisms; verify claims against implementations
   and callers rather than adding comments to meet a count.
-- Keep `packages/hocon` a standalone Rust configuration helper. Preserve includes
-  and unrelated source text when editing; never save resolved data over the file.
-- Keep `packages/hocon-qml` a separate, one-shot adapter exposing only
-  `Config.load_as_json(path, schemaPath?)`. Return a plain JavaScript object for
-  the app to hold in memory; do not add watchers, caches, live getters, or editing
-  methods.
-- Apps own their JSON Schemas. Use the HOCON helper's optional schema validation
-  on resolved values; keep schema reference resolution offline and defaults in
-  the app. Do not duplicate schema rules in handwritten validators.
-- Keep shared application operations in `packages/luna-next`; CLI code handles
+- Use JSONC for Luna-owned configuration and manifests, replacing HOCON `.conf`
+  files as their features are implemented. Native application configuration keeps
+  the format required by that application.
+- Parse JSONC with Bun and validate values with Zod. Keep each feature's Zod
+  schemas in its owning API module, such as `packages/luna-api/src/theme/schema.ts`.
+  Do not add JSON Schema files, Ajv, or duplicate validation rules in consumers.
+- Preserve author-written theme sources when installing them. Merge defaults
+  only in memory; do not write resolved defaults over source files. Keep settings
+  reads explicit and one-shot; do not add watchers, caches, or live getters.
+- Keep shared application operations in `packages/luna-api`; CLI code handles
   arguments, prompts, and output. Standard wallpaper config mutations validate
   and save atomically, then explicitly reload the running renderer. Keep full
   process replacement for `restart`; do not add configuration file watchers. Failed
   application restores the previous source without overwriting external edits.
 - Preserve explicit file paths, automatic missing-file creation, and null values
-  for missing Rust keys. Apps choose configuration paths; do not add environment
-  selection or reload APIs to either configuration package.
+  for missing settings. Apps choose configuration paths.
 - Optimize measured or clearly unnecessary work without weakening source
   preservation, include resolution, or safe writes. Run relevant Rust and QML
   checks for implementation changes.
-- Use each package's `DOCS.md` for build and test commands. The Cargo workspace
-  defaults to `packages/hocon`; select changed packages explicitly or use
-  `--workspace` when checking shared changes.
+- Use each package's `DOCS.md` for build and test commands. Select affected Bun
+  packages explicitly or use the workspace checks for shared changes.
 - Add regression coverage for bugs and meaningful behavior changes. Reuse
   existing coverage for structural refactors; documentation-only changes need
   link, example, and instruction checks rather than unrelated runtime suites.

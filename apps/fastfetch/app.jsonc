@@ -1,0 +1,35 @@
+{
+  "name": "fastfetch",
+  "source": "pacman",
+  "alias": ["ff"],
+
+  "hooks": {
+    // Resolve Luna's theme before exporting the native Fastfetch configuration.
+    "before_configure": ["scripts/configure.ts"],
+  },
+
+  "exports": [
+    {
+      "source": "generated/config.jsonc",
+      "target": "fastfetch/config.jsonc",
+
+      "user_config": {
+        "dest": [
+          "$XDG_CONFIG_HOME/fastfetch/config.jsonc",
+          "$HOME/.config/fastfetch/config.jsonc",
+          "~/.config/fastfetch/config.jsonc",
+        ],
+        "dest_mode": "merge",
+      },
+    },
+    {
+      "source": "config/hyprland.lua",
+      "target": "fastfetch/hyprland.lua",
+
+      "user_config": {
+        "dest": ["$LUNA_CONFIG_HOME_DIR/hypr/include.lua"],
+        "dest_mode": "include",
+      },
+    },
+  ],
+}

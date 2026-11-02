@@ -1,0 +1,53 @@
+{
+  "name": "zsh",
+  "source": "pacman",
+
+  "deps": [
+    {
+      "name": "zsh-autosuggestions",
+      "source": "pacman",
+      "purpose": "Suggest commands from shell history",
+    },
+    {
+      "name": "zsh-syntax-highlighting",
+      "source": "pacman",
+      "purpose": "Highlight commands while typing",
+    },
+    {
+      "name": "zsh-completions",
+      "source": "pacman",
+      "purpose": "Complete additional commands and options",
+    },
+    {
+      "name": "fzf-tab",
+      "source": "aur",
+      "purpose": "Select Zsh completions with a fuzzy menu",
+    },
+  ],
+
+  "hooks": {
+    "before_configure": ["scripts/configure.ts"],
+  },
+
+  "exports": [
+    {
+      "source": "config/",
+      "target": "zsh/",
+      "exclude": ["zshrc"],
+    },
+    {
+      "source": "config/zshrc",
+      "target": "zsh/zshrc",
+
+      "user_config": {
+        "dest": ["$ZDOTDIR/.zshrc", "$HOME/.zshrc", "~/.zshrc"],
+        // Source Luna's entry before personal settings so user overrides win.
+        "dest_mode": "include",
+      },
+    },
+    {
+      "source": "generated/",
+      "target": "zsh/generated/",
+    },
+  ],
+}

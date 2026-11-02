@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "useTabs": false,
+  "endOfLine": "lf",
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/generated/**",
+    "**/*.template.*",
+    "/target/**",
+    "**/*.min.js",
+    "**/*.min.css",
+    "bun.lock",
+    "src/**/src/shell/**/*.js",
+    "apps/zen/config/userChrome.css"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "btop",
+  "source": "pacman",
+
+  "exports": [
+    {
+      "source": "config/btop.conf",
+      "target": "btop/btop.conf",
+
+      "user_config": {
+        "dest": [
+          "$XDG_CONFIG_HOME/btop/btop.conf",
+          "$HOME/.config/btop/btop.conf",
+          "~/.config/btop/btop.conf",
+        ],
+        "dest_mode": "merge",
+      },
+    },
+    {
+      "source": "config/hyprland.lua",
+      "target": "btop/hyprland.lua",
+
+      "user_config": {
+        "dest": ["$LUNA_CONFIG_HOME_DIR/hypr/include.lua"],
+        "dest_mode": "include",
+      },
+    },
+  ],
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+
+  // configure.ts resolves the theme placeholders below via luna theme get --json.
+  // Keep Fastfetch's built-in Arch artwork; only its colors follow Luna.
+  "logo": {
+    "type": "builtin",
+    "source": "arch",
+    "color": {
+      "1": "{{colors.accent}}",
+      "2": "{{colors.secondary_accent}}"
+    },
+    "padding": { "top": 1, "right": 10 }
+  },
+
+  "display": {
+    // Normal weight for the logo, title, and keys. Use the terminal's font/background.
+    "brightColor": false,
+    "disableLinewrap": true,
+    "separator": "  ",
+
+    // Nerd Font icons replace text labels, followed by two separator spaces.
+    "key": { "type": "icon" },
+    "color": {
+      "keys": "{{colors.accent}}",
+      "title": "{{colors.accent}}",
+      "output": "{{colors.foreground}}",
+      "separator": "{{colors.dark_foreground}}"
+    },
+
+    // Plain usage percentages avoid extra bars and unrelated status colors.
+    "percent": { "type": ["num"] }
+  },
+
+  "modules": [
+    "break",
+    "title",
+    { "type": "separator", "string": "─", "times": 28, "outputColor": "{{colors.dark_foreground}}" },
+
+    // Hardware: machine, processor, graphics, screen, memory, and root storage.
+    { "type": "host", "keyIcon": "" },
+    { "type": "cpu", "keyIcon": "", "showPeCoreCount": true },
+    { "type": "gpu", "keyIcon": "󰢮", "detectionMethod": "pci", "format": "{name}" },
+    { "type": "display", "keyIcon": "󰍹" },
+    { "type": "memory", "keyIcon": "" },
+    { "type": "disk", "keyIcon": "󰋊", "folders": "/" },
+    "break",
+
+    // Software: a second Luna accent distinguishes this group without headings.
+    { "type": "os", "keyIcon": "", "keyColor": "{{colors.secondary_accent}}" },
+    { "type": "kernel", "keyIcon": "", "keyColor": "{{colors.secondary_accent}}" },
+    { "type": "wm", "keyIcon": "", "keyColor": "{{colors.secondary_accent}}" },
+    { "type": "shell", "keyIcon": "", "keyColor": "{{colors.secondary_accent}}" },
+    { "type": "terminal", "keyIcon": "", "keyColor": "{{colors.secondary_accent}}" },
+    { "type": "packages", "keyIcon": "󰏖", "keyColor": "{{colors.secondary_accent}}" },
+    "break",
+
+    // Session: show the resolved Luna theme and system uptime.
+    { "type": "custom", "key": "Theme", "keyIcon": "󰏘", "keyColor": "{{colors.info}}", "format": "{{name}}" },
+    { "type": "uptime", "keyIcon": "󰥔", "keyColor": "{{colors.info}}" },
+    "break"
+  ]
+}

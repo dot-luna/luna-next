@@ -1,20 +1,19 @@
 # Luna Next polkit agent
 
 Requires Quickshell 0.3.2+ with `Quickshell.Services.Polkit`, Qt Quick Controls,
-polkit, a Wayland session, and a systemd user manager. Runtime packages are in
-[the main package list](../../installs/packages.conf).
+polkit, a Wayland session, and a systemd user manager.
 
 Install the CLI and app with `luna install --local cli polkit`, then run
 `luna polkit start` from the desktop session. Other authentication agents must
 release the session registration first.
 
-| Command | Behavior |
-| --- | --- |
-| `luna polkit start` | Validate the real UI, enable session autostart, start and confirm registration. A healthy instance is kept. |
-| `luna polkit restart` | Validate before replacing the running instance. |
-| `luna polkit stop` | Stop the agent; login startup remains enabled. |
-| `luna polkit status` | Print `running`, `unavailable`, or `stopped`. |
-| `luna polkit serve` | Foreground process used by the user service. |
+| Command               | Behavior                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `luna polkit start`   | Validate the real UI, enable session autostart, start and confirm registration. A healthy instance is kept. |
+| `luna polkit restart` | Validate before replacing the running instance.                                                             |
+| `luna polkit stop`    | Stop the agent; login startup remains enabled.                                                              |
+| `luna polkit status`  | Print `running`, `unavailable`, or `stopped`.                                                               |
+| `luna polkit serve`   | Foreground process used by the user service.                                                                |
 
 The app links into `$XDG_DATA_HOME/luna-next/polkit` (default `~/.local/share`).
 [app.conf](../../apps/luna-polkit/app.conf) installs the systemd unit under

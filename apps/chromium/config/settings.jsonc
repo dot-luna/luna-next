@@ -1,0 +1,36 @@
+{
+  // Chrome Web Store IDs installed only into the Luna profile.
+  // setup-profile.ts downloads these packages again when configuration is rerun.
+  "extensions": [
+    // uBlock — ad/content blocker from ublock.org; this ID is not uBlock Origin.
+    "epcnnfbjfcgphgdmggkamkmgojdagdnn",
+
+    // SponsorBlock for YouTube — skip community-reported sponsored segments.
+    "mnjggcdmjocbbbhaepdhchncahnbgone",
+
+    // Youtube Custom Speed — custom playback rates and keyboard shortcuts.
+    "kmfcinojnfabkpndlgomnfjllgeppegb",
+
+    // Adblock for Youtube™ — block YouTube advertisements.
+    "cmedhionkhpnakcndndgjdbohmhepckk",
+  ],
+
+  // Chromium-native defaults. Existing values in the user's Luna profile win.
+  // Browser colors and website fonts come from `luna theme get --json`.
+  // Website corners are forced square only when that resolved theme has appearance.rounding = 0.
+  "preferences": {
+    "extensions": {
+      "ui": {
+        // Required for the locally installed, unpacked extensions to remain enabled.
+        // If an existing profile disables this, setup stops rather than overriding it.
+        "developer_mode": true
+      }
+    },
+    "profile": {
+      "default_content_setting_values": {
+        // Chromium's ALLOW value: retain cookies so PWA logins survive browser exits.
+        "cookies": 1
+      }
+    }
+  }
+}

@@ -1,86 +1,48 @@
 # Package lists
 
-The [installer](../install/DOCS.md) prepares Git, the managed checkout, and the
-CLI. This folder supplies the package recipes consumed by `luna setup`.
+Package recipes for Luna's installer, written in JSONC (JSON with comments and
+trailing commas). `luna self install` processes `before_cli`, `after_cli`, and
+the mise list, apps, `later`, web apps, and finally the application defaults.
 
-[packages.conf](packages.conf) groups packages into arrays of objects:
+Packages installed by [install.sh](../install.sh) may also appear in these lists.
+Packages declared in [apps/](../apps/README.md), as an app's `name` or in its `deps`,
+must never appear in these lists.
+Keep general tools, editors, and shared runtimes here. Only packages directly
+tied to an app, such as its plugins, belong in that app's `deps`.
+Dependencies for inactive local desktop apps are omitted; add them when enabling
+those apps.
 
-```hocon
-core = [
-    {
-        name: "git",
-        source: "pacman",
-        version: null,
-        url: null,
-        purpose: "Version control"
-    }
-]
+| File                                           | Contents                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| [packages.jsonc](packages.jsonc)               | Pacman and AUR packages grouped by installation stage.          |
+| [packages.mise.jsonc](packages.mise.jsonc)     | Array of development tools and runtime versions.                |
+| [packages.webapp.jsonc](packages.webapp.jsonc) | Array of desktop web apps with only `name` and `url`.           |
+| [defaults.jsonc](defaults.jsonc)               | Application defaults applied after setup, plus undecided items. |
+
+Add system packages to the appropriate group in `packages.jsonc`:
+
+- `before_cli`: before building and installing the CLI.
+- `after_cli`: after the CLI is ready, before installing apps.
+- `later`: after apps are installed. Web apps run last.
+
+```jsonc
+{
+  "before_cli": [{ "name": "mise", "source": "pacman", "purpose": "Manage runtimes" }],
+  "after_cli": [{ "name": "unzip", "source": "pacman", "purpose": "Extract browser extensions" }],
+  "later": [{ "name": "zed", "source": "pacman", "purpose": "Code editor" }],
+}
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `name` | Package, app, or tool name. |
-| `source` | `pacman` for official Arch packages, `aur` for AUR packages, `git` for a Git repository, `local` for a local app/package, or `mise` for a development tool. |
-| `version` | Optional mise version or Git branch/tag. Git `latest` selects the highest eligible tag using Git's version sorting. Omitted/`null` uses Git's default branch on first clone. |
-| `git_include_prereleases` | Include SemVer prerelease tags with `latest`; defaults to `false`. |
-| `git_release_tag_pattern` | Optional tag-name glob for `latest`, e.g. `v*` or `release/*`. Omit to consider all tags. |
-| `url` | Repository URL for `git`, a source path for `local`, or `null` for other sources. |
-| `purpose` | A short explanation of why the package is included. |
-| `destination` | Optional local link path relative to `~/.local`; defaults to `src/<name>`. |
-| `command` | Argument arrays run in the Git checkout or local source directory. Empty for a local package needing only a link. |
+Each package recipe has a `name` and `source` (`pacman`, `aur`, or `mise`).
+Use `purpose` for a short description and `version` to select a mise version.
 
-`packages.git.conf`, `packages.mise.conf`, and `packages.local.conf` contain bare
-arrays. Local `url` paths resolve from this checkout. Keep build/install steps in
-the project and call its task, for example `[["mise", "run", "install:hocon-qml"]]`.
+See [example.jsonc](example.jsonc) for the package fields and source examples.
+Its entries illustrate recipes; it is not an additional install list. App
+configuration exports and lifecycle hooks belong in [apps/](../apps/README.md).
 
-[packages.webapp.conf](packages.webapp.conf) is a separate array of desktop web
-apps, currently YouTube. Entries use `name` and `url`, with optional `icon_url`
-to override website icon discovery:
-
-```hocon
-[{ name: "YouTube", url: "https://www.youtube.com/" }]
-```
-
-`luna setup` validates this list before installing packages. When it is nonempty,
-setup creates a missing Luna Chromium profile before configuring apps, then
-installs the web apps after enabling keyring. It never opens a browser. Entries
-share the default Luna profile; reruns replace their desktop entries and icons.
-An empty array disables this stage. Missing or invalid lists stop setup.
-
-Git/local recipes receive the catalog checkout as `$LUNA_NEXT_ROOT`. Git recipes
-also receive the selected ref as `$LUNA_PACKAGE_VERSION` (`v1.2.3`, not `latest`).
-Tag filters apply only to `latest`; explicit branches/tags are unchanged.
-Without a pattern, an untagged remote uses its default branch. No matching or
-eligible tags returns an error. Prerelease detection recognizes SemVer tags with
-an optional `v`; other tag names remain eligible.
-
-The [T3 recipe](../apps/t3code/DOCS.md) builds the x86_64 Linux app with Luna's
-boxy UI and defaults, then installs a launcher into `~/.local/bin/t3code`:
-
-```sh
-luna install --git t3code
-```
-
-The Chromium provider is the prebuilt AUR `ungoogled-chromium-bin` package:
-
-```sh
-luna install ungoogled-chromium-bin
-luna chromium setup
-```
-
-Its installation runs in a separate package-manager transaction that accepts
-conflicting Chromium/chromedriver replacement. Package-manager dependency checks
-remain active; browser profile files are retained. Package-only installation
-leaves a missing Luna profile for the explicit setup step; full `luna setup`
-creates it when web apps are declared. See [Chromium setup](../apps/chromium/DOCS.md).
-
-Zen uses the prebuilt AUR `zen-browser-bin` package:
-
-```sh
-luna install zen-browser-bin
-```
-
-Installation and full setup configure Zen's existing default profile with Luna's
-appearance, uBlock Origin, and Bitwarden. Close Zen first. A missing profile is
-skipped; open Zen once, close it, then run `luna conf zen`. No Zen profile is
-created by Luna. See [Zen configuration](../apps/zen/DOCS.md).
+`defaults.jsonc` maps MIME types and URL schemes to installed desktop IDs, with
+`terminal` for `xdg-terminal-exec` and `shell` for the login-shell executable.
+Media groups such as `image/*` expand only to types advertised by the selected
+app; exact MIME entries take precedence. Use `luna defaults list`,
+`luna defaults set application/pdf org.gnome.Evince.desktop`, or
+`luna defaults reset` to inspect, change, or restore the active defaults.

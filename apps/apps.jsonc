@@ -1,0 +1,31 @@
+{
+  // App manifests using the new architecture, in configuration order.
+  "packages": [
+    "git/app.jsonc",
+    "yay/app.jsonc",
+
+    // Export Hyprland's empty include collector before apps register their fragments.
+    "hypr/app.jsonc",
+    "kitty/app.jsonc",
+    "starship/app.jsonc",
+
+    "bat/app.jsonc",
+    "tmux/app.jsonc",
+    "glow/app.jsonc",
+    "btop/app.jsonc",
+    "fastfetch/app.jsonc",
+    "bitwarden/app.jsonc",
+    "mpv/app.jsonc",
+
+    // Chromium's profile uses Git's user name; T3 uses the Codex provider.
+    "chromium/app.jsonc",
+    "zen/app.jsonc",
+    "codex/app.jsonc",
+    "t3code/app.jsonc",
+
+    "luna-menu/app.jsonc",
+
+    // Configure shell integrations after their apps and desktop defaults.
+    "zsh/app.jsonc",
+  ],
+}

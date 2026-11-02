@@ -9,13 +9,18 @@ pipe:close()
 local config_dir = assert(path:gsub("\n$", ""):match("^(.*)/[^/]+$"),
     "Cannot locate Luna Next's Hyprland configuration")
 
--- Compositor-launched apps share the installed checkout even without a login shell.
-local repository = os.getenv("LUNA_NEXT_ROOT")
-if not repository or repository == "" then
-    hl.env("LUNA_NEXT_ROOT", assert(os.getenv("HOME"), "HOME is required") .. "/.local/src/luna-next")
-end
+-- Publish shared paths before any modules or external app fragments read them.
+dofile(config_dir .. "/env.lua")(config_dir)
 
-for _, name in ipairs({ "monitors", "workspaces", "input", "appearance", "rules", "animations", "autostart" }) do
+for _, name in ipairs({ "monitors", "workspaces", "input" }) do
     dofile(config_dir .. "/" .. name .. ".lua")
 end
-dofile(config_dir .. "/bindings.lua")(config_dir)
+local appearance = dofile(config_dir .. "/appearance.lua")
+dofile(config_dir .. "/rules.lua")()
+for _, name in ipairs({ "animations", "autostart" }) do
+    dofile(config_dir .. "/" .. name .. ".lua")
+end
+dofile(config_dir .. "/bindings.lua")(config_dir, appearance)
+
+-- Apps register their Lua fragments here through their own manifest exports.
+dofile(os.getenv("LUNA_CONFIG_HOME_DIR") .. "/hypr/include.lua")

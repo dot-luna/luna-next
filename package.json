@@ -1,0 +1,36 @@
+{
+  "name": "@dot-luna/luna",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A Hyprland setup for Arch Linux by @jrtilak.",
+  "homepage": "https://github.com/dot-luna/luna-next#readme",
+  "bugs": {
+    "url": "https://github.com/dot-luna/luna-next/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dot-luna/luna-next.git"
+  },
+  "workspaces": [
+    "packages/luna-api",
+    "src/luna-cli"
+  ],
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "check:api": "bun run --cwd packages/luna-api check",
+    "check": "bun run --workspaces --if-present check",
+    "test": "bun test __tests__ packages/luna-api/tests src/luna-cli/tests",
+    "luna": "bun src/luna-cli/src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
+    "typescript": "^7.0.2"
+  },
+  "packageManager": "bun@1.4.4"
+}

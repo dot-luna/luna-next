@@ -1,0 +1,1 @@
+-- App manifests insert dofile(...) entries here for their exported Hyprland fragments.

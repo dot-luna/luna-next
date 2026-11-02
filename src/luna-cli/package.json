@@ -1,0 +1,20 @@
+{
+  "name": "@luna/cli",
+  "version": "0.0.1",
+  "private": true,
+  "bin": {
+    "luna": "./src/index.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "build": "bun ./src/build.ts"
+  },
+  "dependencies": {
+    "@luna/api": "workspace:*",
+    "commander": "^15.0.0",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0"
+  }
+}

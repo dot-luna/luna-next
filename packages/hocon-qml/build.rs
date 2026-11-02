@@ -1,7 +1,0 @@
-fn main() {
-    cxx_build::bridge("src/lib.rs")
-        .std("c++17")
-        .compile("luna-next-hocon-qml-bridge");
-
-    println!("cargo:rerun-if-changed=src/lib.rs");
-}
