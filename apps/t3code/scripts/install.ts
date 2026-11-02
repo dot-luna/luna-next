@@ -18,19 +18,24 @@ import * as path from "node:path";
 import { installFile, main, paths, safePath, state, withLock } from "./common.ts";
 
 export function desktopEntry(launcher: string): string {
-  // Desktop Exec values undergo general string unescaping before argument unquoting.
-  const quoted = launcher
-    .replaceAll("\\", "\\\\")
-    .replaceAll('"', '\\"')
-    .replaceAll("`", "\\`")
-    .replaceAll("$", "\\$")
-    .replaceAll("%", "%%");
-  const escaped = quoted.replaceAll("\\", "\\\\");
+  // A constant shell command forwards the executable/URL as data, including % and = in paths.
+  const argument = (value: string) => {
+    const quoted = value
+      .replaceAll("\\", "\\\\")
+      .replaceAll('"', '\\"')
+      .replaceAll("`", "\\`")
+      .replaceAll("$", "\\$")
+      .replaceAll("%", "%%");
+    return '"' + quoted.replaceAll("\\", "\\\\") + '"';
+  };
+  const command = ["/usr/bin/bash", "-c", 'exec "$@"', "luna-t3code", launcher]
+    .map(argument)
+    .join(" ");
   return [
     "[Desktop Entry]",
     "Type=Application",
     "Name=T3 Code",
-    'Exec=/usr/bin/env "' + escaped + '" %U',
+    `Exec=${command} %U`,
     "Icon=com.t3tools.T3Code",
     "Terminal=false",
     "NoDisplay=false",
@@ -61,6 +66,7 @@ export function install(): void {
       const entry = path.join(temporary, "com.t3tools.T3Code.desktop");
       fs.writeFileSync(entry, desktopEntry(launcher));
       installFile(artifact, destination, 0o755);
+      // Program paths are concrete; explicit runtime theme/profile overrides remain available.
       const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
       const configHome = Bun.env.XDG_CONFIG_HOME || path.join(locations.home, ".config");
       const data = Bun.env.LUNA_DATA_HOME_DIR || path.join(locations.dataHome, "luna");

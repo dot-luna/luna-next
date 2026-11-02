@@ -13,7 +13,10 @@ export async function gsettings(context: ThemeContext, args: string[]) {
     return command(
       {
         ...context,
-        env: { ...context.env, DBUS_SESSION_BUS_ADDRESS: `unix:path=${join(runtime, "bus")}` },
+        env: {
+          ...context.env,
+          DBUS_SESSION_BUS_ADDRESS: `unix:path=${encodeURIComponent(join(runtime, "bus")).replace(/[!'()*]/gu, (character) => "%" + character.charCodeAt(0).toString(16))}`,
+        },
       },
       ["gsettings", ...args],
     );

@@ -1,12 +1,20 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 const hook = resolve(import.meta.dir, "../scripts/install.ts");
 
-test("installed T3 launcher retains concrete artifact/theme/profile paths and forwards arguments", () => {
-  const root = mkdtempSync(join(tmpdir(), "luna-t3-install ' % $ "));
+test("installed T3 launcher retains concrete artifact/theme/profile paths and forwards arguments", async () => {
+  const root = mkdtempSync(join(tmpdir(), "luna-t3-install = ' % $ "));
   const home = join(root, "home");
   const build = join(root, "build/t3code");
   const install = join(root, "custom install");
@@ -87,6 +95,22 @@ test("installed T3 launcher retains concrete artifact/theme/profile paths and fo
       }).exitCode,
     ).toBe(0);
     expect(JSON.parse(readFileSync(launchLog, "utf8")).profile).toBe(override);
+    if (Bun.which("gio")) {
+      unlinkSync(launchLog);
+      const opened = Bun.spawnSync(
+        [
+          Bun.which("gio")!,
+          "launch",
+          join(data, "applications/com.t3tools.T3Code.desktop"),
+          "t3code://open/test",
+        ],
+        { env: { ...desktopEnv, GIO_USE_VFS: "local" }, stdout: "pipe", stderr: "pipe" },
+      );
+      expect(opened.exitCode, opened.stderr.toString()).toBe(0);
+      const deadline = Date.now() + 2000;
+      while (!existsSync(launchLog) && Date.now() < deadline) await Bun.sleep(10);
+      expect(JSON.parse(readFileSync(launchLog, "utf8")).args).toEqual(["t3code://open/test"]);
+    }
     writeFileSync(launchLog, "unchanged");
     expect(
       Bun.spawnSync([launcher], {

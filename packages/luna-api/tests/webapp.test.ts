@@ -183,10 +183,10 @@ test.skipIf(!Bun.which("gio"))(
   async () => {
     const entry = resolve(import.meta.dir, "../../../src/luna-cli/src/index.ts");
     const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
-    const launcher = join(f.home, "custom bin/luna % cli");
+    const launcher = join(f.home, "custom bin/luna % = cli");
     f.write(
       f.home,
-      "custom bin/luna % cli",
+      "custom bin/luna % = cli",
       `#!${Bun.which("bash")}\nexec ${[process.execPath, entry].map(quote).join(" ")} "$@"\n`,
     );
     const { chmodSync } = await import("node:fs");
@@ -209,7 +209,7 @@ test.skipIf(!Bun.which("gio"))(
       ),
     );
     const child = Bun.spawn([Bun.which("gio")!, "launch", app.desktopFile], {
-      env: { ...f.env, PATH: "/usr/bin:/bin" },
+      env: { ...f.env, PATH: "/usr/bin:/bin", GIO_USE_VFS: "local" },
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
