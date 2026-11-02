@@ -4,7 +4,7 @@ return function(appearance)
 
     -- Layer surfaces follow the theme's blur choice; leave the transparent dismiss area clear.
     hl.layer_rule({
-        match = { namespace = "^luna-next-menu$" },
+        match = { namespace = "^luna-menu$" },
         blur = appearance.decoration.blur.enabled,
         ignore_alpha = 0,
     })

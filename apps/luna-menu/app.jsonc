@@ -1,0 +1,16 @@
+{
+  "name": "luna-menu",
+  "source": "local",
+  "alias": ["menu"],
+  "deps": [
+    {"name": "quickshell", "source": "pacman", "purpose": "Render Luna's application menu"},
+  ],
+  "hooks": {
+    // QML needs no compilation; refresh its source on every configuration run.
+    "before_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/reload.ts"],
+  },
+  "exports": [
+    {"source": "generated/shell/", "target": "menu/"},
+  ],
+}

@@ -20,7 +20,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "luna-next-menu"
+    WlrLayershell.namespace: "luna-menu"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     function show() {
@@ -53,8 +53,8 @@ PanelWindow {
         id: menuContent
         objectName: "menuContent"
         anchors.centerIn: parent
-        width: Math.max(0, Math.min(implicitWidth, panel.width - 32))
-        height: Math.max(0, Math.min(implicitHeight, panel.height - 32))
+        width: Math.max(0, Math.min(implicitWidth, panel.width - 2 * Math.max(16, panel.theme.appearance.gaps.outer)))
+        height: Math.max(0, Math.min(implicitHeight, panel.height - 2 * Math.max(16, panel.theme.appearance.gaps.outer)))
         theme: panel.theme
         applications: DesktopEntries.applications.values
         onDismissed: panel.dismissed()
@@ -75,7 +75,7 @@ PanelWindow {
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.namespace: "luna-next-menu-dismiss"
+            WlrLayershell.namespace: "luna-menu-dismiss"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             MouseArea {
                 anchors.fill: parent

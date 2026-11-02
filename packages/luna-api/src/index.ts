@@ -4,8 +4,11 @@ import { update } from "./self/update.ts";
 import { theme } from "./theme/index.ts";
 import { apps } from "./apps/index.ts";
 import { webapp } from "./webapp/index.ts";
+import { menu } from "./menu/index.ts";
 
-export const Luna = { info, self: { install, update }, theme, apps, webapp };
+export const Luna = { info, self: { install, update }, theme, apps, webapp, menu };
+
+export type { MenuOptions, MenuState } from "./menu/context.ts";
 
 export type { InfoOptions, LunaInfo, LunaInfoResponse } from "./info/types.ts";
 export type { ApiErrorCode, ApiResponse, ErrorResponse, SuccessResponse } from "./lib/response.ts";

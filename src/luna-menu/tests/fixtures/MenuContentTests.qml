@@ -15,7 +15,7 @@ TestCase {
     property int dismissed: 0
     property var failedTests: []
     property url windowSource
-    readonly property var theme: JSON.parse(Quickshell.env("LUNA_NEXT_MENU_THEME"))
+    readonly property var theme: JSON.parse(Quickshell.env("LUNA_MENU_THEME"))
     readonly property var nativeApplications: DesktopEntries.applications.values
 
     Component {
@@ -67,12 +67,12 @@ TestCase {
     }
 
     function cleanupTestCase() {
-        console.log("LUNA_NEXT_MENU_TEST_RESULT " + JSON.stringify({passed: qtest_results.passCount,
+        console.log("LUNA_MENU_TEST_RESULT " + JSON.stringify({passed: qtest_results.passCount,
             failed: qtest_results.failCount, skipped: qtest_results.skipCount, failedTests: failedTests}));
     }
 
-    function test_root_has_only_apps_and_return_enters_the_sorted_app_list() {
-        check(card.entries.length, 1);
+    function test_original_root_entries_and_return_enters_the_sorted_app_list() {
+        check(card.entries.map(entry => entry.name).join(","), "Apps,Insert,Learn,Trigger,Style,Setup,Install,Remove,About,System");
         check(card.entries[0].name, "Apps");
         check(card.appsView, false);
         keyClick(Qt.Key_Return);
@@ -136,17 +136,19 @@ TestCase {
         check(dismissed, 1);
     }
 
-    function test_back_button_alt_left_and_empty_backspace_return_to_root() {
+    function test_alt_left_and_empty_backspace_return_to_root_and_clear_keeps_apps() {
         for (const key of [Qt.Key_Backspace, Qt.Key_Left]) {
             card.activate(0);
             keyClick(key, key === Qt.Key_Left ? Qt.AltModifier : Qt.NoModifier);
             check(card.appsView, false);
         }
         card.activate(0);
-        const back = findChild(card, "backButton");
-        verify(back.visible);
-        mouseClick(back);
-        check(card.appsView, false);
+        input.text = "editor";
+        const clear = findChild(card, "clearSearch");
+        verify(clear.visible);
+        mouseClick(clear);
+        check(card.appsView, true);
+        check(input.text, "");
         check(input.activeFocus, true);
     }
 
@@ -169,11 +171,43 @@ TestCase {
         card.reset();
         check(card.appsView, false);
         check(input.text, "");
-        check(card.entries.length, 1);
+        check(card.entries.length, 10);
         check(input.font.family, theme.fonts.ui);
-        check(card.color, theme.colors.background);
+        const color = Qt.color(theme.colors.background);
+        check(card.color, Qt.rgba(color.r, color.g, color.b, theme.appearance.opacity.active));
         check(card.radius, theme.appearance.rounding);
         check(card.border.width, theme.appearance.border_width);
+    }
+
+    function test_placeholders_do_not_navigate_or_launch_and_panel_height_stays_fixed() {
+        const height = card.height;
+        for (let index = 1; index < card.entries.length; index++) {
+            card.activate(index);
+            check(card.appsView, false);
+            check(activated, null);
+            check(dismissed, 0);
+        }
+        card.activate(0);
+        check(card.height, height);
+        input.text = "no results";
+        check(card.height, height);
+        check(input.placeholderText, "Search…");
+    }
+
+    function test_home_end_and_page_keys_navigate_without_editing_the_query() {
+        card.applications = Array.from({length: 30}, (_, index) => application("app" + index, "App " + String(index).padStart(2, "0")));
+        card.activate(0);
+        input.text = "App";
+        keyClick(Qt.Key_End);
+        check(card.selectedIndex, 29);
+        keyClick(Qt.Key_PageUp);
+        verify(card.selectedIndex < 29);
+        keyClick(Qt.Key_Home);
+        check(card.selectedIndex, 0);
+        keyClick(Qt.Key_PageDown);
+        verify(card.selectedIndex > 0);
+        check(input.text, "App");
+        check(input.activeFocus, true);
     }
 
     function test_native_desktop_entries_exclude_hidden_and_no_display_and_search_keywords() {

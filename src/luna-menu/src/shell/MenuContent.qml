@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import Quickshell
 import "Applications.js" as Applications
 
 Rectangle {
@@ -13,233 +13,217 @@ Rectangle {
     property var applications: []
     property bool appsView: false
     readonly property string query: search.text
-    readonly property var entries: !appsView && query.trim() === ""
-        ? [{name: "Apps", route: "apps", comment: "Installed applications", icon: "view-app-grid"}]
-        : Applications.find(applications, query)
-    readonly property int selectedIndex: selection.currentIndex
+    // Keep the original main menu; only Apps has an implemented route.
+    readonly property var menuEntries: [
+        {name: "Apps", icon: "grid-view", route: "apps"},
+        {name: "Insert", icon: "smile"},
+        {name: "Learn", icon: "book-open-01"},
+        {name: "Trigger", icon: "flash"},
+        {name: "Style", icon: "paint-board"},
+        {name: "Setup", icon: "settings-02"},
+        {name: "Install", icon: "download-01"},
+        {name: "Remove", icon: "delete-02"},
+        {name: "About", icon: "information-circle"},
+        {name: "System", icon: "power-service"}
+    ]
+    readonly property var entries: appsView ? Applications.find(applications, query)
+        : Applications.rootEntries(menuEntries, applications, query)
+    readonly property int selectedIndex: results.currentIndex
+    readonly property var selectedEntry: entries[selectedIndex] || null
+    readonly property string uiFont: Qt.fontFamilies().some(family => family.toLowerCase() === theme.fonts.ui.toLowerCase())
+        ? theme.fonts.ui : "sans-serif"
+    readonly property real textSize: Qt.application.font.pointSize > 0 ? Qt.application.font.pointSize : 10
+    readonly property real textScale: textSize / 10
+    readonly property color backgroundColor: theme.colors.background
     signal applicationActivated(var entry)
     signal dismissed()
 
-    implicitWidth: 580
-    implicitHeight: layout.implicitHeight + 40
-    color: theme.colors.background
+    implicitWidth: 640 * textScale
+    implicitHeight: 476 * textScale
+    // Only the card carries alpha; the compositor blurs it through the layer rule.
+    color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, theme.appearance.opacity.active)
     radius: Math.min(theme.appearance.rounding, width / 2, height / 2)
     border.width: theme.appearance.border_width
     border.color: theme.colors.muted
 
-    function focusSearch() {
-        search.forceActiveFocus(Qt.OtherFocusReason);
-    }
-
+    function focusSearch() { search.forceActiveFocus(Qt.OtherFocusReason); }
     function reset() {
         appsView = false;
-        search.text = "";
-        selection.currentIndex = entries.length ? 0 : -1;
-        selection.positionViewAtBeginning();
+        search.clear();
+        results.currentIndex = entries.length ? 0 : -1;
+        results.positionViewAtBeginning();
     }
-
     function back() {
-        if (appsView || query !== "")
-            reset();
-        else
-            dismissed();
+        if (appsView || query !== "") reset();
+        else dismissed();
         focusSearch();
     }
-
-    function moveSelection(direction) {
-        if (!entries.length)
-            return;
-        selection.currentIndex = (Math.max(0, selection.currentIndex) + direction + entries.length) % entries.length;
-        selection.positionViewAtIndex(selection.currentIndex, ListView.Contain);
+    function jumpSelection(index) {
+        if (!entries.length) return;
+        results.currentIndex = Math.max(0, Math.min(entries.length - 1, index));
+        results.positionViewAtIndex(results.currentIndex, ListView.Contain);
     }
-
+    function moveSelection(direction) {
+        if (!entries.length) return;
+        results.currentIndex = (Math.max(0, results.currentIndex) + direction + entries.length) % entries.length;
+        results.positionViewAtIndex(results.currentIndex, ListView.Contain);
+    }
+    function pageSelection(direction) {
+        const page = Math.max(1, Math.floor(results.height / (48 * textScale + results.spacing)));
+        jumpSelection(results.currentIndex + direction * page);
+    }
     function activate(index) {
         const entry = entries[index];
-        if (!entry)
-            return;
+        if (!entry) return;
         if (entry.route === "apps") {
             appsView = true;
-            search.text = "";
+            search.clear();
             focusSearch();
-        } else {
+        } else if (typeof entry.execute === "function") {
             applicationActivated(entry);
         }
     }
-
     function handleKey(event) {
-        if (event.key === Qt.Key_Down || event.key === Qt.Key_Tab)
-            moveSelection(1);
-        else if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab)
-            moveSelection(-1);
-        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-            activate(selection.currentIndex);
+        if (event.key === Qt.Key_Down || event.key === Qt.Key_Tab) moveSelection(1);
+        else if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab) moveSelection(-1);
+        else if (event.key === Qt.Key_PageDown) pageSelection(1);
+        else if (event.key === Qt.Key_PageUp) pageSelection(-1);
+        else if (event.key === Qt.Key_Home) jumpSelection(0);
+        else if (event.key === Qt.Key_End) jumpSelection(entries.length - 1);
+        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) activate(selectedIndex);
         else if (event.key === Qt.Key_Escape || (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier))
-                 || (event.key === Qt.Key_Backspace && query === "" && appsView))
-            back();
-        else
-            return;
+                 || (event.key === Qt.Key_Backspace && query === "" && appsView)) back();
+        else return;
         event.accepted = true;
     }
-
     onEntriesChanged: {
-        selection.currentIndex = entries.length ? 0 : -1;
-        selection.positionViewAtBeginning();
+        results.currentIndex = entries.length ? 0 : -1;
+        results.positionViewAtBeginning();
     }
 
-    // Clicks inside the card that miss a control must not reach the dismiss surface.
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
-
+    ListPointer {
+        anchors.fill: parent
+        view: results
+        onHoveredIndex: index => results.currentIndex = index
+    }
     ColumnLayout {
-        id: layout
-        anchors { fill: parent; margins: 20 }
-        spacing: 12
-
-        RowLayout {
-            spacing: 10
-            Button {
-                id: backButton
-                objectName: "backButton"
-                visible: card.appsView || card.query !== ""
-                text: "‹"
-                focusPolicy: Qt.NoFocus
-                implicitWidth: 28
-                implicitHeight: 28
-                Accessible.name: "Back to menu"
-                onClicked: card.back()
-                contentItem: Text {
-                    text: backButton.text
-                    color: card.theme.colors.foreground
-                    font.family: card.theme.fonts.ui
-                    font.pixelSize: 22
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: backButton.hovered ? card.theme.colors.selection : "transparent"
-                    radius: Math.min(6, card.theme.appearance.rounding)
-                }
-            }
-            Label {
-                Layout.fillWidth: true
-                text: card.appsView || card.query.trim() !== "" ? "Apps" : "Menu"
-                color: card.theme.colors.bright_foreground
-                font.family: card.theme.fonts.ui
-                font.pixelSize: 17
-                font.weight: Font.DemiBold
-            }
-        }
-
-        TextField {
-            id: search
-            objectName: "searchInput"
+        anchors.fill: parent
+        anchors.margins: card.theme.appearance.border_width
+        spacing: 0
+        // The original header is a continuous search surface, without a nested box.
+        Item {
             Layout.fillWidth: true
-            implicitHeight: 42
-            placeholderText: "Search applications…"
-            placeholderTextColor: card.theme.colors.foreground
-            color: card.theme.colors.bright_foreground
-            selectionColor: card.theme.colors.selection
-            selectedTextColor: card.theme.colors.selection_foreground
-            font.family: card.theme.fonts.ui
-            font.pixelSize: 14
-            selectByMouse: true
-            padding: 10
-            Accessible.name: "Search applications"
-            background: Rectangle {
-                color: card.theme.colors.lighter_background
-                radius: Math.min(8, card.theme.appearance.rounding)
-                border.width: 1
-                border.color: search.activeFocus ? card.theme.colors.accent : card.theme.colors.muted
+            Layout.preferredHeight: 72 * card.textScale
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 22
+                anchors.rightMargin: 18
+                spacing: 14
+                Icon {
+                    name: "search-01"
+                    ink: search.text.length ? card.theme.colors.accent : card.theme.colors.foreground
+                    Layout.preferredWidth: 20
+                    Layout.preferredHeight: 20
+                }
+                TextField {
+                    id: search
+                    objectName: "searchInput"
+                    Layout.fillWidth: true
+                    implicitHeight: 48 * card.textScale
+                    padding: 0
+                    color: card.theme.colors.bright_foreground
+                    font.family: card.uiFont
+                    font.pointSize: card.textSize + 3
+                    placeholderText: "Search…"
+                    placeholderTextColor: card.theme.colors.foreground
+                    selectByMouse: true
+                    selectedTextColor: card.theme.colors.accent_foreground
+                    selectionColor: card.theme.colors.accent
+                    background: Item {}
+                    Accessible.name: card.appsView ? "Search applications" : "Search menu"
+                    Accessible.description: card.selectedEntry ? card.selectedEntry.name : "No matching entries"
+                    Keys.priority: Keys.BeforeItem
+                    Keys.onPressed: event => card.handleKey(event)
+                }
+                Button {
+                    id: clearSearch
+                    objectName: "clearSearch"
+                    visible: search.text.length > 0
+                    Accessible.name: "Clear search"
+                    focusPolicy: Qt.NoFocus
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    padding: 7
+                    background: Rectangle {
+                        color: clearSearch.hovered ? card.theme.colors.selection : "transparent"
+                        radius: Math.min(card.theme.appearance.rounding, height / 2)
+                    }
+                    contentItem: Icon { name: "cancel-01"; ink: card.theme.colors.foreground }
+                    onClicked: { search.clear(); card.focusSearch(); }
+                }
             }
-            Keys.priority: Keys.BeforeItem
-            Keys.onPressed: event => card.handleKey(event)
         }
-
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: card.theme.colors.muted }
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: Math.min(336, Math.max(56, card.entries.length * 56))
-
+            Layout.margins: 12
             ListView {
-                id: selection
+                id: results
                 objectName: "applicationList"
                 anchors.fill: parent
-                clip: true
                 model: card.entries
-                currentIndex: count ? 0 : -1
+                clip: true
                 boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-
-                delegate: Rectangle {
-                    id: row
-                    required property var modelData
+                currentIndex: count ? 0 : -1
+                spacing: 4
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollbar
+                    policy: ScrollBar.AsNeeded
+                    implicitWidth: 3
+                    contentItem: Rectangle {
+                        implicitWidth: 3
+                        color: scrollbar.pressed ? card.theme.colors.accent : card.theme.colors.muted
+                        radius: Math.min(card.theme.appearance.rounding, width / 2)
+                        visible: scrollbar.size < 1
+                    }
+                    background: Item {}
+                }
+                delegate: MenuRow {
                     required property int index
+                    required property var modelData
                     objectName: "applicationRow" + index
-                    width: selection.width
-                    height: 56
-                    radius: Math.min(8, card.theme.appearance.rounding)
-                    color: ListView.isCurrentItem ? card.theme.colors.selection : "transparent"
-
-                    RowLayout {
-                        anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-                        spacing: 12
-                        Item {
-                            implicitWidth: 28
-                            implicitHeight: 28
-                            Image {
-                                id: icon
-                                anchors.fill: parent
-                                source: row.modelData.icon ? Quickshell.iconPath(row.modelData.icon, true) : ""
-                                sourceSize.width: 28
-                                sourceSize.height: 28
-                                asynchronous: true
-                                visible: status === Image.Ready
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                visible: icon.status !== Image.Ready
-                                text: row.modelData.route ? "▦" : row.modelData.name.slice(0, 1).toLocaleUpperCase()
-                                color: row.ListView.isCurrentItem ? card.theme.colors.selection_foreground : card.theme.colors.accent
-                                font.family: card.theme.fonts.ui
-                                font.pixelSize: 22
-                            }
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: row.modelData.name
-                            textFormat: Text.PlainText
-                            elide: Text.ElideRight
-                            color: row.ListView.isCurrentItem ? card.theme.colors.selection_foreground : card.theme.colors.foreground
-                            font.family: card.theme.fonts.ui
-                            font.pixelSize: 14
-                            font.weight: Font.Medium
-                        }
-                        Label {
-                            visible: row.modelData.route === "apps"
-                            text: "›"
-                            color: card.theme.colors.selection_foreground
-                            font.family: card.theme.fonts.ui
-                            font.pixelSize: 22
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: selection.currentIndex = row.index
-                        onClicked: card.activate(row.index)
-                    }
+                    entry: modelData
+                    theme: card.theme
+                    uiFont: card.uiFont
+                    textSize: card.textSize
+                    textScale: card.textScale
+                    selected: results.currentIndex === index
+                    appsView: card.appsView
+                    width: results.width
+                    onClicked: { results.currentIndex = index; card.activate(index); }
                 }
             }
-            Label {
+            ColumnLayout {
                 anchors.centerIn: parent
-                visible: card.entries.length === 0
-                text: "No applications found"
-                color: card.theme.colors.foreground
-                font.family: card.theme.fonts.ui
-                font.pixelSize: 13
+                spacing: 12
+                visible: results.count === 0
+                Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: 28
+                    Layout.preferredHeight: 28
+                    name: "search-01"
+                    ink: card.theme.colors.foreground
+                }
+                Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: search.text.trim() ? "No matching entries" : "No applications found"
+                    color: card.theme.colors.foreground
+                    font.family: card.uiFont
+                    font.pointSize: card.textSize
+                }
             }
         }
-
     }
 }
