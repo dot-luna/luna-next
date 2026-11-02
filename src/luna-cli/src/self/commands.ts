@@ -20,7 +20,7 @@ export function addSelfCommands(
   const self = program.command("self").description("Install or update Luna");
   const install = self
     .command("install")
-    .description("Prepare Luna prerequisites and Git configuration (desktop stages pending)")
+    .description("Install Luna, Git configuration, themes, apps and web apps")
     .option("--install-dir <path>", "Luna source checkout")
     .option("--ref <ref>", "Git branch, tag, or latest (remote default branch)", "latest")
     .option("--from-bootstrap", "install.sh already updated the checkout and installed the CLI")
@@ -35,12 +35,7 @@ export function addSelfCommands(
       requestGitIdentity: json ? undefined : requestGitIdentity,
       onProgress: output.progress,
     });
-    setExitCode(
-      output.response(
-        response,
-        (data) => `Luna prerequisites and Git configured. Pending: ${data.pending.join(", ")}.`,
-      ),
-    );
+    setExitCode(output.response(response, () => "Luna installation completed."));
   });
   self
     .command("update")

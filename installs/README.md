@@ -2,7 +2,7 @@
 
 Package recipes for Luna's installer, written in JSONC (JSON with comments and
 trailing commas). `luna self install` processes `before_cli`, `after_cli`, and
-the mise list. The `later` and web app stages are not implemented yet.
+the mise list, apps, `later`, and finally web apps through the shared web-app API.
 
 Packages installed by [install.sh](../install.sh) may also appear in these lists.
 Packages declared in [apps/](../apps/README.md), as an app's `name` or in its `deps`,

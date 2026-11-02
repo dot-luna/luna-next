@@ -1,9 +1,10 @@
+import { validate } from "../lib/validation.ts";
 import { readFile } from "node:fs/promises";
 import { join } from "pathe";
 import { ApiError } from "../lib/response.ts";
 import { defaults, lightColors } from "./defaults.ts";
-import { parse } from "./files.ts";
-import { themeSourceSchema, validate } from "./schema.ts";
+import { parse } from "../lib/files.ts";
+import { themeSourceSchema } from "./schema.ts";
 import type { ResolvedTheme } from "./types.ts";
 
 function merge(target: Record<string, unknown>, source: Record<string, unknown>) {

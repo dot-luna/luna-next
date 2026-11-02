@@ -13,7 +13,8 @@ builds the CLI, and installs `luna` into `~/.local/bin`.
 After a five-second cancellation window, it runs `luna self install` with the
 same flags plus `--from-bootstrap`, skipping the checkout update and CLI rebuild.
 Cancelling prints the command to finish setup later. CLI setup installs shared
-prerequisites, mise tools, and bundled themes and configures Git; app setup is pending.
+prerequisites, configures Git, installs themes and their dependencies, then installs
+apps in catalog order, later packages, and web apps.
 
 Use `--install-dir=PATH` for another checkout location. `--ref=latest` follows
 Git's default branch; a branch or tag name selects that ref instead.

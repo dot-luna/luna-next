@@ -1,46 +1,14 @@
 # App configurations
 
-Custom default configuration files for Luna's preinstalled apps.
-Each app keeps its configuration in its own folder:
+Luna app packages, native defaults, and lifecycle scripts. The ordered
+[apps.jsonc](apps.jsonc) index selects manifests; each app keeps its declarations
+in `app.jsonc` and optional `config/` and executable `scripts/` folders.
 
-```text
-<app>/
-├── config/        # Default configuration files
-├── scripts/       # Optional lifecycle scripts
-└── app.jsonc      # Declares which files to copy and where
+From an installed Luna checkout:
+
+```sh
+luna install kitty
 ```
 
-The [`apps.jsonc`](apps.jsonc) index lists each app’s `app.jsonc` JSONC manifest in configuration order.
-
-See [`app.example.jsonc`](app.example.jsonc) for a complete manifest example.
-
-Apps can declare an optional `deps` array using the package objects shown in
-[`installs/example.jsonc`](../installs/example.jsonc): `name`, `source`, and optional
-`purpose` and mise `version`. Dependencies must be installed before the app and
-its hooks. Omit `deps` when no additional packages are needed.
-
-Use `deps` only for packages directly tied to the app, such as Zsh plugins.
-General tools, editors, and shared runtimes belong in `installs/`, usually in
-`later`; use an earlier stage when setup needs them.
-
-Each package must have one declaration. Do not add a dependency already listed in
-`installs/`, another app's `name`, or any app's `deps`. Put shared prerequisites in
-an earlier install stage and required apps earlier in `apps.jsonc`.
-
-Hooks run as the user with the app folder as their working directory and Luna's
-environment available. A nonzero exit stops that app's operation; completed steps
-are not automatically undone. Scripts must support repeated runs. Use a shebang
-such as `#!/usr/bin/env bun` or `#!/usr/bin/env bash` and make the script executable.
-An app can use hooks without exports when its scripts consume settings directly.
-
-Git apps run `before_install → clone/update selected ref → before_build → build →
-after_build → after_install`, then the configuration stages. Build stages are skipped
-when no build is needed. Hooks still run from the app folder; scripts locate the app's
-clone, disposable build workspace, and installation under `LUNA_GIT_APP_CLONE_DIR`,
-`LUNA_GIT_APP_BUILD_DIR`, and `LUNA_GIT_APP_INSTALL_DIR`, each with the app name appended.
-`LUNA_PACKAGE_VERSION` contains the selected concrete ref, never `latest`.
-The installer must serialize the whole build sequence per app. A failure stops later
-stages; scripts must clean up temporary system dependencies within the build stage.
-
-Dependency installation and hook execution are the manifest design; CLI support
-will be added separately.
+See [DOCS.md](DOCS.md) for lifecycle, exports, dependencies and retries, and
+[app.example.jsonc](app.example.jsonc) for manifest fields.

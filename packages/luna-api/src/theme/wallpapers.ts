@@ -2,7 +2,7 @@ import { copyFile, link, mkdir, mkdtemp, readdir, realpath, rm } from "node:fs/p
 import { basename, isAbsolute, join } from "pathe";
 import { ApiError } from "../lib/response.ts";
 import { command, type ThemeContext } from "./context.ts";
-import { metadata } from "./files.ts";
+import { metadata } from "../lib/files.ts";
 
 /** Import declared media without recursion, replacement, or selecting a wallpaper. */
 export async function importWallpapers(context: ThemeContext, root: string, sources: string[]) {

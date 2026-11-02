@@ -29,6 +29,15 @@ export class ThemeFixture {
   constructor() {
     mkdirSync(this.home);
     mkdirSync(this.bin);
+    for (const name of ["pacman", "yay", "sudo"]) {
+      const mock = resolve(import.meta.dir, "self-command.ts");
+      writeFileSync(
+        join(this.bin, name),
+        `#!${Bun.which("bash")}\nexec ${[process.execPath, mock, name].map(quote).join(" ")} "$@"\n`,
+        { mode: 0o755 },
+      );
+    }
+    this.env.SELF_LOG = join(this.root, "packages.jsonl");
     for (const tool of ["bash", "flock", "mv", "file"])
       symlinkSync(Bun.which(tool)!, join(this.bin, tool));
     const command = [process.execPath, resolve(import.meta.dir, "theme-command.ts")]

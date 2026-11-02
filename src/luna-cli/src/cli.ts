@@ -4,6 +4,9 @@ import { formatInfo } from "./info/format.ts";
 import { createOutput } from "./lib/output.ts";
 import { addSelfCommands } from "./self/commands.ts";
 import { addThemeCommands } from "./theme/commands.ts";
+import { addAppCommands } from "./apps/commands.ts";
+
+import { addWebappCommands } from "./webapp/commands.ts";
 
 interface GlobalOptions {
   version?: boolean;
@@ -29,6 +32,13 @@ export async function runCli(argv: string[]): Promise<number> {
     exitCode = value;
   });
   addThemeCommands(program, output, wantsJson, (value) => {
+    exitCode = value;
+  });
+  addAppCommands(program, output, (value) => {
+    exitCode = value;
+  });
+
+  addWebappCommands(program, output, wantsJson, (value) => {
     exitCode = value;
   });
 

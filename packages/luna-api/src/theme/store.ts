@@ -2,11 +2,12 @@ import { copyFile, mkdir, mkdtemp, readdir, realpath, rename, rm } from "node:fs
 import { basename, join } from "pathe";
 import { ApiError } from "../lib/response.ts";
 import { command, type ThemeContext } from "./context.ts";
-import { metadata } from "./files.ts";
+import { metadata } from "../lib/files.ts";
 import { themeNameSchema, validateName } from "./schema.ts";
 import { selection, themePath } from "./selection.ts";
 import type { ThemeEntry } from "./types.ts";
 import { readTheme, resolveTheme } from "./values.ts";
+import { installThemePackages } from "./packages.ts";
 import { importWallpapers } from "./wallpapers.ts";
 
 async function copyTree(source: string, destination: string, root: string) {
@@ -58,6 +59,7 @@ export async function installTheme(
     resolveTheme(value, name);
     if (JSON.stringify(value) !== JSON.stringify(original))
       throw new ApiError("CONFLICT", "Theme source changed while copying");
+    await installThemePackages(context, value.packages);
     await importWallpapers(context, staged, value.wallpaper?.sources ?? []);
     if (existing) {
       // Linux/coreutils exchange publishes a complete replacement without a delete-first gap.

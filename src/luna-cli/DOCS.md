@@ -18,7 +18,8 @@ commits. They never reset or autostash changes.
 
 - `luna self install`: update the checkout, install `before_cli` packages,
   rebuild/publish the CLI, configure Git, then install `after_cli` packages,
-  the mise list, and bundled themes. A direct invocation also upgrades system packages before
+  the mise list, themes and their packages, apps in catalog order, later packages,
+  and web apps. A direct invocation also upgrades system packages before
   installing dependencies. `install.sh` passes `--from-bootstrap` to skip the
   repeated checkout update, system upgrade, and CLI build/publication; shared
   package stages and Git configuration still run.
@@ -32,8 +33,8 @@ bootstrap. Without a terminal, supply the flags or configure global Git identity
 first. Git defaults use branch `master` and editor `nvim`; unrelated global
 settings remain. Neovim is installed in `before_cli` so the editor is available.
 
-Setup currently stops after shared prerequisites and Git configuration. Apps, `later` packages, and web apps are empty stages, reported as pending.
-Early AUR recipes require an existing yay because app installation is deferred.
+Successful setup reports completion after every stage. Early AUR recipes require
+an existing Yay; theme and app stages can install the catalog’s Yay provider.
 
 Build failures preserve the installed CLI. Completed checkout updates, packages,
 and settings remain after later failures; fix the error and rerun setup.
@@ -67,3 +68,29 @@ table; other clients use `theme get --json`. Removal protects the selected theme
 and requires `--yes` or `--dry-run` without an interactive terminal.
 
 See [theme format and behavior](../../themes/DOCS.md).
+
+## Apps and web apps
+
+- `luna install [names...] [--force] [--install-dir PATH]`: install and configure
+  selected apps; omit names for all. Match directory IDs, package names, or aliases.
+- `luna configure [names...] [--install-dir PATH]`: configure without installing.
+  `config` and `confi` are aliases. Apps always follow catalog order.
+- `luna webapp install [name] [url]`: prompt for missing values in a terminal.
+  JSON mode requires both values and never prompts.
+- `luna webapp list`, `luna webapp launch <name>`,
+  `luna webapp uninstall <name>`: manage apps by exact display name.
+
+The `webapp` group accepts `--data-dir`, `--applications-dir`, `--launcher`,
+`--profile-root`, and `--chromium` for explicit paths/browser selection. Generated
+desktop entries retain their resolved paths and browser even if the desktop
+session has a different environment.
+
+Install/configure Chromium first with `luna install chromium`. Web apps open in
+its `Luna` profile using app mode, without tabs/address bar. Uninstall retains
+browser data. Quote names or URLs containing spaces or shell punctuation:
+
+```sh
+luna webapp install "YouTube" "https://www.youtube.com/"
+```
+
+See [app behavior](../../apps/DOCS.md) and [web-app options](../../packages/luna-api/DOCS.md#web-app-api).

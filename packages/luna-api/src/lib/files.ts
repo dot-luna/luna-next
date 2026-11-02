@@ -10,8 +10,7 @@ import {
   rm,
 } from "node:fs/promises";
 import { dirname, join } from "pathe";
-import { ApiError } from "../lib/response.ts";
-import type { ThemeContext } from "./context.ts";
+import { ApiError } from "./response.ts";
 
 export async function metadata(path: string) {
   try {
@@ -73,7 +72,10 @@ export async function writeFile(path: string, contents: string, expected: string
 }
 
 /** A child holds the advisory lock until its stdin closes, including after caller exit. */
-export async function locked<T>(context: ThemeContext, operation: () => Promise<T>) {
+export async function locked<T>(
+  context: { configFile: string; env: Record<string, string> },
+  operation: () => Promise<T>,
+) {
   await mkdir(dirname(context.configFile), { recursive: true });
   // Keep the lock inode between calls; unlinking it would let concurrent writers bypass it.
   const child = Bun.spawn(
@@ -98,7 +100,7 @@ export async function locked<T>(context: ThemeContext, operation: () => Promise<
     await child.exited;
     throw new ApiError(
       "CONFLICT",
-      "Another theme operation holds the lock, or flock/Bash is unavailable",
+      "Another operation holds the lock, or flock/Bash is unavailable",
     );
   }
   try {

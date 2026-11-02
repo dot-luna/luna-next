@@ -36,6 +36,10 @@
     "warning_emphasis": "#ff9e64",
     "warning_foreground": "#1a1b26",
   },
+  "packages": [
+    { "name": "ttf-iosevka-nerd", "source": "pacman" },
+    { "name": "ttf-outfit", "source": "aur" },
+  ],
   "fonts": {
     "mono": "Iosevka Nerd Font",
     "ui": "Outfit",

@@ -2,7 +2,7 @@ import { join, resolve } from "pathe";
 import { z } from "zod";
 import { ApiError } from "../lib/response.ts";
 import type { ThemeContext } from "./context.ts";
-import { metadata, readOptional, writeFile } from "./files.ts";
+import { metadata, readOptional, writeFile } from "../lib/files.ts";
 import { currentTheme } from "./selection.ts";
 import { t3Colors } from "./t3-colors.ts";
 import type { ResolvedTheme } from "./types.ts";

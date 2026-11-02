@@ -40,7 +40,7 @@ export class SelfFixture {
     for (const path of [this.home, this.bin, this.upstream]) mkdirSync(path);
     symlinkSync(bash, join(this.bin, "bash"));
     for (const tool of ["flock", "mv"]) symlinkSync(Bun.which(tool)!, join(this.bin, tool));
-    for (const name of ["git", "pacman", "sudo", "mise", "bun", "gsettings"]) {
+    for (const name of ["git", "pacman", "yay", "sudo", "mise", "bun", "gsettings"]) {
       writeFileSync(
         join(this.bin, name),
         `#!${bash}\nexec ${[process.execPath, mock, name].map(quote).join(" ")} "$@"\n`,
@@ -70,6 +70,8 @@ export class SelfFixture {
       "installs/packages.mise.jsonc",
       '[{"name":"node","source":"mise","version":"lts"}]',
     );
+    this.write(this.upstream, "apps/apps.jsonc", '{"packages":[]}');
+    this.write(this.upstream, "installs/packages.webapp.jsonc", "[]");
     this.write(this.upstream, "apps/git/scripts/after-install.sh", readFileSync(gitHook, "utf8"));
     this.write(this.upstream, "themes/bundled/tokyo-night/theme.jsonc", "{}");
     this.write(this.upstream, ".gitignore", "target/\n");

@@ -1,9 +1,10 @@
+import { validate } from "../lib/validation.ts";
 import { mkdir, open, readFile } from "node:fs/promises";
 import { dirname, join } from "pathe";
 import { ApiError } from "../lib/response.ts";
 import { command, type ThemeContext } from "./context.ts";
-import { metadata, parse, writeFile } from "./files.ts";
-import { themeModeSchema, themeSelectionSchema, validate, validateName } from "./schema.ts";
+import { metadata, parse, writeFile } from "../lib/files.ts";
+import { themeModeSchema, themeSelectionSchema, validateName } from "./schema.ts";
 import type { ThemeMode } from "./types.ts";
 import { readTheme, resolveTheme } from "./values.ts";
 

@@ -112,7 +112,12 @@ test("missing or invalid metadata and unsupported commands return standard error
     expect(invalid.stderr).toBe("");
     expect(JSON.parse(invalid.stdout)).toEqual(await Luna.info({ repository: value.repository }));
   }
-  for (const args of [["info"], ["--repo", value.repository], ["-V"], ["install", "kitty"]]) {
+  for (const args of [
+    ["info"],
+    ["--repo", value.repository],
+    ["-V"],
+    ["unknown-command", "kitty"],
+  ]) {
     const removed = await cli([...args, "--json"], value.env);
     expect(removed.exitCode).toBe(2);
     expect(removed.stderr).toBe("");

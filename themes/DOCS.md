@@ -9,6 +9,10 @@ in [the API schema](../packages/luna-api/src/theme/schema.ts).
 {
   "colors": { "mode": "dark", "accent": "#82aaff" },
   "fonts": { "ui": "Outfit", "mono": "Iosevka Nerd Font" },
+  "packages": [
+    { "name": "ttf-iosevka-nerd", "source": "pacman" },
+    { "name": "ttf-outfit", "source": "aur" },
+  ],
   "appearance": { "rounding": 8, "gaps": { "inner": 5, "outer": 8 } },
   "wallpaper": { "sources": ["wallpapers"] },
 }
@@ -25,7 +29,7 @@ The [bundled theme](bundled/tokyo-night/theme.jsonc) lists every supported field
   Light mode starts with light defaults; changing system mode does not recolor a
   fixed palette.
 - `fonts.ui`, `fonts.mono`: nonblank font family names, up to 200 characters.
-  Defaults are Outfit and Iosevka Nerd Font. Font packages are installed separately.
+  Defaults are Outfit and Iosevka Nerd Font. Declare required fonts in `packages`.
 - `appearance.gaps.inner/outer`, `border_width`: nonnegative integer pixels.
   `rounding`: integer 0–100. `opacity.active/inactive/fullscreen`: 0–1.
   `blur`: `enabled`, positive integer `size`, and `passes` 1–10.
@@ -35,6 +39,24 @@ The [bundled theme](bundled/tokyo-night/theme.jsonc) lists every supported field
   theme folder. Imports require `file`; URLs also require `curl`. Existing different
   files are never replaced. Successfully imported files remain after later failures
   and theme removal. Installation does not select a wallpaper.
+
+## Theme packages
+
+`packages` is an optional array of `{ "name": "package-name", "source": "pacman" | "aur" }`.
+Only Pacman and AUR are supported; mise, Git, URLs, and version fields are rejected.
+Tokyo Night declares `ttf-iosevka-nerd` (Pacman) and `ttf-outfit` (AUR) for its fonts.
+Partial themes inherit visual defaults, but do not inherit package declarations.
+
+`theme install` installs missing packages before publishing the installed copy.
+`theme set` checks again before changing selection, so removed dependencies are
+restored before activation. `pacman -Qq` detects installed packages; Pacman uses
+sudo and AUR uses Yay, both with `--needed --noconfirm`. Pacman and the required
+installer must already be available when packages are missing. Installed packages
+do not require their original installer. Authenticate sudo
+first if needed. Self-install builds Yay from the app catalog only when missing
+AUR theme packages require it. Read commands never install packages. Removing a theme retains
+its packages. A package failure keeps the previous installed copy or selection;
+packages already installed remain.
 
 ## Storage and operations
 

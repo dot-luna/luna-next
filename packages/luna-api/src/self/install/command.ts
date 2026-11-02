@@ -15,9 +15,13 @@ export class InstallContext {
     readonly progress: (message: string) => void,
   ) {}
 
-  async execute(args: string[], allowFailure = false): Promise<CommandResult> {
+  async execute(
+    args: string[],
+    allowFailure = false,
+    cwd = this.repository,
+  ): Promise<CommandResult> {
     const child = Bun.spawn(args, {
-      cwd: this.repository,
+      cwd,
       env: this.env,
       stdin: "inherit",
       stdout: "pipe",

@@ -14,7 +14,13 @@ const font = text
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/u);
 const nonnegative = z.number().int().nonnegative();
 
+export const themePackageSchema = z.strictObject({
+  name: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9@._+-]*$/u),
+  source: z.enum(["pacman", "aur"]),
+});
+
 export const themeSourceSchema = z.strictObject({
+  packages: z.array(themePackageSchema).optional(),
   colors: z
     .strictObject({
       ...Object.fromEntries(
@@ -64,12 +70,6 @@ export const themeSelectionSchema = z.strictObject({
     .strictObject({ name: themeNameSchema.optional(), mode: themeModeSchema.optional() })
     .optional(),
 });
-
-export function validate<T>(schema: z.ZodType<T>, value: unknown, label: string): T {
-  const result = schema.safeParse(value);
-  if (!result.success) throw new ApiError("INVALID_METADATA", `${label}: ${result.error.message}`);
-  return result.data;
-}
 
 export function validateName(value: string) {
   if (!themeNameSchema.safeParse(value).success)

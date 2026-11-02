@@ -11,7 +11,7 @@ import {
 import { join, resolve } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
 import { defaults } from "../src/theme/defaults.ts";
-import { locked } from "../src/theme/files.ts";
+import { locked } from "../src/lib/files.ts";
 import { themeContext } from "../src/theme/context.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
@@ -33,7 +33,12 @@ test("bundled JSONC matches complete defaults and default reads create only an e
   const source = resolve(import.meta.dir, "../../../themes/bundled/tokyo-night");
   const path = data(await Luna.theme.install(source, f.options));
   expect(f.read(join(path, "theme.jsonc"))).toBe(f.read(join(source, "theme.jsonc")));
-  expect(value).toEqual(data(await Luna.theme.inspect("tokyo-night", f.options)));
+  const { packages, ...appearance } = data(await Luna.theme.inspect("tokyo-night", f.options));
+  expect(value).toEqual(appearance);
+  expect(packages).toEqual([
+    { name: "ttf-iosevka-nerd", source: "pacman" },
+    { name: "ttf-outfit", source: "aur" },
+  ]);
   expect(data(await Luna.theme.current(f.options))).toBeNull();
 });
 
@@ -264,4 +269,67 @@ test("T3 apply retains unrelated preferences, is idempotent, and rejects malform
   f.write(result.client_settings, "[]");
   expect((await Luna.theme.applyT3code({ ...f.options, userdata: directory })).succes).toBe(false);
   expect(f.read(result.server_settings)).toBe(before);
+});
+
+test("theme dependencies allow only Pacman/AUR and install missing fonts before publication and selection", async () => {
+  f.env.SELF_INSTALLED_JSON = join(f.root, "installed.json");
+  const source = f.source(
+    "fonts",
+    JSON.stringify({
+      packages: [
+        { name: "font-official", source: "pacman" },
+        { name: "font-aur", source: "aur" },
+      ],
+    }),
+  );
+  data(await Luna.theme.install(source, f.options));
+  const commands = f
+    .read(f.env.SELF_LOG!)
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  expect(commands.filter((c) => c.args[0] === "-S").map((c) => [c.name, c.args.at(-1)])).toEqual([
+    ["pacman", "font-official"],
+    ["yay", "font-aur"],
+  ]);
+  const before = commands.length;
+  data(await Luna.theme.set("fonts", f.options));
+  expect(
+    f
+      .read(f.env.SELF_LOG!)
+      .trim()
+      .split("\n")
+      .slice(before)
+      .map((line) => JSON.parse(line))
+      .every((c) => c.args[0] === "-Qq"),
+  ).toBe(true);
+  const invalid = f.source("invalid-fonts", '{"packages":[{"name":"font","source":"mise"}]}');
+  expect(await Luna.theme.install(invalid, f.options)).toMatchObject({
+    succes: false,
+    err: "INVALID_METADATA",
+  });
+  const broken = f.source("broken-fonts", '{"packages":[{"name":"broken","source":"aur"}]}');
+  expect(
+    await Luna.theme.install(broken, { ...f.options, env: { ...f.env, SELF_FAIL: "yay:-S" } }),
+  ).toMatchObject({ succes: false, err: "COMMAND_FAILED" });
+  expect(existsSync(join(f.libraryDir, "broken-fonts"))).toBe(false);
+  expect(data(await Luna.theme.current(f.options))).toBe("fonts");
+});
+
+test("already installed theme fonts do not require Yay or sudo", async () => {
+  unlinkSync(join(f.bin, "yay"));
+  unlinkSync(join(f.bin, "sudo"));
+  const source = f.source(
+    "installed-fonts",
+    '{"packages":[{"name":"font-official","source":"pacman"},{"name":"font-aur","source":"aur"}]}',
+  );
+  data(await Luna.theme.install(source, f.options));
+  data(await Luna.theme.set("installed-fonts", f.options));
+  const commands = f
+    .read(f.env.SELF_LOG!)
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  expect(commands).toHaveLength(4);
+  expect(commands.every((c) => c.name === "pacman" && c.args[0] === "-Qq")).toBe(true);
 });

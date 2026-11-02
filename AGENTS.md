@@ -50,14 +50,12 @@
   process replacement for `restart`; do not add configuration file watchers. Failed
   application restores the previous source without overwriting external edits.
 - Preserve explicit file paths, automatic missing-file creation, and null values
-  for missing Rust keys. Apps choose configuration paths; do not add environment
-  selection or reload APIs to either configuration package.
+  for missing settings. Apps choose configuration paths.
 - Optimize measured or clearly unnecessary work without weakening source
   preservation, include resolution, or safe writes. Run relevant Rust and QML
   checks for implementation changes.
-- Use each package's `DOCS.md` for build and test commands. The Cargo workspace
-  defaults to `packages/hocon`; select changed packages explicitly or use
-  `--workspace` when checking shared changes.
+- Use each package's `DOCS.md` for build and test commands. Select affected Bun
+  packages explicitly or use the workspace checks for shared changes.
 - Add regression coverage for bugs and meaningful behavior changes. Reuse
   existing coverage for structural refactors; documentation-only changes need
   link, example, and instruction checks rather than unrelated runtime suites.
