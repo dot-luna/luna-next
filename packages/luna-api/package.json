@@ -1,0 +1,18 @@
+{
+  "name": "luna-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "deepmerge": "^4.3.1",
+    "luna-logger": "workspace:*",
+    "pathe": "^2.0.3",
+    "shell-quote": "^1.12.0",
+    "zod": "^4.6.7"
+  }
+}

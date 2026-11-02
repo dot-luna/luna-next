@@ -1,0 +1,19 @@
+{
+  "name": "luna-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "luna": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "build": "bun build --compile ./src/index.ts --outfile ../../target/luna-bun"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "luna-api": "workspace:*",
+    "luna-logger": "workspace:*"
+  }
+}

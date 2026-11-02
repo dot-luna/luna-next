@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "workspaces": ["packages/luna-api", "packages/luna-logger", "src/ln-cli"],
+  "scripts": {
+    "check:api": "bun run --filter 'luna-*' check",
+    "test:api": "bun test packages/luna-api/tests packages/luna-logger/tests",
+    "check": "bun run --filter 'luna-*' check",
+    "test": "bun test packages/luna-api/tests packages/luna-logger/tests src/ln-cli/tests",
+    "luna": "bun src/ln-cli/src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "@types/shell-quote": "^1.7.5",
+    "typescript": "^7.0.2"
+  }
+}
