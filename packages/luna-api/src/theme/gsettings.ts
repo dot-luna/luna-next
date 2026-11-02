@@ -26,6 +26,13 @@ export async function gsettings(context: ThemeContext, args: string[]) {
       "INVALID_ENVIRONMENT",
       "Install dbus to configure theme appearance outside a desktop session",
     );
+  if (context.log)
+    return command({ ...context, env: { ...context.env, GIO_USE_VFS: "local" } }, [
+      "dbus-run-session",
+      "--",
+      "gsettings",
+      ...args,
+    ]);
   // Appearance changes need no GVfs mounts or desktop file services.
   // Activated dconf services can outlive the command and retain pipe descriptors.
   // Capture to temporary files so completion depends on gsettings, never daemon shutdown.

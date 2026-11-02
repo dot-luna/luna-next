@@ -31,6 +31,8 @@ userTests("self operations", () => {
         executable: value.executable,
         cliRebuilt: true,
         completed: true,
+        failed: [],
+        logDirectory: expect.any(String),
         installedApps: [],
         installedWebapps: [],
         pending: [],

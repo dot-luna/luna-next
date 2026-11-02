@@ -48,6 +48,9 @@ if (name === "gsettings") {
   if (args[0] === "-S")
     writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
   process.exit(0);
+} else if (name === "mise" && args[0] === "activate") {
+  console.log("export LUNA_TEST_MISE_ACTIVE=1\n_mise_hook() { :; }");
+  process.exit(0);
 } else if (name === "mise" && args.includes("latest")) {
   const requested = args.at(-1)!.split("@")[1];
   const versions: string[] = JSON.parse(env.SELF_MISE_VERSIONS ?? "[]");

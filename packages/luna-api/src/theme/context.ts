@@ -1,8 +1,10 @@
 import { dirname, isAbsolute, join, resolve } from "pathe";
 import { ApiError } from "../lib/response.ts";
+import type { InstallLog } from "../install/log.ts";
+import { InstallContext } from "../self/install/command.ts";
 import type { ThemeOptions } from "./types.ts";
 
-export function themeContext(options: ThemeOptions = {}) {
+export function themeContext(options: ThemeOptions = {}, log?: InstallLog) {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(options.env ?? Bun.env))
     if (value !== undefined) env[key] = value;
@@ -33,6 +35,7 @@ export function themeContext(options: ThemeOptions = {}) {
       join(env.LUNA_DATA_HOME_DIR || join(base("XDG_DATA_HOME", ".local/share"), "luna"), "themes"),
   );
   return {
+    log,
     env,
     configFile,
     libraryDir,
@@ -43,7 +46,17 @@ export function themeContext(options: ThemeOptions = {}) {
 export type ThemeContext = ReturnType<typeof themeContext>;
 
 /** Capture desktop tool output; API calls never print or read terminal input. */
-export async function command(context: Pick<ThemeContext, "env">, args: string[]) {
+export async function command(context: Pick<ThemeContext, "env" | "log">, args: string[]) {
+  if (context.log) {
+    const c = new InstallContext(
+      context.env.LUNA_ROOT || process.cwd(),
+      context.env.HOME || "",
+      context.env,
+      () => {},
+      context.log,
+    );
+    return (await c.execute(args)).stdout.trim();
+  }
   const child = Bun.spawn(args, {
     env: context.env,
     stdin: "ignore",

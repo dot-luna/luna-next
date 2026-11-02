@@ -5,6 +5,8 @@
 # Flags (both --flag=value and --flag value work):
 #   --install-dir=PATH  Source checkout. Default: $HOME/.local/src/luna-next.
 #                       Relative paths start at the caller's working directory.
+#   --skip-failed       Continue after app failures; show errors, logs and retries at the end.
+#   --no-close-apps     Keep apps open instead of closing them for configuration.
 #   --ref=REF           Git branch or tag. Default: latest, meaning the newest
 #                       commit on the remote default branch, not a release tag.
 #                       A branch wins when a branch and tag share the same name.
@@ -41,7 +43,7 @@
 # commits. Missing privileges and failed required installs/builds also stop the
 # script with diagnostics. Completed package installations are not rolled back.
 # The previous CLI executable stays in place until its replacement is built and
-# copied successfully. Temporary logs and staged files are removed on exit;
+# copied successfully. Staged files are removed on exit; private diagnostic logs remain under the state directory;
 # the source checkout and its CLI build artifacts remain for later operations.
 #
 # After building, wait five seconds before running luna self install with the
@@ -66,6 +68,7 @@ repo_ref=latest
 cli_args=("$@")
 while (( $# > 0 )); do
     case "$1" in
+        --skip-failed|--no-close-apps) shift ;;
         --install-dir|--ref)
             (( $# >= 2 )) && [[ -n "$2" && "$2" != -* ]] || fail "$1 requires a value."
             if [[ "$1" == --install-dir ]]; then
@@ -125,6 +128,15 @@ for tool in pacman sudo; do
     command -v "$tool" >/dev/null 2>&1 || fail "$tool is required; prepare an Arch Linux user with sudo access first."
 done
 
+# Keep diagnostics outside temporary staging, including bootstrap failures before CLI handoff.
+state_root=${LUNA_STATE_HOME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/luna}
+[[ "$state_root" == /* && "$state_root" != / && "$state_root" != *[[:cntrl:]]* ]] || fail 'Invalid state directory.'
+log_root=$(prepare_directory "$state_root/install-logs")
+log_dir=$(umask 077; mktemp -d "$log_root/bootstrap.XXXXXX")
+bootstrap_log="$log_dir/bootstrap.log"
+(umask 077; : >"$bootstrap_log")
+printf 'Bootstrap logs: %s\n' "$bootstrap_log"
+
 # 2. Keep successful tool output quiet, but show the failed command's diagnostics.
 if ! temporary=$(mktemp -d 2>/dev/null); then
     temporary=$(mktemp -d /tmp/luna-install.XXXXXX)
@@ -135,6 +147,11 @@ pause_pid=
 # Remove only this run's temporary files. Stop and reap the countdown if cancelled;
 # cleanup succeeds even when the child or staged executable has already gone away.
 cleanup() {
+    local exit_status=$?
+    if [[ -n "${bootstrap_log:-}" ]]; then
+        printf 'Exit status: %s\n' "$exit_status" >>"$bootstrap_log"
+        if (( exit_status != 0 )); then printf 'install: Logs: %s\n' "$bootstrap_log" >&2; fi
+    fi
     if [[ -n "$pause_pid" ]]; then
         kill -- "$pause_pid" 2>/dev/null || true
         wait "$pause_pid" 2>/dev/null || true
@@ -151,11 +168,16 @@ trap 'exit 143' TERM
 # on failure. The final CLI runs directly so its own output remains visible.
 run() {
     local status
+    printf '+ %q ' "$@" >>"$bootstrap_log"
+    printf '\n' >>"$bootstrap_log"
     if "$@" >"$temporary/output" 2>&1; then
+        cat -- "$temporary/output" >>"$bootstrap_log"
         return 0
     else
         status=$?
+        cat -- "$temporary/output" >>"$bootstrap_log"
         cat -- "$temporary/output" >&2
+        printf 'install: Logs: %s\n' "$bootstrap_log" >&2
         printf 'install: Command failed: %s\n' "$1" >&2
         return "$status"
     fi
@@ -320,6 +342,7 @@ cancel_handoff() {
 }
 trap 'cancel_handoff 130' INT
 trap 'cancel_handoff 143' TERM
+printf 'Setup will close Chromium, Zen and T3 Code when needed, force-killing if necessary. Save work now.\n'
 printf 'Starting luna self install in 5 seconds. Press Ctrl+C to cancel...\n'
 # Waiting for a background sleep lets Bash handle signals immediately, including
 # when the installer itself is read from a curl pipe.
@@ -331,4 +354,4 @@ pause_pid=
 trap 'exit 130' INT
 trap 'exit 143' TERM
 printf 'Configuring Luna...\n'
-"$bin_dir/luna" self install "${cli_args[@]}"
+"$bin_dir/luna" self install "${cli_args[@]}" 2> >(tee -a "$bootstrap_log" >&2) | tee -a "$bootstrap_log"

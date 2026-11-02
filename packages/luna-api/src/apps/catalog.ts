@@ -3,7 +3,7 @@ import { dirname, join } from "pathe";
 import { ApiError } from "../lib/response.ts";
 import { readPackages } from "../self/install/packages.ts";
 import type { InstallContext } from "../self/install/command.ts";
-import { parse } from "../lib/files.ts";
+import { parse, metadata } from "../lib/files.ts";
 import { validate } from "../lib/validation.ts";
 import { appNameSchema, appSchema, appsIndexSchema, type AppManifest } from "./schema.ts";
 
@@ -54,7 +54,12 @@ export async function readCatalog(context: InstallContext) {
       selectors.set(selector, id);
     }
     for (const paths of Object.values(manifest.hooks ?? {}))
-      for (const hook of paths) await inside(directory, hook);
+      for (const hook of paths) {
+        const script = await inside(directory, hook);
+        const info = await metadata(script);
+        if (!info?.isFile() || !(info.mode & 0o111))
+          throw new ApiError("INVALID_METADATA", `App hook must be an executable file: ${script}`);
+      }
     apps.push({ id, directory, manifest });
   }
   return apps;

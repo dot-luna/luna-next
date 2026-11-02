@@ -18,7 +18,7 @@ import type { InstallContext } from "./command.ts";
 
 /** Install bundled copies before app configuration, retaining an existing selection. */
 export async function installThemes(context: InstallContext) {
-  const c = themeContext({ env: context.env });
+  const c = themeContext({ env: context.env }, context.log);
   await locked(c, async () => {
     const root = join(context.repository, "themes/bundled");
     const entries = (await readdir(root, { withFileTypes: true }))
@@ -37,11 +37,14 @@ export async function installThemes(context: InstallContext) {
     ) {
       context.progress("Installing yay for theme prerequisites...");
       await installApps(
-        await appContext({
-          repository: context.repository,
-          env: context.env,
-          onProgress: context.progress,
-        }),
+        await appContext(
+          {
+            repository: context.repository,
+            env: context.env,
+            onProgress: context.onProgress,
+          },
+          context.log,
+        ),
         ["yay"],
       );
     }

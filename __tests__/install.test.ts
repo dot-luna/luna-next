@@ -70,7 +70,17 @@ class Fixture {
     for (const path of [this.home, this.work, this.bin]) mkdirSync(path);
     // Restricted PATH permits only harmless real utilities; all package/network
     // commands use Bun fixtures, so the test cannot install or download anything.
-    for (const name of ["bash", "cat", "mkdir", "mktemp", "rm", "install", "mv", "realpath"]) {
+    for (const name of [
+      "bash",
+      "cat",
+      "mkdir",
+      "mktemp",
+      "rm",
+      "install",
+      "mv",
+      "realpath",
+      "tee",
+    ]) {
       symlinkSync(Bun.which(name)!, join(this.bin, name));
     }
     for (const name of ["sudo", "pacman", "git", "mise", "bun", "sleep"]) this.wrapper(name);
@@ -576,4 +586,21 @@ userTests("root installer", () => {
     expect(result.stdout).toContain("To finish, run:");
     expect(value.commands("luna")).toEqual([]);
   });
+});
+
+test("bootstrap retains diagnostics after cleanup and forwards recovery flags", () => {
+  const value = new Fixture();
+  try {
+    value.env.BOOTSTRAP_FAIL = "luna";
+    const result = value.run(["--skip-failed", "--no-close-apps"], { success: false });
+    expect(result.stdout).toContain("force-killing if necessary");
+    const root = join(value.home, ".local/state/luna/install-logs");
+    const directory = readdirSync(root)[0]!;
+    const log = readFileSync(join(root, directory, "bootstrap.log"), "utf8");
+    expect(log).toContain("simulated failure diagnostics");
+    expect(value.commands("luna").at(-1)?.args).toContain("--skip-failed");
+    expect(value.commands("luna").at(-1)?.args).toContain("--no-close-apps");
+  } finally {
+    rmSync(value.root, { recursive: true, force: true });
+  }
 });

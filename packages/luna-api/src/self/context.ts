@@ -43,7 +43,11 @@ export async function prepareContext(options: UpdateOptions) {
   env.LUNA_ROOT = repository;
   const context = new InstallContext(repository, home, env, options.onProgress ?? (() => {}));
   context.progress("Checking installation prerequisites...");
-  await validateCheckout(context);
-  await validateRef(context, options.ref ?? "latest");
+  try {
+    await validateCheckout(context);
+    await validateRef(context, options.ref ?? "latest");
+  } catch (error) {
+    throw context.failure(error);
+  }
   return context;
 }

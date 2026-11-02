@@ -33,7 +33,15 @@ for configuration only. Names can be IDs, package names, or aliases. Selection
 always follows `apps.jsonc` order; omitted names select all. `--force` reruns
 installation/build hooks. Pacman/AUR packages are checked with `pacman -Qq`;
 mise tools resolve requested versions/aliases against installed versions. Dependencies run before app hooks.
+Mise selections are activated globally even when the requested version is already
+installed. Bash/Zsh startup initialization and shims are reconciled during tool setup.
 An absent Yay is installed through the indexed provider, which must precede AUR apps.
+
+Optional `processes` lists executable basenames that must close before app work.
+Only the current user's processes are targeted, with a five-second warning and
+SIGTERM/SIGKILL escalation. The installer never terminates its own hosting app;
+retry from another terminal. `--no-close-apps` disables this behavior.
+`--skip-failed` retains individual app errors/logs and attempts the remaining apps.
 
 ## Exports and personal settings
 

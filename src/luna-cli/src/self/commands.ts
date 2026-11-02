@@ -1,6 +1,7 @@
 import { Luna } from "@luna/api";
 import type { Command } from "commander";
 import type { createOutput } from "../lib/output.ts";
+import { installReport } from "../lib/install-report.ts";
 import { requestGitIdentity } from "./identity.ts";
 
 interface SelfOptions {
@@ -9,6 +10,8 @@ interface SelfOptions {
   fromBootstrap?: boolean;
   gitName?: string;
   gitEmail?: string;
+  skipFailed?: boolean;
+  closeApps?: boolean;
 }
 
 export function addSelfCommands(
@@ -24,6 +27,8 @@ export function addSelfCommands(
     .option("--install-dir <path>", "Luna source checkout")
     .option("--ref <ref>", "Git branch, tag, or latest (remote default branch)", "latest")
     .option("--from-bootstrap", "install.sh already updated the checkout and installed the CLI")
+    .option("--skip-failed", "Continue after app failures and report retries at the end")
+    .option("--no-close-apps", "Do not automatically close apps for configuration")
     .option("--git-name <name>", "Set the global Git user name")
     .option("--git-email <email>", "Set the global Git email");
   install.action(async (options: SelfOptions) => {
@@ -31,11 +36,16 @@ export function addSelfCommands(
       repository: options.installDir,
       ref: options.ref,
       fromBootstrap: options.fromBootstrap,
+      skipFailed: options.skipFailed,
+      closeApps: options.closeApps,
       git: { name: options.gitName, email: options.gitEmail },
       requestGitIdentity: json ? undefined : requestGitIdentity,
       onProgress: output.progress,
     });
-    setExitCode(output.response(response, () => "Luna installation completed."));
+    const code = output.response(response, (data) =>
+      installReport(data.completed, data.installedApps, data.failed, data.logDirectory),
+    );
+    setExitCode(response.succes && !response.data.completed ? 1 : code);
   });
   self
     .command("update")

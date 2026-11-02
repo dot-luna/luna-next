@@ -4,6 +4,7 @@ import { validate } from "../../lib/validation.ts";
 import { webappContext } from "../../webapp/context.ts";
 import { installWebapp } from "../../webapp/index.ts";
 import { webappCatalogSchema } from "../../webapp/schema.ts";
+import { attempt, quote, type InstallFailure } from "../../install/report.ts";
 import type { InstallContext } from "./command.ts";
 
 export async function readWebapps(context: InstallContext) {
@@ -12,14 +13,23 @@ export async function readWebapps(context: InstallContext) {
 }
 
 /** Reuse interactive web app installation after Chromium app configuration. */
-export async function installWebApps(context: InstallContext) {
+export async function installWebApps(
+  context: InstallContext,
+  skipFailed = false,
+  failed: InstallFailure[] = [],
+) {
   const recipes = await readWebapps(context);
   if (!recipes.length) return [];
   const c = webappContext({ env: context.env });
   const installed: string[] = [];
   for (const app of recipes) {
-    await installWebapp(c, app.name, app.url);
-    installed.push(app.name);
+    const retry = `${quote(join(context.home, ".local/bin/luna"))} webapp install ${quote(app.name)} ${quote(app.url)}`;
+    if (
+      await attempt(context, `webapp:${app.name}`, retry, skipFailed, failed, () =>
+        installWebapp(c, app.name, app.url),
+      )
+    )
+      installed.push(app.name);
   }
   return installed;
 }

@@ -3,14 +3,17 @@ import { isAbsolute, join, resolve } from "pathe";
 import { repositoryPath, type RepositoryOptions } from "../lib/repository.ts";
 import { ApiError } from "../lib/response.ts";
 import { canonicalPath, overlaps } from "../lib/paths.ts";
+import type { InstallLog } from "../install/log.ts";
 import { InstallContext } from "../self/install/command.ts";
 
 export interface AppOptions extends RepositoryOptions {
   onProgress?: (message: string) => void;
   force?: boolean;
+  skipFailed?: boolean;
+  closeApps?: boolean;
 }
 
-export async function appContext(options: AppOptions = {}) {
+export async function appContext(options: AppOptions = {}, log?: InstallLog) {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(options.env ?? Bun.env))
     if (value !== undefined) env[key] = value;
@@ -67,5 +70,5 @@ export async function appContext(options: AppOptions = {}) {
   const shims = join(env.MISE_DATA_DIR || join(env.XDG_DATA_HOME!, "mise"), "shims");
   env.PATH = `${join(home, ".local/bin")}:${shims}:${env.PATH ?? ""}`;
   env.LC_ALL = "C";
-  return new InstallContext(repository, home, env, options.onProgress ?? (() => {}));
+  return new InstallContext(repository, home, env, options.onProgress ?? (() => {}), log);
 }

@@ -1,3 +1,4 @@
+import type { InstallFailure } from "../../install/report.ts";
 import type { RepositoryOptions } from "../../lib/repository.ts";
 import type { ApiResponse } from "../../lib/response.ts";
 
@@ -11,6 +12,8 @@ export interface InstallOptions extends RepositoryOptions {
   ref?: string;
   /** install.sh already updated the checkout and published the CLI. */
   fromBootstrap?: boolean;
+  skipFailed?: boolean;
+  closeApps?: boolean;
   /** Explicit values replace the corresponding global Git identity settings. */
   git?: Partial<GitIdentity>;
   /** Called at the Git stage only when identity values are missing. */
@@ -23,7 +26,9 @@ export interface InstallResult {
   repository: string;
   executable: string;
   cliRebuilt: boolean;
-  completed: true;
+  completed: boolean;
+  failed: InstallFailure[];
+  logDirectory: string;
   installedApps: string[];
   installedWebapps: string[];
   pending: [];
