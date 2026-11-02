@@ -14,9 +14,7 @@
     "**/*.min.js",
     "**/*.min.css",
     "bun.lock",
-    "Cargo.lock",
     "src/**/src/shell/**/*.js",
-    "apps/zen/config/userChrome.css",
-    "packages/hocon-qml/tests/data/malformed.schema.json"
+    "apps/zen/config/userChrome.css"
   ]
 }
