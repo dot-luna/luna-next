@@ -1,7 +1,27 @@
 {
+  "name": "@dot-luna/luna",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": ["packages/luna-api", "packages/luna-logger", "src/ln-cli"],
+  "description": "Luna desktop configuration, shared APIs, and command-line tools.",
+  "homepage": "https://github.com/dot-luna/luna-next#readme",
+  "bugs": {
+    "url": "https://github.com/dot-luna/luna-next/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dot-luna/luna-next.git"
+  },
+  "workspaces": [
+    "packages/luna-api",
+    "packages/luna-logger",
+    "src/ln-cli"
+  ],
+  "type": "module",
   "scripts": {
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "check:api": "bun run --filter 'luna-*' check",
     "test:api": "bun test packages/luna-api/tests packages/luna-logger/tests",
     "check": "bun run --filter 'luna-*' check",
@@ -11,6 +31,9 @@
   "devDependencies": {
     "@types/bun": "1.4.4",
     "@types/shell-quote": "^1.7.5",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "packageManager": "bun@1.4.4"
 }
