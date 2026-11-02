@@ -40,7 +40,7 @@ Rectangle {
 
     implicitWidth: 640 * textScale
     implicitHeight: 476 * textScale
-    // Only the card carries alpha; the compositor blurs it through the layer rule.
+    // Only the card carries alpha; its window requests blur for this shape.
     color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, theme.appearance.opacity.active)
     radius: Math.min(theme.appearance.rounding, width / 2, height / 2)
     border.width: theme.appearance.border_width

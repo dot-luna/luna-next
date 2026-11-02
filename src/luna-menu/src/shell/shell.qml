@@ -31,6 +31,8 @@ ShellRoot {
         if (!value.appearance.opacity || !Number.isFinite(value.appearance.opacity.active)
                 || !value.appearance.gaps || !Number.isFinite(value.appearance.gaps.outer))
             throw new Error("missing opacity or gaps");
+        if (!value.appearance.blur || typeof value.appearance.blur.enabled !== "boolean")
+            throw new Error("missing blur enabled flag");
         return value;
     }
 

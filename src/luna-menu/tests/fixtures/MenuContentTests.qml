@@ -2,6 +2,7 @@ import QtQuick
 import QtTest
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import "../../src/shell" as Menu
 import "../../src/shell/Applications.js" as Applications
 
@@ -237,6 +238,41 @@ TestCase {
         tryVerify(() => nativeApplications.length === 2);
         for (const entry of nativeApplications)
             verify(Applications.launch(entry, context => Quickshell.execDetached(context)));
+    }
+
+    function test_window_blurs_only_the_card_and_follows_theme_geometry() {
+        const component = Qt.createComponent(windowSource);
+        check(component.status, Component.Ready, component.errorString());
+        const window = createTemporaryObject(component, null, {theme: theme});
+        verify(window !== null);
+        const region = window.BackgroundEffect.blurRegion;
+        verify(region !== null);
+        check(region.item, window.content);
+        check(region.radius, theme.appearance.rounding);
+        window.show();
+        tryCompare(window, "visible", true);
+        const originalWidth = window.content.width;
+        const originalHeight = window.content.height;
+        window.width = 400;
+        window.height = 350;
+        tryVerify(() => window.content.width < originalWidth && window.content.height < originalHeight);
+        verify(region.item.x > 0 && region.item.y > 0);
+        verify(region.item.width < window.width && region.item.height < window.height);
+        const disabled = JSON.parse(JSON.stringify(theme));
+        disabled.appearance.blur.enabled = false;
+        window.theme = disabled;
+        check(window.BackgroundEffect.blurRegion, null);
+        const unblurredWindow = createTemporaryObject(component, null, {theme: disabled});
+        verify(unblurredWindow !== null);
+        check(unblurredWindow.BackgroundEffect.blurRegion, null);
+        check(unblurredWindow.visible, false);
+        const enabled = JSON.parse(JSON.stringify(theme));
+        enabled.appearance.rounding = 27;
+        window.theme = enabled;
+        check(window.BackgroundEffect.blurRegion, region);
+        check(region.radius, 27);
+        check(region.radius, window.content.radius);
+        window.hide();
     }
 
     function test_window_starts_hidden_and_outside_click_dismisses_but_inside_does_not() {

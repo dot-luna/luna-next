@@ -16,7 +16,8 @@ THEME = {
         "selection_foreground": "#1a1b26", "lighter_background": "#f0f0f3",
     },
     "fonts": {"ui": "DejaVu Sans", "mono": "DejaVu Sans Mono"},
-    "appearance": {"rounding": 13, "border_width": 2, "opacity": {"active": 0.9}, "gaps": {"outer": 8}},
+    "appearance": {"rounding": 13, "border_width": 2, "opacity": {"active": 0.9},
+                   "gaps": {"outer": 8}, "blur": {"enabled": True, "size": 10, "passes": 3}},
 }
 
 

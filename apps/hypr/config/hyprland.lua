@@ -16,7 +16,7 @@ for _, name in ipairs({ "monitors", "workspaces", "input" }) do
     dofile(config_dir .. "/" .. name .. ".lua")
 end
 local appearance = dofile(config_dir .. "/appearance.lua")
-dofile(config_dir .. "/rules.lua")(appearance)
+dofile(config_dir .. "/rules.lua")()
 for _, name in ipairs({ "animations", "autostart" }) do
     dofile(config_dir .. "/" .. name .. ".lua")
 end

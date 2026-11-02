@@ -48,7 +48,9 @@ class MenuTests(unittest.TestCase):
         for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
             self.assertNotIn(error, output)
         for theme in ("not json", "null", "{}", json.dumps(dict(THEME, fonts={})),
-                      json.dumps(dict(THEME, appearance={"rounding": -1, "border_width": 1}))):
+                      json.dumps(dict(THEME, appearance={"rounding": -1, "border_width": 1})),
+                      json.dumps(dict(THEME, appearance=dict(THEME["appearance"], blur=None))),
+                      json.dumps(dict(THEME, appearance=dict(THEME["appearance"], blur={"enabled": "false"})))):
             with self.subTest(theme=theme):
                 self.env["LUNA_MENU_THEME"] = theme
                 result = self.run_shell(shell)

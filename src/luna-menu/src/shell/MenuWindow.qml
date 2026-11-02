@@ -23,6 +23,14 @@ PanelWindow {
     WlrLayershell.namespace: "luna-menu"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
+    // Blur only the card, leaving the fullscreen dismissal surface clear.
+    BackgroundEffect.blurRegion: panel.theme.appearance.blur.enabled ? menuBlurRegion : null
+    Region {
+        id: menuBlurRegion
+        item: menuContent
+        radius: menuContent.radius
+    }
+
     function show() {
         menuContent.reset();
         opened = true;
