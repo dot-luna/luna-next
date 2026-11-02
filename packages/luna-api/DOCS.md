@@ -1,7 +1,7 @@
 # Luna API
 
 `Luna.info(options?)` reads the checkout's root `package.json` on every call.
-`Luna.self.install(options?)` installs prerequisites, Git configuration, themes, apps, later packages, and web apps.
+`Luna.self.install(options?)` installs prerequisites, Git configuration, themes, apps, later packages, and web apps, then applies default applications.
 `Luna.self.update(options?)` updates the checkout and rebuilds/publishes only the CLI.
 
 All operations return `{ succes: true, data }` or
@@ -17,7 +17,7 @@ run logs and optionally call `onProgress(message)`; failed commands return diagn
   an absolute non-root home. The caller's environment and cwd remain unchanged.
 - `ref`: branch, tag, or `latest` (remote default branch). Defaults to `latest`.
 - `onProgress`: optional synchronous progress callback.
-- `skipFailed`: continue after individual app/web-app failures (default false).
+- `skipFailed`: continue after individual app, web-app, and final defaults failures (default false).
 - `closeApps`: close declared app processes before installation/configuration (default true).
 
 Self operations require an existing standalone Luna checkout and a normal Arch
@@ -28,7 +28,7 @@ Installation additionally accepts `fromBootstrap` to skip the checkout update,
 system upgrade, and CLI build already performed by `install.sh`; package stages
 still run. Order: validate, update checkout, `before_cli` packages, build/publish
 CLI, Git configuration, `after_cli` packages/mise tools, bundled themes and their
-packages, apps in catalog order, later packages, then web apps. Direct installation
+packages, apps in catalog order, later packages, web apps, then application defaults. Direct installation
 upgrades system packages before installing dependencies.
 
 Use `git: { name?, email? }` to override global identity values. Otherwise existing
@@ -41,7 +41,7 @@ Success returns `completed: true`, `installedApps`, `installedWebapps`, and an e
 `pending` array; `cliRebuilt` reports whether CLI publication ran. No completion is
 returned after a failed required stage. With `skipFailed`, individual app failures
 return a report with `completed: false` and `failed` entries containing the app, error,
-retry command and `logDirectory`. Later packages and web apps are still attempted. An early AUR recipe requires an already installed
+retry command and `logDirectory`. Later packages, web apps, and defaults are still attempted. An early AUR recipe requires an already installed
 Yay; theme and app stages can install the catalog’s Yay provider. Update requires mise and
 changes only the checkout and CLI. Both publish to `$HOME/.local/bin/luna`.
 
@@ -62,9 +62,9 @@ Mise tools use global selections and refreshed shims, including already installe
 versions. Managed Bash/Zsh startup blocks activate Mise in new interactive shells.
 Zsh data-root defaults are set in `.zshenv` before app includes can activate Mise;
 `ZDOTDIR` is honored when supplied.
-Explicit runtime Mise data paths and personal startup content are retained. Zsh's
-app hook selects Zsh as the login shell only when the account uses another shell;
-this takes effect on the next login. Sudo authentication is refreshed during long
+Explicit runtime Mise data paths and personal startup content are retained.
+The final defaults stage selects the configured login shell only when the account
+uses another shell; this takes effect on the next login. Sudo authentication is refreshed during long
 self/app installs without repeatedly prompting.
 Self errors include `INVALID_ENVIRONMENT`, `INVALID_ARGUMENT`, `INVALID_PATH`,
 `INVALID_METADATA`, `INPUT_REQUIRED`, `COMMAND_FAILED`, and `IO_ERROR`.
@@ -76,6 +76,37 @@ bun run --cwd packages/luna-api check
 bun run --cwd packages/luna-api test
 bun run --cwd packages/luna-api build
 ```
+
+## Default applications
+
+`Luna.defaults.list(options?)`, `set(key, application, options?)`, and
+`reset(keys?, options?)` inspect or change system defaults. Reset with no keys
+reapplies the entire defaults manifest; selected keys restore only those entries.
+Set changes active preferences without editing the manifest.
+
+Options accept `repository`, `env`, `configFile`, and `onProgress`. The manifest
+defaults to `installs/defaults.jsonc` in the checkout; relative explicit paths use
+the caller's working directory. `shellsFile` overrides `/etc/shells` when needed.
+Schema validation lives in `src/defaults/schema.ts`.
+
+Keys are `terminal`, `shell`, exact MIME/URI-handler types, or `image/*`, `audio/*`,
+and `video/*`. Desktop choices require an installed `.desktop` ID. Wildcards
+expand only advertised MIME types; exact manifest entries override them, including
+during a scoped wildcard reset. Shells use executable names or absolute paths;
+changes require registration and take effect on the next login. Terminal desktop
+entries require `TerminalEmulator` and `[X-]TerminalArgExec`, including an empty
+execution argument when none is needed.
+
+List returns `{key, value, current, available}` entries; `current` maps exact types
+to active IDs or null, and uses `terminal`/`shell` for those roles. Set/reset return
+`{applied}` with expanded types and the resolved login-shell path.
+
+Preferences update generic, Hyprland, and active-desktop MIME/terminal files,
+preserving unrelated keys, associations, comments, and symlink targets. Each file
+is saved atomically and detected external edits return `CONFLICT`. Validation
+precedes changes; a later write or shell-command failure can leave earlier changes
+applied. Invalid manifests return `INVALID_METADATA`; unavailable choices and
+unknown reset keys return `INVALID_ARGUMENT`. Source JSONC is never rewritten.
 
 ## Theme API
 

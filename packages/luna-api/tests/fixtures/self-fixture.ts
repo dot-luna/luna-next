@@ -26,6 +26,9 @@ export class SelfFixture {
   executable = join(this.home, ".local/bin/luna");
   env: Record<string, string> = {
     HOME: this.home,
+    XDG_CONFIG_HOME: join(this.home, ".config"),
+    XDG_DATA_HOME: join(this.home, ".local/share"),
+    XDG_DATA_DIRS: join(this.root, "system-data"),
     DBUS_SESSION_BUS_ADDRESS: "fixture:mock-gsettings",
     PATH: this.bin,
     LUNA_ROOT: this.repository,
@@ -42,7 +45,17 @@ export class SelfFixture {
     for (const path of [this.home, this.bin, this.upstream]) mkdirSync(path);
     symlinkSync(bash, join(this.bin, "bash"));
     for (const tool of ["flock", "mv"]) symlinkSync(Bun.which(tool)!, join(this.bin, tool));
-    for (const name of ["git", "pacman", "yay", "sudo", "mise", "bun", "gsettings"]) {
+    for (const name of [
+      "git",
+      "pacman",
+      "yay",
+      "sudo",
+      "mise",
+      "bun",
+      "gsettings",
+      "xdg-mime",
+      "fixture-viewer",
+    ]) {
       writeFileSync(
         join(this.bin, name),
         `#!${bash}\nexec ${[process.execPath, mock, name].map(quote).join(" ")} "$@"\n`,
@@ -74,6 +87,7 @@ export class SelfFixture {
     );
     this.write(this.upstream, "apps/apps.jsonc", '{"packages":[]}');
     this.write(this.upstream, "installs/packages.webapp.jsonc", "[]");
+    this.write(this.upstream, "installs/defaults.jsonc", "{}");
     this.write(this.upstream, "apps/git/scripts/after-install.sh", readFileSync(gitHook, "utf8"));
     this.write(this.upstream, "themes/bundled/tokyo-night/theme.jsonc", "{}");
     this.write(this.upstream, ".gitignore", "target/\n");

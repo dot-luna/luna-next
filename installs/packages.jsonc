@@ -77,7 +77,7 @@
     {
       "name": "xdg-desktop-portal-gtk",
       "source": "pacman",
-      "purpose": "Expose system appearance preferences to portal applications",
+      "purpose": "Provide GTK file pickers and expose system appearance preferences to portal applications",
     },
     {
       "name": "libsecret",
@@ -173,7 +173,7 @@
       "purpose": "Find files and directories for fuzzy selection",
     },
 
-    // Desktop apps; their planned default roles are recorded in defaults.jsonc.
+    // Desktop apps; their default handlers are declared in defaults.jsonc.
     {
       "name": "evince",
       "source": "pacman",
@@ -195,11 +195,6 @@
       "purpose": "View supported image formats",
     },
     {
-      "name": "mpv",
-      "source": "pacman",
-      "purpose": "Play videos and other supported media",
-    },
-    {
       "name": "nautilus",
       "source": "pacman",
       "purpose": "Browse and manage files",
@@ -211,11 +206,6 @@
     },
 
     // Terminal tools and media helpers.
-    {
-      "name": "tmux",
-      "source": "pacman",
-      "purpose": "Manage persistent terminal sessions and panes",
-    },
     {
       "name": "man-db",
       "source": "pacman",

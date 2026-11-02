@@ -248,8 +248,10 @@ test("AUR selection validates provider order before running its hooks", async ()
   expect(f.hooks()).toEqual([]);
 });
 
-test("self install completes themes, ordered apps, later packages and web apps through shared APIs", async () => {
+test("self install applies defaults after themes, ordered apps, later packages and web apps", async () => {
   f.browser();
+  f.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
+  f.write(f.repository, "installs/defaults.jsonc", '{"application/pdf":"fixture-viewer.desktop"}');
   f.app("desktop", { name: "desktop", source: "local" }, [
     "before_install",
     "before_configure",
@@ -266,12 +268,22 @@ test("self install completes themes, ordered apps, later packages and web apps t
     '[{"name":"Installed Web App","url":"https://example.test"}]',
   );
   const progress: string[] = [];
+  let webappExistsBeforeDefaults = false;
   const result = data(
     await Luna.self.install({
       ...options(),
       fromBootstrap: true,
       git: { name: "Test", email: "test@example.test" },
-      onProgress: (message) => progress.push(message),
+      onProgress: (message) => {
+        progress.push(message);
+        if (message === "Applying application defaults...")
+          webappExistsBeforeDefaults = readdirSync(join(f.env.XDG_DATA_HOME!, "applications")).some(
+            (name) =>
+              readFileSync(join(f.env.XDG_DATA_HOME!, "applications", name), "utf8").includes(
+                "Name=Installed Web App\n",
+              ),
+          );
+      },
     }),
   );
   expect(result).toMatchObject({
@@ -287,6 +299,31 @@ test("self install completes themes, ordered apps, later packages and web apps t
   expect(index("bundled themes")).toBeLessThan(index("Installing desktop"));
   expect(index("Configuring desktop")).toBeLessThan(index("later packages"));
   expect(index("later packages")).toBeLessThan(index("Installing web apps"));
+  expect(index("Installing web apps")).toBeLessThan(index("Applying application defaults"));
+  expect(webappExistsBeforeDefaults).toBe(true);
+  expect(readFileSync(join(f.env.XDG_CONFIG_HOME!, "mimeapps.list"), "utf8")).toContain(
+    "application/pdf=fixture-viewer.desktop;",
+  );
+});
+
+test("skipFailed retains app failures while applying defaults after later packages", async () => {
+  f.app("broken", { name: "broken", source: "local" }, ["build"]);
+  f.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
+  f.write(f.repository, "installs/defaults.jsonc", '{"application/pdf":"fixture-viewer.desktop"}');
+  const result = data(
+    await Luna.self.install({
+      ...options(),
+      env: { ...f.env, APP_FAIL: "broken:build" },
+      fromBootstrap: true,
+      skipFailed: true,
+      git: { name: "Test", email: "test@example.test" },
+    }),
+  );
+  expect(result.completed).toBe(false);
+  expect(result.failed.map((failure) => failure.app)).toEqual(["broken"]);
+  expect(readFileSync(join(f.env.XDG_CONFIG_HOME!, "mimeapps.list"), "utf8")).toContain(
+    "application/pdf=fixture-viewer.desktop;",
+  );
 });
 
 test("self install validates web app catalog before sudo and does not mark failed app installation complete", async () => {

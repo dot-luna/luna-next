@@ -27,7 +27,6 @@
 
   "hooks": {
     "before_configure": ["scripts/configure.ts"],
-    "after_configure": ["scripts/default-shell.ts"],
   },
 
   "exports": [

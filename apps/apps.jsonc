@@ -10,10 +10,12 @@
     "starship/app.jsonc",
 
     "bat/app.jsonc",
+    "tmux/app.jsonc",
     "glow/app.jsonc",
     "btop/app.jsonc",
     "fastfetch/app.jsonc",
     "bitwarden/app.jsonc",
+    "mpv/app.jsonc",
 
     // Chromium's profile uses Git's user name; T3 uses the Codex provider.
     "chromium/app.jsonc",

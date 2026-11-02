@@ -5,8 +5,11 @@ import { theme } from "./theme/index.ts";
 import { apps } from "./apps/index.ts";
 import { webapp } from "./webapp/index.ts";
 import { menu } from "./menu/index.ts";
+import { defaults } from "./defaults/index.ts";
 
-export const Luna = { info, self: { install, update }, theme, apps, webapp, menu };
+export const Luna = { info, self: { install, update }, theme, apps, webapp, menu, defaults };
+
+export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./defaults/types.ts";
 
 export type { MenuOptions, MenuState } from "./menu/context.ts";
 

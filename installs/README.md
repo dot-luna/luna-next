@@ -2,7 +2,7 @@
 
 Package recipes for Luna's installer, written in JSONC (JSON with comments and
 trailing commas). `luna self install` processes `before_cli`, `after_cli`, and
-the mise list, apps, `later`, and finally web apps through the shared web-app API.
+the mise list, apps, `later`, web apps, and finally the application defaults.
 
 Packages installed by [install.sh](../install.sh) may also appear in these lists.
 Packages declared in [apps/](../apps/README.md), as an app's `name` or in its `deps`,
@@ -12,12 +12,12 @@ tied to an app, such as its plugins, belong in that app's `deps`.
 Dependencies for inactive local desktop apps are omitted; add them when enabling
 those apps.
 
-| File                                           | Contents                                                                            |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [packages.jsonc](packages.jsonc)               | Pacman and AUR packages grouped by installation stage.                              |
-| [packages.mise.jsonc](packages.mise.jsonc)     | Array of development tools and runtime versions.                                    |
-| [packages.webapp.jsonc](packages.webapp.jsonc) | Array of desktop web apps with only `name` and `url`.                               |
-| [defaults.jsonc](defaults.jsonc)               | Comment-only default-app choices and undecided items; not applied by the installer. |
+| File                                           | Contents                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| [packages.jsonc](packages.jsonc)               | Pacman and AUR packages grouped by installation stage.          |
+| [packages.mise.jsonc](packages.mise.jsonc)     | Array of development tools and runtime versions.                |
+| [packages.webapp.jsonc](packages.webapp.jsonc) | Array of desktop web apps with only `name` and `url`.           |
+| [defaults.jsonc](defaults.jsonc)               | Application defaults applied after setup, plus undecided items. |
 
 Add system packages to the appropriate group in `packages.jsonc`:
 
@@ -39,3 +39,10 @@ Use `purpose` for a short description and `version` to select a mise version.
 See [example.jsonc](example.jsonc) for the package fields and source examples.
 Its entries illustrate recipes; it is not an additional install list. App
 configuration exports and lifecycle hooks belong in [apps/](../apps/README.md).
+
+`defaults.jsonc` maps MIME types and URL schemes to installed desktop IDs, with
+`terminal` for `xdg-terminal-exec` and `shell` for the login-shell executable.
+Media groups such as `image/*` expand only to types advertised by the selected
+app; exact MIME entries take precedence. Use `luna defaults list`,
+`luna defaults set application/pdf org.gnome.Evince.desktop`, or
+`luna defaults reset` to inspect, change, or restore the active defaults.

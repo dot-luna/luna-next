@@ -2,6 +2,14 @@
   "name": "hyprland",
   "source": "pacman",
 
+  "deps": [
+    {
+      "name": "xdg-desktop-portal-hyprland",
+      "source": "pacman",
+      "purpose": "Provide Hyprland screen sharing and portal routing with GTK file pickers",
+    },
+  ],
+
   "exports": [
     {
       "source": "config/",

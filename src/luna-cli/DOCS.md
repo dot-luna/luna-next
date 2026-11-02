@@ -19,7 +19,7 @@ commits. They never reset or autostash changes.
 - `luna self install`: update the checkout, install `before_cli` packages,
   rebuild/publish the CLI, configure Git, then install `after_cli` packages,
   the mise list, themes and their packages, apps in catalog order, later packages,
-  and web apps. A direct invocation also upgrades system packages before
+  web apps, and application defaults. A direct invocation also upgrades system packages before
   installing dependencies. `install.sh` passes `--from-bootstrap` to skip the
   repeated checkout update, system upgrade, and CLI build/publication; shared
   package stages and Git configuration still run.
@@ -46,10 +46,10 @@ before setup, and run it from a terminal outside any app it needs to close.
 `--no-close-apps` disables automatic shutdown for install/configure commands.
 
 Mise tools are selected globally, shims are refreshed, and new Bash/Zsh sessions
-activate Mise automatically. Existing terminal sessions need restarting. Zsh
-configuration also sets the account's default shell to Zsh when needed; log in
-again for the new login shell.
+activate Mise automatically. Existing terminal sessions need restarting.
 
+Setup applies `installs/defaults.jsonc` after packages, apps, and web apps.
+With `--skip-failed`, defaults are still attempted and any failure appears in the final report.
 Successful setup reports completion after every stage. Early AUR recipes require
 an existing Yay; theme and app stages can install the catalog’s Yay provider.
 
@@ -85,6 +85,32 @@ table; other clients use `theme get --json`. Removal protects the selected theme
 and requires `--yes` or `--dry-run` without an interactive terminal.
 
 See [theme format and behavior](../../themes/DOCS.md).
+
+## Default applications
+
+- `luna defaults list`: show configured choices, active defaults, and unavailable
+  applications. Wildcard groups show mixed active choices when they differ.
+- `luna defaults set <key> <application>`: change a system default without editing
+  the defaults JSONC.
+- `luna defaults reset [keys...]`: reapply configured choices; omit keys to restore
+  all defaults from `installs/defaults.jsonc`.
+
+The group accepts `--install-dir PATH` for the checkout and `--config PATH` for
+an explicit defaults JSONC. Relative paths start at the caller's working directory.
+JSON mode returns the API response unchanged.
+
+Keys are `terminal`, `shell`, MIME types, URL schemes such as
+`x-scheme-handler/https`, and `image/*`, `audio/*`, or `video/*`. Wildcards expand
+to the MIME types supported by the selected app. Applications use installed
+desktop IDs including `.desktop`; shells use an executable name or absolute path
+listed in `/etc/shells`. Shell changes use `sudo chsh` and take effect at the next login.
+
+Quote wildcard keys to prevent shell expansion:
+
+```sh
+luna defaults set 'image/*' imv.desktop
+luna defaults reset 'image/*' terminal
+```
 
 ## Menu
 

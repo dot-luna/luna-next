@@ -23,6 +23,9 @@ return function(appearance)
         match = { class = "^xdg-desktop-portal-gtk$" },
         float = true,
         center = true,
+        -- Keep restored picker windows within the height limit.
+        suppress_event = "maximize",
+        max_size = { "(monitor_w)", "(monitor_h*0.8)" },
     })
 
     -- Silent placement lets the shortcut decide whether a slow launch is still wanted.

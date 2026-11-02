@@ -60,7 +60,7 @@ userTests("self operations", () => {
     expect(value.git(value.repository, ["config", "--global", "core.editor"])).toBe("nvim");
     expect(readFileSync(value.executable, "utf8")).toContain("fixture CLI");
     expect(statSync(value.executable).mode & 0o777).toBe(0o755);
-    expect(progress).toHaveLength(10);
+    expect(progress).toHaveLength(11);
     expect(process.cwd()).toBe(oldCwd);
     expect(Bun.env.LUNA_ROOT).toBe(oldRoot);
   });
@@ -200,6 +200,90 @@ userTests("self operations", () => {
     });
     expect(value.commands().some((item) => item.name === "sudo")).toBe(false);
   });
+
+  test.each(["{broken", '{"application/pdf":false}'])(
+    "invalid defaults %s stop before checkout updates or installation writes",
+    async (source) => {
+      value.write(value.repository, "installs/defaults.jsonc", source);
+      expect(await Luna.self.install({ env: value.env, git: identity })).toMatchObject({
+        succes: false,
+        err: "INVALID_METADATA",
+      });
+      expect(
+        value
+          .commands()
+          .some(
+            (item) =>
+              ["sudo", "pacman", "xdg-mime"].includes(item.name) ||
+              item.args.some((arg) => ["fetch", "pull"].includes(arg)),
+          ),
+      ).toBe(false);
+      expect(existsSync(join(value.home, ".config/mimeapps.list"))).toBe(false);
+    },
+  );
+
+  test("updated default manifests are validated before installing packages", async () => {
+    value.write(value.upstream, "installs/defaults.jsonc", '{"application/pdf":false}');
+    value.commit("Invalid upstream defaults");
+    expect(await Luna.self.install({ env: value.env, git: identity })).toMatchObject({
+      succes: false,
+      err: "INVALID_METADATA",
+    });
+    expect(value.commands().some((item) => item.name === "git" && item.args.includes("pull"))).toBe(
+      true,
+    );
+    expect(value.commands().some((item) => ["sudo", "pacman"].includes(item.name))).toBe(false);
+  });
+
+  test("defaults resolve applications installed in the later package stage", async () => {
+    value.env.SELF_INSTALLED_JSON = join(value.root, "installed.json");
+    value.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
+    const source = '{"application/pdf":"fixture-viewer.desktop"}';
+    value.write(value.repository, "installs/defaults.jsonc", source);
+    expect(
+      await Luna.self.install({ env: value.env, fromBootstrap: true, git: identity }),
+    ).toMatchObject({ succes: true, data: { completed: true, failed: [] } });
+    expect(readFileSync(join(value.home, ".config/mimeapps.list"), "utf8")).toContain(
+      "application/pdf=fixture-viewer.desktop;",
+    );
+    expect(readFileSync(join(value.repository, "installs/defaults.jsonc"), "utf8")).toBe(source);
+  });
+
+  for (const skipFailed of [false, true]) {
+    test(`unavailable defaults do not report completion with skipFailed=${skipFailed}`, async () => {
+      value.write(
+        value.repository,
+        "installs/defaults.jsonc",
+        '{"application/pdf":"missing-viewer.desktop"}',
+      );
+      const response = await Luna.self.install({
+        env: value.env,
+        fromBootstrap: true,
+        git: identity,
+        skipFailed,
+      });
+      if (skipFailed) {
+        expect(response).toMatchObject({
+          succes: true,
+          data: {
+            completed: false,
+            failed: [
+              { app: "defaults", retry: expect.stringContaining("defaults reset --install-dir") },
+            ],
+          },
+        });
+      } else {
+        expect(response).toMatchObject({
+          succes: false,
+          errMessage: expect.stringContaining("defaults reset --install-dir"),
+        });
+      }
+      expect(
+        value.commands().some((item) => item.name === "pacman" && item.args.includes("zed")),
+      ).toBe(true);
+      expect(existsSync(join(value.home, ".config/mimeapps.list"))).toBe(false);
+    });
+  }
 
   test("build failures preserve the installed CLI and prevent Git and after-CLI setup", async () => {
     const result = await Luna.self.install({
