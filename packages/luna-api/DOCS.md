@@ -29,7 +29,8 @@ CLI, Git configuration, `after_cli` packages and mise tools. Direct installation
 upgrades system packages before installing dependencies.
 
 Use `git: { name?, email? }` to override global identity values. Otherwise existing
-values are retained. `requestGitIdentity(current)` may supply missing values;
+values, including global include/includeIf files, are retained without new identity
+overrides. `requestGitIdentity(current)` may supply missing values;
 the API itself never prompts. Git defaults use `master` and `nvim`, with Neovim
 in the before-CLI dependencies. Unrelated global Git settings are retained.
 

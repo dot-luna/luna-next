@@ -9,16 +9,23 @@ function valid(value: string | undefined): value is string {
 }
 
 async function readSetting(context: InstallContext, key: string) {
-  const value = await context.execute(["git", "config", "--global", "--get", key], true);
+  const value = await context.execute(
+    ["git", "config", "--global", "--includes", "--get", key],
+    true,
+  );
   if (value.exitCode !== 0 && value.exitCode !== 1)
     throw new ApiError("COMMAND_FAILED", value.stderr.trim());
   return value.exitCode === 0 ? value.stdout.trim() : undefined;
 }
 
 export async function configureGit(context: InstallContext, options: InstallOptions) {
+  const configured = {
+    name: await readSetting(context, "user.name"),
+    email: await readSetting(context, "user.email"),
+  };
   const current: Partial<GitIdentity> = {
-    name: options.git?.name ?? (await readSetting(context, "user.name")),
-    email: options.git?.email ?? (await readSetting(context, "user.email")),
+    name: options.git?.name ?? configured.name,
+    email: options.git?.email ?? configured.email,
   };
   const identity =
     valid(current.name) && valid(current.email)
@@ -30,12 +37,12 @@ export async function configureGit(context: InstallContext, options: InstallOpti
       "Provide a nonempty Git name and email using --git-name and --git-email, or run interactively",
     );
   }
-  // Write keys through Git; unrelated global settings and include directives remain intact.
-  for (const [key, value] of [
-    ["user.name", identity.name],
-    ["user.email", identity.email],
-  ]) {
-    await context.execute(["git", "config", "--global", key!, value!]);
+  // Keep included identities at their source unless the caller explicitly overrides a value.
+  if (options.git?.name !== undefined || !valid(configured.name)) {
+    await context.execute(["git", "config", "--global", "user.name", identity.name]);
+  }
+  if (options.git?.email !== undefined || !valid(configured.email)) {
+    await context.execute(["git", "config", "--global", "user.email", identity.email]);
   }
   await context.execute(["bash", "apps/git/scripts/after-install.sh"]);
 }

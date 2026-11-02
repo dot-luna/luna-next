@@ -25,7 +25,8 @@ commits. They never reset or autostash changes.
 - `luna self update`: update the checkout and rebuild/publish only the CLI.
   Requires mise from setup; does not install desktop packages or configure Git.
 
-Git identity values are kept unless overridden with `--git-name` or `--git-email`.
+Git identity values, including global include/includeIf files, are kept unless
+overridden with `--git-name` or `--git-email`.
 Missing values are requested through the terminal, including after a piped
 bootstrap. Without a terminal, supply the flags or configure global Git identity
 first. Git defaults use branch `master` and editor `nvim`; unrelated global

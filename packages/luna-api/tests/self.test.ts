@@ -113,6 +113,48 @@ userTests("self operations", () => {
     expect(existsSync(join(value.home, ".gitconfig"))).toBe(false);
   });
 
+  test.each(["include.path", "includeIf"])(
+    "keeps identity in %s without prompts or top-level overrides",
+    async (include) => {
+      const included = join(value.home, "identity.gitconfig");
+      const contents = "[user]\n\tname = Included User\n\temail = included@example.test\n";
+      value.write(value.home, "identity.gitconfig", contents);
+      const key =
+        include === "include.path" ? include : `includeIf.gitdir:${value.repository}/.git.path`;
+      value.git(value.repository, ["config", "--global", key, included]);
+      const result = await Luna.self.install({
+        env: value.env,
+        fromBootstrap: true,
+        requestGitIdentity: async () => {
+          throw new Error("Included identity must not prompt");
+        },
+      });
+      expect(result.succes).toBe(true);
+      expect(readFileSync(included, "utf8")).toBe(contents);
+      expect(readFileSync(join(value.home, ".gitconfig"), "utf8")).not.toContain("[user]");
+      expect(value.git(value.repository, ["config", "--global", "--includes", "user.name"])).toBe(
+        "Included User",
+      );
+      expect(value.git(value.repository, ["config", "--global", "--includes", "user.email"])).toBe(
+        "included@example.test",
+      );
+
+      const overridden = await Luna.self.install({
+        env: value.env,
+        fromBootstrap: true,
+        git: { name: "Explicit User" },
+      });
+      expect(overridden.succes).toBe(true);
+      expect(value.git(value.repository, ["config", "--global", "--get", "user.name"])).toBe(
+        "Explicit User",
+      );
+      expect(value.git(value.repository, ["config", "--global", "--includes", "user.email"])).toBe(
+        "included@example.test",
+      );
+      expect(readFileSync(included, "utf8")).toBe(contents);
+    },
+  );
+
   test("invalid lists, refs, and foreign origins fail before sudo or package writes", async () => {
     value.write(value.repository, "installs/packages.mise.jsonc", "{broken");
     expect(await Luna.self.install({ env: value.env, fromBootstrap: true })).toMatchObject({
