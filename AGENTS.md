@@ -1,3 +1,14 @@
+# Luna UI priorities
+
+- Keep the UI minimal. Show only what helps users complete their current task.
+- Design for the keyboard first, with full mouse support. Support navigation,
+  selection, activation, and dismissal through both.
+- Use polished, natural animations that respond immediately. Never delay input,
+  focus, navigation, or actions to wait for an animation.
+- Keep visible text brief and useful. Omit meta text, explanatory filler,
+  redundant labels, and information with no user benefit. Use recognizable icons
+  where they communicate clearly; retain essential labels and accessible names.
+
 # Repository conventions
 
 - Treat this file as repository policy. Skills in `.agents/skills/` provide
