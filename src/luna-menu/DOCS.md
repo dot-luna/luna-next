@@ -48,9 +48,9 @@ changing themes. Missing or malformed theme input fails startup.
 The card uses `appearance.opacity.active` and requests background blur only when
 `appearance.blur.enabled` is true. Blur follows the card's bounds and rounding;
 outside click areas stay clear. The compositor must support `ext-background-effect-v1`.
-Hyprland reads blur `size` and `passes` from the theme on startup/reload; run
-`hyprctl reload` after changing those values. It also exports the user QML import
-path globally through `QML_IMPORT_PATH`.
+Hyprland's global blur switch still applies. It reads blur settings from the theme
+on startup/reload; run `hyprctl reload` after changing them, including `size` and
+`passes`. It also exports the user QML import path globally through `QML_IMPORT_PATH`.
 
 ## API and checks
 
