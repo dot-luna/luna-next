@@ -8,6 +8,7 @@
   // File previews: Sushi in Nautilus, opened with Space.
   // Disk management: GNOME Disks (gnome-disk-utility).
   // Screen color picker: hyprpicker.
+  // Terminal: Kitty (kitty).
   // Terminal sessions and panes: tmux; configuration and shortcuts come later.
   // Manual pages: man-db. Concise command examples: tldr.
   // JSON processing: jq. Media conversion: ffmpeg. QR generation: qrencode.
