@@ -49,6 +49,8 @@
 # After building, wait five seconds before running luna self install with the
 # exact original flags. Ctrl+C during the pause prints the command to finish
 # later. The CLI owns all remaining configuration and must provide self install.
+#
+# Checks: bash -n install.sh; bun test __tests__/install.test.ts
 set -euo pipefail
 
 fail() {
