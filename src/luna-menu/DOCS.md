@@ -28,8 +28,8 @@ Graphical apps use their desktop entry's default action. Terminal apps use
 
 The main menu and Apps presentation are ported from
 [`dot-luna/luna` at 9aa7d7e](https://github.com/dot-luna/luna/tree/9aa7d7e7aa48686d243bc1793f37ee9fd246ab58/src/launcher).
-The header, fixed-height body, row spacing, selection, and font scaling follow
-that menu. UI icons use the free Hugeicons set, documented in
+The menu has a compact search header; the row spacing, selection, and font scaling
+follow that menu. UI icons use the free Hugeicons set, documented in
 [icons/README.md](src/shell/icons/README.md), with its MIT notice.
 
 `luna install luna-menu` installs Quickshell and `xdg-terminal-exec`, then exports the QML

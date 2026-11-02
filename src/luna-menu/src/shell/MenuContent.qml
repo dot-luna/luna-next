@@ -114,10 +114,10 @@ Rectangle {
         // The original header is a continuous search surface, without a nested box.
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 72 * card.textScale
+            Layout.preferredHeight: 48 * card.textScale
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 22
+                anchors.leftMargin: 24
                 anchors.rightMargin: 18
                 spacing: 14
                 Icon {
@@ -130,11 +130,11 @@ Rectangle {
                     id: search
                     objectName: "searchInput"
                     Layout.fillWidth: true
-                    implicitHeight: 48 * card.textScale
+                    implicitHeight: 32 * card.textScale
                     padding: 0
                     color: card.theme.colors.bright_foreground
                     font.family: card.uiFont
-                    font.pointSize: card.textSize + 3
+                    font.pointSize: card.textSize + 1
                     placeholderText: "Search…"
                     placeholderTextColor: card.theme.colors.foreground
                     selectByMouse: true
