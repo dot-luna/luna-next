@@ -146,17 +146,45 @@ See the [menu docs](../../src/luna-menu/DOCS.md).
 
 ## Wallpaper API
 
-`Luna.wallpaper` provides `get(key?, options?)`, `getConfigFile(options?)`,
-`set(source, options?)`, `configure(settings, options?)`, `start`, `stop`,
-`restart`, `reload`, and `status`. Lifecycle methods accept `options?` and return
-`{running, status, shellDirectory, configFile}`. Reload leaves a stopped renderer
-stopped; restart performs a full stop/start. Start preserves an existing instance.
+`Luna.wallpaper` provides `install(sources, options?)` (alias `add`),
+`list(options?)`, `current(options?)`, `path(name?, options?)`,
+`set(nameOrPath, options?)`, `random(options?)`, `remove(names, options?)`,
+`get(key?, options?)`, `getConfigFile(options?)`, `configure(settings, options?)`,
+`start`, `stop`, `restart`, `reload`, and `status`. Lifecycle methods accept
+`options?` and return `{running, status, shellDirectory, configFile}`. Reload
+leaves a stopped renderer stopped; restart performs a full stop/start. Start
+preserves an existing instance.
 
-Options accept `env`, `repository` for source QML, and `configFile`. The file
+Options accept `env`, `repository` for source QML, `configFile`, and `libraryDir`.
+Explicit relative paths use the caller's working directory. The settings file
 defaults to nonempty `LUNA_WALLPAPER_CONFIG`, then
 `$LUNA_CONFIG_HOME_DIR/wallpaper.jsonc`, `$XDG_CONFIG_HOME/luna/wallpaper.jsonc`,
-or `~/.config/luna/wallpaper.jsonc`. Explicit relative paths use the caller's working
-directory. Installed QML lives in the corresponding `wallpaper/` directory.
+or `~/.config/luna/wallpaper.jsonc`. Installed QML lives in the corresponding
+`wallpaper/` directory. The shared media library defaults to
+`$LUNA_DATA_HOME_DIR/wallpapers`, `$XDG_DATA_HOME/luna/wallpapers`, or
+`~/.local/share/luna/wallpapers`; theme imports use the same default.
+
+`install` accepts one source or an array of local files, directories, and HTTP(S)
+URLs. Options add `recursive` for nested directories and `name` to rename one
+explicit file or URL. Imports copy media without selecting it; directory imports
+skip unrelated files and links and flatten nested files. Content detection
+requires `file`; URLs additionally require `curl`. URLs cannot contain credentials;
+downloads allow at most ten HTTP(S) redirects and sixty seconds. A URL without a
+filename receives a deterministic content-based name. Identical names and bytes
+are idempotent; different bytes at one name return `CONFLICT`. Validation and
+conflict checks cover the complete batch before publication; a later I/O failure
+can leave earlier files installed. Linked library paths and source/library overlap
+are rejected.
+
+`install` and `list` return `{name, path, current}` entries; `current` is the saved
+source path or null. `path()` returns the library directory; `path(name)` requires
+an existing ordinary library file. `set` accepts an installed filename, an absolute
+local path, or `""` to clear media. `random` selects an installed file, avoiding the
+saved selection when alternatives exist. `remove` accepts installed filenames and
+returns their absolute paths; `dryRun` validates without deleting. It validates the
+complete batch and refuses selected media and, when the renderer is available,
+playing media. Install/list/remove work without QML or Quickshell; install/list
+still validate the saved settings to mark the current entry.
 
 Reads parse JSONC with Bun and validate with the feature's Zod schema in
 `src/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
@@ -164,8 +192,8 @@ omitted values use renderer defaults without rewriting source. `get` returns spa
 saved settings; missing dotted keys return null. Unknown fields are retained.
 See [wallpaper settings and dependencies](../../src/luna-wallpaper/DOCS.md).
 
-`set` changes `wallpaper.source`; an empty string clears media. `configure` merges
-supplied groups, validates, locks and atomically saves the normalized JSONC document,
+`set`, `random`, and `configure` validate, lock and atomically save the normalized
+JSONC document; `configure` merges supplied groups. Each mutation
 then explicitly reloads a running renderer and waits for media readiness. These
 mutations require installed or source QML and Quickshell. Read operations do not.
 Failed application restores the exact previous source and renderer settings when

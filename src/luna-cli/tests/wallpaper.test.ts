@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
@@ -7,11 +15,22 @@ const entry = resolve(import.meta.dir, "../src/index.ts");
 let root: string;
 let configFile: string;
 let repository: string;
+let libraryDir: string;
 let env: Record<string, string>;
+const png = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jK1sAAAAASUVORK5CYII=",
+  "base64",
+);
 
 function write(path: string, contents: string, executable = false) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, contents, { mode: executable ? 0o755 : 0o644 });
+}
+
+function image(path: string) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, png);
+  return path;
 }
 
 async function cli(args: string[]) {
@@ -45,16 +64,19 @@ beforeEach(() => {
   env = {
     HOME: join(root, "home"),
     XDG_CONFIG_HOME: join(root, "config"),
+    XDG_DATA_HOME: join(root, "data"),
     PATH: join(root, "bin"),
     LUNA_WALLPAPER_TEST_LOG: join(root, "commands.jsonl"),
     LUNA_WALLPAPER_TEST_STATE: join(root, "renderer-state"),
     LUNA_WALLPAPER_TEST_SNAPSHOT: join(root, "snapshot.json"),
     NO_COLOR: "1",
   };
+  libraryDir = join(env.XDG_DATA_HOME!, "luna/wallpapers");
   write(join(env.HOME!, ".keep"), "");
   write(env.LUNA_WALLPAPER_TEST_LOG!, "");
   mkdirSync(env.PATH!, { recursive: true });
-  for (const tool of ["flock", "bash"]) symlinkSync(Bun.which(tool)!, join(env.PATH!, tool));
+  for (const tool of ["flock", "bash", "file", "curl"])
+    symlinkSync(Bun.which(tool)!, join(env.PATH!, tool));
   write(configFile, '// Keep my settings\n{"wallpaper":{"fit":"fit"},}\n');
   write(join(env.XDG_CONFIG_HOME!, "luna/wallpaper/shell.qml"), "import Quickshell\nShellRoot {}");
   write(
@@ -163,6 +185,158 @@ test("wallpaper lifecycle commands select source QML and report renderer state",
   expect((await cli([...selected, "stop"])).stdout).toBe("Wallpaper: stopped\n");
   expect(commands().filter((args) => args.includes("--daemonize"))).toHaveLength(2);
   expect(commands().filter((args) => args[0] === "kill")).toHaveLength(2);
+});
+
+test("wallpaper CLI installs stable copies and selects them by name", async () => {
+  const source = image(join(root, "downloads/original.png"));
+  const selectedLibrary = join(root, "custom library");
+  const flags = ["--library-dir", selectedLibrary];
+  const installed = join(selectedLibrary, "my wallpaper.png");
+  const install = await cli([...flags, "add", source, "--name", "my wallpaper.png", "--json"]);
+  expect(install.exitCode, install.stdout + install.stderr).toBe(0);
+  expect(install.stderr).toBe("");
+  expect(JSON.parse(install.stdout)).toEqual({
+    succes: true,
+    data: [{ name: "my wallpaper.png", path: installed, current: false }],
+  });
+  expect(readFileSync(installed)).toEqual(png);
+  rmSync(source);
+  expect((await cli([...flags, "dir"])).stdout).toBe(`${selectedLibrary}\n`);
+  expect((await cli([...flags, "path", "my wallpaper.png"])).stdout).toBe(`${installed}\n`);
+  expect(JSON.parse((await cli([...flags, "current", "--json"])).stdout)).toEqual({
+    succes: true,
+    data: null,
+  });
+
+  write(env.LUNA_WALLPAPER_TEST_STATE!, "ready");
+  const selected = await cli([...flags, "set", "my wallpaper.png", "--json"]);
+  expect(selected.exitCode, selected.stdout + selected.stderr).toBe(0);
+  expect(Bun.JSONC.parse(readFileSync(configFile, "utf8"))).toMatchObject({
+    wallpaper: { source: installed },
+  });
+  expect(JSON.parse(readFileSync(env.LUNA_WALLPAPER_TEST_SNAPSHOT!, "utf8"))).toMatchObject({
+    wallpaper: { source: installed },
+  });
+  expect((await cli([...flags, "current"])).stdout).toBe(`${installed}\n`);
+  expect((await cli([...flags, "list"])).stdout).toBe("* my wallpaper.png\n");
+  expect(JSON.parse((await cli([...flags, "list", "--json"])).stdout)).toEqual({
+    succes: true,
+    data: [{ name: "my wallpaper.png", path: installed, current: true }],
+  });
+});
+
+test("wallpaper CLI imports multiple files and folders with optional recursion", async () => {
+  const folder = join(root, "folder");
+  image(join(folder, "first.png"));
+  image(join(folder, "nested/second.png"));
+  write(join(folder, "notes.txt"), "not media");
+  const other = image(join(root, "third.png"));
+  const install = await cli(["install", folder, other, "--json"]);
+  expect(install.exitCode, install.stdout + install.stderr).toBe(0);
+  expect(JSON.parse(install.stdout).data.map((entry: { name: string }) => entry.name)).toEqual([
+    "first.png",
+    "third.png",
+  ]);
+  expect(existsSync(join(libraryDir, "second.png"))).toBe(false);
+  expect(existsSync(join(libraryDir, "notes.txt"))).toBe(false);
+
+  const recursiveLibrary = join(root, "recursive library");
+  const recursive = await cli([
+    "--library-dir",
+    recursiveLibrary,
+    "install",
+    folder,
+    "-r",
+    "--json",
+  ]);
+  expect(recursive.exitCode, recursive.stdout + recursive.stderr).toBe(0);
+  expect(JSON.parse(recursive.stdout).data.map((entry: { name: string }) => entry.name)).toEqual([
+    "first.png",
+    "second.png",
+  ]);
+  expect(readFileSync(join(recursiveLibrary, "second.png"))).toEqual(png);
+});
+
+test("wallpaper CLI downloads URLs and preserves installed files on conflicts", async () => {
+  let contents = png;
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: () => new Response(contents, { headers: { "Content-Type": "image/png" } }),
+  });
+  try {
+    const url = new URL("remote%20wallpaper.png", server.url).href;
+    const install = await cli(["install", url, "--json"]);
+    expect(install.exitCode, install.stdout + install.stderr).toBe(0);
+    const installed = join(libraryDir, "remote wallpaper.png");
+    expect(readFileSync(installed)).toEqual(png);
+    expect((await cli(["install", url, "--json"])).exitCode).toBe(0);
+    contents = Buffer.concat([png, Buffer.from("different media content")]);
+    const conflict = await cli(["install", url, "--json"]);
+    expect(conflict.exitCode).toBe(1);
+    expect(JSON.parse(conflict.stdout)).toMatchObject({ succes: false });
+    expect(readFileSync(installed)).toEqual(png);
+  } finally {
+    server.stop(true);
+  }
+});
+
+test("wallpaper removal requires confirmation, previews paths and protects selected or playing media", async () => {
+  const source = image(join(root, "one.png"));
+  expect((await cli(["install", source, "--json"])).exitCode).toBe(0);
+  const installed = join(libraryDir, "one.png");
+  const confirm = await cli(["remove", "one.png", "--json"]);
+  expect(confirm.exitCode).toBe(1);
+  expect(confirm.stderr).toBe("");
+  expect(JSON.parse(confirm.stdout)).toMatchObject({ succes: false, err: "INPUT_REQUIRED" });
+  const preview = await cli(["remove", "one.png", "--dry-run", "--json"]);
+  expect(preview.exitCode, preview.stdout + preview.stderr).toBe(0);
+  expect(JSON.parse(preview.stdout)).toEqual({ succes: true, data: [installed] });
+  expect(existsSync(installed)).toBe(true);
+
+  write(env.LUNA_WALLPAPER_TEST_STATE!, "ready");
+  expect((await cli(["set", "one.png", "--json"])).exitCode).toBe(0);
+  const selected = await cli(["remove", "one.png", "--yes", "--json"]);
+  expect(selected.exitCode).toBe(1);
+  expect(existsSync(installed)).toBe(true);
+  write(configFile, '{"wallpaper":{"source":""}}\n');
+  const playing = await cli(["remove", "one.png", "--yes", "--json"]);
+  expect(playing.exitCode).toBe(1);
+  expect(existsSync(installed)).toBe(true);
+
+  expect((await cli(["set", "", "--json"])).exitCode).toBe(0);
+  const removed = await cli(["remove", "one.png", "--yes", "--json"]);
+  expect(removed.exitCode, removed.stdout + removed.stderr).toBe(0);
+  expect(JSON.parse(removed.stdout)).toEqual({ succes: true, data: [installed] });
+  expect(existsSync(installed)).toBe(false);
+});
+
+test("wallpaper random selects another managed copy and rejects an empty library", async () => {
+  const empty = await cli(["random", "--json"]);
+  expect(empty.exitCode).toBe(1);
+  expect(JSON.parse(empty.stdout)).toMatchObject({ succes: false });
+  const first = image(join(root, "first.png"));
+  const second = image(join(root, "second.png"));
+  expect((await cli(["install", first, second, "--json"])).exitCode).toBe(0);
+  expect((await cli(["set", "first.png", "--json"])).exitCode).toBe(0);
+  const random = await cli(["random", "--json"]);
+  expect(random.exitCode, random.stdout + random.stderr).toBe(0);
+  expect((await cli(["current"])).stdout).toBe(`${join(libraryDir, "second.png")}\n`);
+});
+
+test("wallpaper install rejects invalid names and ambiguous renames without importing", async () => {
+  const first = image(join(root, "first.png"));
+  const second = image(join(root, "second.png"));
+  for (const args of [
+    ["install", first, "--name", "../escape.png"],
+    ["install", first, second, "--name", "both.png"],
+  ]) {
+    const result = await cli([...args, "--json"]);
+    expect(result.exitCode, result.stdout + result.stderr).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({ succes: false });
+  }
+  expect(existsSync(join(root, "escape.png"))).toBe(false);
+  expect((await cli(["list"])).stdout).toBe("\n");
 });
 
 test("wallpaper rejects invalid arguments and settings before changing the configuration", async () => {

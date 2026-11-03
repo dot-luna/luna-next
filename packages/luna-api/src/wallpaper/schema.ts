@@ -32,3 +32,28 @@ export const wallpaperSettingsSchema = z.looseObject({
 });
 
 export type WallpaperSettings = z.infer<typeof wallpaperSettingsSchema>;
+
+// oxlint-disable-next-line no-control-regex
+const filenameControls = /[\x00-\x1f\x7f]/u;
+export const wallpaperNameSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (name) =>
+      Boolean(name.trim()) &&
+      !name.includes("/") &&
+      !name.includes("\\") &&
+      name !== "." &&
+      name !== ".." &&
+      !name.startsWith(".luna-") &&
+      name !== ".library" &&
+      name !== ".library.lock",
+    "Wallpaper names must be ordinary single filenames",
+  )
+  .refine((name) => !filenameControls.test(name), "Wallpaper names cannot contain controls");
+
+export const wallpaperImportSchema = z.object({
+  sources: z.array(z.string().min(1)).min(1),
+  name: wallpaperNameSchema.optional(),
+  recursive: z.boolean().optional(),
+});

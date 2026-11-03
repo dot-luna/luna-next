@@ -4,10 +4,24 @@ import { ApiError } from "../lib/response.ts";
 export interface WallpaperOptions {
   /** Explicit JSONC file; relative paths use the caller's working directory. */
   configFile?: string;
+  /** Stable media library; relative paths use the caller's working directory. */
+  libraryDir?: string;
   /** Select source QML instead of the installed renderer. */
   repository?: string;
   /** Replaces Bun.env for paths and renderer processes. */
   env?: Record<string, string>;
+}
+
+export interface WallpaperInstallOptions extends WallpaperOptions {
+  /** Rename one explicit local file or URL; folders keep each media basename. */
+  name?: string;
+  recursive?: boolean;
+}
+
+export interface WallpaperEntry {
+  name: string;
+  path: string;
+  current: boolean;
 }
 
 export interface WallpaperState {
@@ -48,9 +62,20 @@ export function wallpaperContext(options: WallpaperOptions = {}) {
     );
   if (configHome && !isAbsolute(configHome))
     throw new ApiError("INVALID_PATH", "Wallpaper configuration home must be absolute");
+  const dataHome =
+    env.LUNA_DATA_HOME_DIR ||
+    (env.XDG_DATA_HOME
+      ? join(env.XDG_DATA_HOME, "luna")
+      : env.HOME
+        ? join(env.HOME, ".local/share/luna")
+        : undefined);
+  if (dataHome && !isAbsolute(dataHome))
+    throw new ApiError("INVALID_PATH", "Wallpaper data home must be absolute");
+  const libraryDir = options.libraryDir ?? (dataHome ? join(dataHome, "wallpapers") : undefined);
   return {
     env,
     configFile: path(configFile),
+    libraryDir: libraryDir === undefined ? undefined : path(libraryDir),
     shellDirectory: options.repository
       ? path(join(options.repository, "src/luna-wallpaper/src/shell"))
       : configHome

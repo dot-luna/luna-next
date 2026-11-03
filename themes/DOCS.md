@@ -36,9 +36,15 @@ The [bundled theme](bundled/tokyo-night/theme.jsonc) lists every supported field
   `shadow`: `enabled`, `range` 0–100 pixels, and `falloff` 1–4.
 - `wallpaper.sources`: theme-relative files/directories or HTTP(S) media URLs.
   Directories import immediate image/video files only. Paths must stay inside the
-  theme folder. Imports require `file`; URLs also require `curl`. Existing different
-  files are never replaced. Successfully imported files remain after later failures
-  and theme removal. Installation does not select a wallpaper.
+  theme folder. Imports require `file`; URLs also require `curl`. Media shares the
+  [wallpaper library](../src/luna-wallpaper/DOCS.md#media-library), defaulting to
+  `$LUNA_DATA_HOME_DIR/wallpapers`, `$XDG_DATA_HOME/luna/wallpapers`, or
+  `~/.local/share/luna/wallpapers`. Identical names and bytes are reused; different
+  content at the same name fails without replacement. HTTP(S) URLs cannot contain
+  credentials; downloads allow at most ten HTTP(S) redirects and sixty seconds.
+  Validation precedes publication, but a later I/O failure can leave earlier media
+  installed. Imported files remain after later failures and theme removal.
+  Installation does not select a wallpaper; use `luna wallpaper set <filename>`.
 
 ## Theme packages
 

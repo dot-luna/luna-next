@@ -50,7 +50,7 @@ export async function runCli(argv: string[]): Promise<number> {
   addDefaultsCommands(program, output, (value) => {
     exitCode = value;
   });
-  addWallpaperCommands(program, output, (value) => {
+  addWallpaperCommands(program, output, wantsJson, (value) => {
     exitCode = value;
   });
 
