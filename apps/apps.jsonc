@@ -16,6 +16,7 @@
     "fastfetch/app.jsonc",
     "bitwarden/app.jsonc",
     "mpv/app.jsonc",
+    "whatly/app.jsonc",
 
     // Chromium's profile uses Git's user name; T3 uses the Codex provider.
     "chromium/app.jsonc",

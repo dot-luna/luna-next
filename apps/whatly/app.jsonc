@@ -1,0 +1,41 @@
+{
+  "name": "whatly",
+  "source": "git",
+  "url": "https://github.com/dot-luna/whatly.git",
+  "processes": ["whatly"],
+  "deps": [
+    {
+      "name": "desktop-file-utils",
+      "source": "pacman",
+      "purpose": "Register Whatly's desktop URL handler",
+    },
+    { "name": "gcc", "source": "pacman", "purpose": "Build Whatly's native client" },
+    { "name": "cmake", "source": "pacman", "purpose": "Configure Whatly's native build" },
+    { "name": "ninja", "source": "pacman", "purpose": "Build Whatly's native client" },
+    { "name": "qt6-tools", "source": "pacman", "purpose": "Compile Whatly translations" },
+    { "name": "qt6-wayland", "source": "pacman", "purpose": "Run Whatly natively on Wayland" },
+    {
+      "name": "qt6-base",
+      "source": "pacman",
+      "purpose": "Whatly's Qt interface and notifications",
+    },
+    { "name": "qt6-webengine", "source": "pacman", "purpose": "Render WhatsApp Web" },
+    {
+      "name": "qt6-webchannel",
+      "source": "pacman",
+      "purpose": "Connect Whatly to its web content",
+    },
+    {
+      "name": "qt6-positioning",
+      "source": "pacman",
+      "purpose": "Whatly's WebEngine location support",
+    },
+    { "name": "qt6-svg", "source": "pacman", "purpose": "Render Whatly's SVG assets" },
+    { "name": "libx11", "source": "pacman", "purpose": "Whatly's native X11 integration" },
+    { "name": "libxcb", "source": "pacman", "purpose": "Whatly's native keyboard integration" },
+  ],
+  "hooks": {
+    "build": ["scripts/build.ts"],
+    "after_build": ["scripts/install.ts"],
+  },
+}
