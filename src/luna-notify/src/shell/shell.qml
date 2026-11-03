@@ -8,10 +8,12 @@ ShellRoot {
     id: shell
     readonly property ToastWindow toasts: window.item as ToastWindow
     property var theme: null
+    property var notifySettings: null
     property var toastScreen: Quickshell.screens[0] || null
 
     NotificationStore {
         id: notificationStore
+        limit: shell.notifySettings ? shell.notifySettings.stack.limit : 3
         onReceived: {
             const monitor = Hyprland.focusedMonitor;
             shell.toastScreen = Quickshell.screens.find(screen => monitor && screen.name === monitor.name)
@@ -20,16 +22,17 @@ ShellRoot {
     }
     Loader {
         id: window
-        active: shell.theme !== null
+        active: shell.theme !== null && shell.notifySettings !== null
         sourceComponent: ToastWindow {
             theme: shell.theme
+            settings: shell.notifySettings
             store: notificationStore
             screen: Quickshell.screens.includes(shell.toastScreen) ? shell.toastScreen : Quickshell.screens[0] || null
         }
     }
     IpcHandler {
         target: "notify"
-        function pid(): string { return shell.theme ? String(Quickshell.processId) : "unavailable"; }
+        function pid(): string { return shell.theme && shell.notifySettings ? String(Quickshell.processId) : "unavailable"; }
         function focus(): void { if (shell.toasts) shell.toasts.focusToasts(); }
         function dismiss(): void { notificationStore.dismiss(); }
     }
@@ -39,9 +42,10 @@ ShellRoot {
             const value = JSON.parse(Quickshell.env("LUNA_NOTIFY_THEME"));
             if (!value || !value.colors || !value.fonts || !value.appearance)
                 throw new Error("expected a resolved Luna theme");
+            notifySettings = JSON.parse(Quickshell.env("LUNA_NOTIFY_SETTINGS"));
             theme = value;
         } catch (error) {
-            console.error("Luna notification theme: " + error.message + ". Use luna notify start.");
+            console.error("Luna notification startup: " + error.message + ". Use luna notify start.");
             Qt.callLater(() => Qt.exit(1));
         }
     }

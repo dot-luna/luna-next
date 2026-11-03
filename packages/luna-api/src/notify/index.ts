@@ -1,10 +1,10 @@
 import { respond, ApiError } from "../lib/response.ts";
-import { currentTheme } from "../theme/selection.ts";
-import { themeContext } from "../theme/context.ts";
+import { notifySnapshot, readNotifySettings } from "./settings.ts";
 import {
   command,
   ipc,
   notifyContext,
+  notifySettingsContext,
   type NotifyContext,
   type NotifyOptions,
   type NotifyState,
@@ -64,7 +64,10 @@ async function running(context: NotifyContext) {
   return pid !== null && pid === (await owner(context));
 }
 
-async function start(context: NotifyContext) {
+async function start(
+  context: NotifyContext,
+  prepared?: Awaited<ReturnType<typeof notifySnapshot>>,
+) {
   const pid = await instance(context);
   const provider = await owner(context);
   if (pid !== null && pid === provider) return;
@@ -73,9 +76,9 @@ async function start(context: NotifyContext) {
       "CONFLICT",
       "Another notification provider is active. Stop it before starting Luna notifications.",
     );
-  context.env.LUNA_NOTIFY_THEME = JSON.stringify(
-    await currentTheme(themeContext({ env: context.env })),
-  );
+  const snapshot = prepared ?? (await notifySnapshot(context));
+  context.env.LUNA_NOTIFY_THEME = JSON.stringify(snapshot.theme);
+  context.env.LUNA_NOTIFY_SETTINGS = JSON.stringify(snapshot.settings);
   await command(context, [
     "--no-color",
     "--daemonize",
@@ -104,21 +107,40 @@ async function operate(
   options: NotifyOptions,
 ) {
   const context = await notifyContext(options);
-  // Resolve the next theme before replacing a working renderer.
-  if (action === "restart") await currentTheme(themeContext({ env: context.env }));
+  // Invalid source settings must not tear down a healthy notification provider.
+  const prepared = action === "restart" ? await notifySnapshot(context) : undefined;
   if ((action === "stop" || action === "restart") && (await instance(context)) !== null)
     await command(context, ["kill", "-p", context.shellDirectory]);
-  if (action === "start" || action === "restart") await start(context);
+  if (action === "start" || action === "restart") await start(context, prepared);
   if ((action === "focus" || action === "dismiss") && (await running(context)))
     await ipc(context, action);
   return {
     running: await running(context),
     shellDirectory: context.shellDirectory,
+    configFile: context.configFile,
   } satisfies NotifyState;
 }
 
 /** A standalone toast provider. Start requires exclusive notification ownership; focus never steals focus implicitly. */
 export const notify = {
+  get(key?: string, options: NotifyOptions = {}) {
+    return respond(async () => {
+      let value: unknown = await readNotifySettings(notifySettingsContext(options));
+      if (key === undefined) return value;
+      if (!key || key.split(".").some((part) => !part))
+        throw new ApiError(
+          "INVALID_ARGUMENT",
+          "Notification keys use nonempty dot-separated segments",
+        );
+      for (const part of key.split(".")) {
+        if (!value || typeof value !== "object" || !Object.hasOwn(value, part)) return null;
+        value = (value as Record<string, unknown>)[part];
+      }
+      return value;
+    });
+  },
+  getConfigFile: (options: NotifyOptions = {}) =>
+    respond(() => notifySettingsContext(options).configFile),
   status: (options: NotifyOptions = {}) => respond(() => operate("status", options)),
   start: (options: NotifyOptions = {}) => respond(() => operate("start", options)),
   stop: (options: NotifyOptions = {}) => respond(() => operate("stop", options)),

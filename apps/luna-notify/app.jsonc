@@ -15,5 +15,8 @@
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
   },
-  "exports": [{ "source": "generated/shell/", "target": "notify/" }],
+  "exports": [
+    { "source": "generated/shell/", "target": "notify/" },
+    { "source": "config/notify.jsonc", "target": "notify.jsonc" },
+  ],
 }

@@ -1,5 +1,13 @@
 import { afterEach, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Luna } from "../src/index.ts";
@@ -15,6 +23,11 @@ function fixture() {
   const config = join(root, "config/luna");
   mkdirSync(join(config, "notify"), { recursive: true });
   writeFileSync(join(config, "notify/shell.qml"), "// fixture\n");
+  cpSync(
+    new URL("../../../src/luna-notify/src/shell/icons", import.meta.url).pathname,
+    join(config, "notify/icons"),
+    { recursive: true },
+  );
   mkdirSync(join(root, "bin"));
   const state = join(root, "state.json");
   const log = join(root, "commands.jsonl");
@@ -29,7 +42,7 @@ const file = Bun.env.NOTIFY_TEST_STATE;
 let state = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {running:false};
 if (args.includes('--daemonize')) {
   if (Bun.env.NOTIFY_TEST_FAIL) { console.error('fixture renderer failed'); process.exit(7); }
-  state = {running:true, theme:JSON.parse(Bun.env.LUNA_NOTIFY_THEME)};
+  state = {running:true, theme:JSON.parse(Bun.env.LUNA_NOTIFY_THEME), settings:JSON.parse(Bun.env.LUNA_NOTIFY_SETTINGS)};
 } else if (args[0] === 'ipc') {
   const marker = args.indexOf('--');
   if (marker < 0 || args[marker + 1] !== 'notify' || !state.running) process.exit(1);
@@ -150,6 +163,7 @@ test("notification CLI keeps JSON responses and supports explicit source paths",
   const shell = join(repository, "src/luna-notify/src/shell");
   mkdirSync(shell, { recursive: true });
   writeFileSync(join(shell, "shell.qml"), "// source");
+  cpSync(join(f.config, "notify/icons"), join(shell, "icons"), { recursive: true });
   const cli = new URL("../../../src/luna-cli/src/index.ts", import.meta.url).pathname;
   const result = Bun.spawnSync(
     [process.execPath, cli, "--json", "notify", "--install-dir", repository, "start"],
@@ -160,4 +174,99 @@ test("notification CLI keeps JSON responses and supports explicit source paths",
     succes: true,
     data: { running: true, shellDirectory: shell },
   });
+});
+
+test("notify reads sparse JSONC once, preserves source, and rejects invalid restart before stopping the provider", async () => {
+  const f = fixture();
+  const configFile = join(f.config, "notify.jsonc");
+  const source =
+    '// Personal notification settings\n{"priority":{"low":{"opacity":0.8}},"appearance":{"width":320}}\n';
+  writeFileSync(configFile, source);
+  expect(await Luna.notify.get("priority.low.opacity", f.options)).toEqual({
+    succes: true,
+    data: 0.8,
+  });
+  expect(await Luna.notify.get("priority.critical.strip_width", f.options)).toEqual({
+    succes: true,
+    data: null,
+  });
+  expect(await Luna.notify.start(f.options)).toMatchObject({
+    succes: true,
+    data: { running: true, configFile },
+  });
+  expect(f.state().settings).toMatchObject({
+    appearance: { width: 320 },
+    priority: { low: { opacity: 0.8 }, critical: { strip_width: 4 } },
+  });
+  expect(f.state().settings.priority.critical.icon_source).toStartWith(
+    "data:image/svg+xml;base64,",
+  );
+  expect(readFileSync(configFile, "utf8")).toBe(source);
+  writeFileSync(configFile, '{"priority":{"critical":{"strip_width":7,"title_color":"#ff8877"}}}');
+  await Luna.notify.start(f.options);
+  expect(f.state().settings.priority.critical.strip_width).toBe(4);
+  await Luna.notify.restart(f.options);
+  expect(f.state().settings.priority.critical).toMatchObject({
+    strip_width: 7,
+    title_color: "#ff8877",
+  });
+  writeFileSync(configFile, '{"priority":{"low":{"opacity":-1}}}');
+  const killed = f.commands().filter((c) => c.args[0] === "kill").length;
+  expect(await Luna.notify.restart(f.options)).toMatchObject({
+    succes: false,
+    err: "INVALID_METADATA",
+  });
+  expect(f.commands().filter((c) => c.args[0] === "kill")).toHaveLength(killed);
+  expect(f.state().running).toBe(true);
+});
+
+test("notify settings honor explicit and environment paths without Quickshell, create missing files, and leave omitted values null", async () => {
+  const f = fixture();
+  const env = { ...f.options.env, PATH: "", LUNA_NOTIFY_CONFIG: join(f.root, "env/notify.jsonc") };
+  const configFile = join(f.root, "custom/notify.jsonc");
+  expect(await Luna.notify.getConfigFile({ env })).toEqual({
+    succes: true,
+    data: env.LUNA_NOTIFY_CONFIG,
+  });
+  expect(await Luna.notify.getConfigFile({ env, configFile })).toEqual({
+    succes: true,
+    data: configFile,
+  });
+  expect(await Luna.notify.get(undefined, { env, configFile })).toEqual({ succes: true, data: {} });
+  expect(await Luna.notify.get("priority.low.opacity", { env, configFile })).toEqual({
+    succes: true,
+    data: null,
+  });
+  expect(readFileSync(configFile, "utf8")).toBe("{}\n");
+  expect(await Luna.notify.get("priority..low", { env, configFile })).toMatchObject({
+    succes: false,
+    err: "INVALID_ARGUMENT",
+  });
+  const cli = new URL("../../../src/luna-cli/src/index.ts", import.meta.url).pathname;
+  const result = Bun.spawnSync(
+    [process.execPath, cli, "--json", "notify", "--config", configFile, "get", "appearance.width"],
+    { env },
+  );
+  expect(result.exitCode, result.stderr.toString()).toBe(0);
+  expect(JSON.parse(result.stdout.toString())).toEqual({ succes: true, data: null });
+});
+
+test.each([
+  { appearance: { width: 0 } },
+  { stack: { limit: 0 } },
+  { stack: { expand_on_hover: "yes" } },
+  { priority: { critical: { strip_width: 13 } } },
+  { priority: { critical: { strip_side: "top" } } },
+  { priority: { normal: { icon: "../../untrusted" } } },
+  { priority: { critical: { title_color: "red" } } },
+])("notify rejects invalid source settings without rewriting them: %j", async (value) => {
+  const f = fixture();
+  const configFile = join(f.root, "notify.jsonc");
+  const source = JSON.stringify(value);
+  writeFileSync(configFile, source);
+  expect(await Luna.notify.get(undefined, { ...f.options, configFile })).toMatchObject({
+    succes: false,
+    err: "INVALID_METADATA",
+  });
+  expect(readFileSync(configFile, "utf8")).toBe(source);
 });

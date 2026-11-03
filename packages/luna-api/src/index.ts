@@ -66,3 +66,5 @@ export type { WebappRecord } from "./webapp/schema.ts";
 export type { AppInstallResult, InstallFailure } from "./install/report.ts";
 
 export type { NotifyOptions, NotifyState } from "./notify/context.ts";
+
+export type { NotifySettings } from "./notify/schema.ts";
