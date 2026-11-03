@@ -1,6 +1,6 @@
 // Preserve the old Luna System list; unsupported actions deliberately have no command.
 const entries = [
-    {name: "Screensaver", icon: "computer"},
+    {name: "Screensaver", icon: "computer", action: "screensaver"},
     {name: "Lock", icon: "lock-key"},
     {name: "Suspend", icon: "moon-02"},
     {name: "Hibernate", icon: "snowflake"},
@@ -10,7 +10,8 @@ const entries = [
 ];
 
 // Use normal session/systemd requests so authorization and inhibitors still apply.
-function command(action) {
+function command(action, launcher) {
+    if (action === "screensaver" && launcher) return [launcher, "screensaver"];
     if (action === "logout") return ["hyprctl", "eval", "hl.dispatch(hl.dsp.exit())"];
     if (action === "reboot") return ["systemctl", "reboot"];
     if (action === "shutdown") return ["systemctl", "poweroff"];

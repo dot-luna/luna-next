@@ -8,6 +8,7 @@ import { addAppCommands } from "./apps/commands.ts";
 import { addMenuCommands } from "./menu/commands.ts";
 import { addDefaultsCommands } from "./defaults/commands.ts";
 import { addWallpaperCommands } from "./wallpaper/commands.ts";
+import { addScreensaverCommands } from "./screensaver/commands.ts";
 
 import { addWebappCommands } from "./webapp/commands.ts";
 
@@ -51,6 +52,9 @@ export async function runCli(argv: string[]): Promise<number> {
     exitCode = value;
   });
   addWallpaperCommands(program, output, wantsJson, (value) => {
+    exitCode = value;
+  });
+  addScreensaverCommands(program, output, (value) => {
     exitCode = value;
   });
 

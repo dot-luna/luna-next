@@ -1,0 +1,4 @@
+{
+  // Set 0 to disable automatic activation. Opening the screensaver still works.
+  "idle_seconds": 300,
+}

@@ -37,6 +37,10 @@ if os.environ.get("MENU_SESSION_FAIL") == "1":
     recorder.chmod(0o755)
     shutil.copyfile(recorder, root / "bin/hyprctl")
     (root / "bin/hyprctl").chmod(0o755)
+    launcher = root / "home/.local/bin/luna"
+    launcher.parent.mkdir(parents=True)
+    shutil.copyfile(recorder, launcher)
+    launcher.chmod(0o755)
     environment = dict(os.environ, MENU_SESSION_LOG=str(root / "session.jsonl"), HOME=str(root / "home"),
                        QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
                        XDG_RUNTIME_DIR=str(root / "runtime"), XDG_CONFIG_HOME=str(root / "config"),

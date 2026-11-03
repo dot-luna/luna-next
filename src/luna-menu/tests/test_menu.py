@@ -121,6 +121,7 @@ ShellRoot {
         self.assertFalse((self.root / "UNEXPECTED").exists())
         sessions = [json.loads(line) for line in (self.root / "session.jsonl").read_text().splitlines()]
         self.assertCountEqual(sessions, [
+            {"command": "luna", "args": ["screensaver"]},
             {"command": "systemctl", "args": ["reboot"]},
             {"command": "systemctl", "args": ["poweroff"]},
             {"command": "systemctl", "args": ["poweroff"]},  # The explicitly denied request.

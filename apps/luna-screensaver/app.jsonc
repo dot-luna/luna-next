@@ -1,0 +1,21 @@
+{
+  "name": "luna-screensaver",
+  "source": "local",
+  "alias": ["screensaver"],
+  "alias_command": ["luna", "screensaver"],
+  "deps": [
+    {
+      "name": "quickshell",
+      "source": "pacman",
+      "purpose": "Render Luna's screensaver and monitor idle activity",
+    },
+  ],
+  "hooks": {
+    "before_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/reload.ts"],
+  },
+  "exports": [
+    { "source": "generated/shell/", "target": "screensaver/" },
+    { "source": "config/screensaver.jsonc", "target": "screensaver.jsonc" },
+  ],
+}

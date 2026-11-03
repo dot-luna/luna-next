@@ -7,6 +7,7 @@ import { webapp } from "./webapp/index.ts";
 import { menu } from "./menu/index.ts";
 import { defaults } from "./defaults/index.ts";
 import { wallpaper } from "./wallpaper/index.ts";
+import { screensaver } from "./screensaver/index.ts";
 
 export const Luna = {
   info,
@@ -17,7 +18,11 @@ export const Luna = {
   menu,
   defaults,
   wallpaper,
+  screensaver,
 };
+
+export type { ScreensaverOptions, ScreensaverState } from "./screensaver/context.ts";
+export type { ScreensaverSettings } from "./screensaver/schema.ts";
 
 export type {
   WallpaperOptions,

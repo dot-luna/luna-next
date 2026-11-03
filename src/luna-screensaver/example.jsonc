@@ -1,0 +1,5 @@
+{
+  // Idle seconds before showing the screensaver. 0 disables automatic display.
+  // Default: 300. Locking and display power have their own lock settings.
+  "idle_seconds": 300
+}

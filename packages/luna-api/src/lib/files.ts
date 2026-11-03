@@ -41,6 +41,23 @@ export function parse(source: string, label: string): unknown {
   }
 }
 
+/** Create missing JSONC documents as {}, leaving existing bytes and omitted values untouched. */
+export async function readDocument(path: string) {
+  await mkdir(dirname(path), { recursive: true });
+  try {
+    const file = await open(path, "wx", 0o600);
+    try {
+      await file.writeFile("{}\n");
+    } finally {
+      await file.close();
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  const source = await readFile(path, "utf8");
+  return { source, value: source.trim() ? parse(source, path) : {} };
+}
+
 /** Preserve file modes and symlink targets; refuse detected external edits before rename. */
 export async function writeFile(path: string, contents: string, expected: string | null) {
   let info = await metadata(path);

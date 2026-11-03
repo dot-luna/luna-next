@@ -163,6 +163,24 @@ luna wallpaper transition fade 300
 
 See [wallpaper settings and setup](../luna-wallpaper/DOCS.md).
 
+## Screensaver
+
+`luna screensaver` shows the screensaver; `show` (`open`) does the same.
+`start` starts its idle monitor hidden. `hide`, `stop`, `restart`, `reload`, and
+`status` control it. Restart replaces the process and starts hidden; reload
+applies current settings without replacing the shell.
+
+`set-idle <seconds>` sets automatic activation (300 by default; 0 disables it).
+`get [key]` reads saved settings, with null for missing values;
+`get-config-file` locates the JSONC. Settings changes validate and save, then
+reload a running shell. After direct file edits, run `luna screensaver reload`.
+The screensaver dismisses on activity; it does not lock the session.
+
+Install with `luna install luna-screensaver`. The group accepts `--config PATH`,
+`--install-dir PATH` for source QML, and `--launcher PATH` for the Luna executable
+used by idle activation (otherwise `~/.local/bin/luna`). JSON mode returns the
+API response unchanged. See [screensaver behavior](../luna-screensaver/DOCS.md).
+
 ## Apps and web apps
 
 - `luna install [names...] [--force] [--install-dir PATH]`: install and configure
