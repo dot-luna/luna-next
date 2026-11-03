@@ -222,6 +222,30 @@ The shell receives settings, theme, and CLI-command snapshots; it reads no confi
 Manual and idle show requests check `hyprctl -j locked` when `HYPRLAND_INSTANCE_SIGNATURE` is set, hiding over a locked session.
 See [screensaver setup and tests](../../src/luna-screensaver/DOCS.md).
 
+## Lock API
+
+`Luna.lock` provides `start`, `lock` (`open`), `lockIdle`, `stop`, `restart`,
+`reload`, `status`, `get`, `getConfigFile`, `configure`, and `display`.
+`LockOptions` accepts `env`, an explicit JSONC `configFile`, a source `repository`,
+and the `launcher` used by idle/display events. Settings default to
+`$LUNA_CONFIG_HOME_DIR/lock.jsonc` or the Luna folder under XDG config home.
+
+Reads create missing files as `{}`, preserve author bytes, and return null for
+missing keys. `idle_seconds` and `dpms_seconds` accept integers from 0 to 86400;
+zero disables each timer independently. The shell defaults to 600 seconds for
+automatic locking and 30 seconds for display power-off while locked.
+`configure` validates, saves atomically, and explicitly reloads a running shell.
+Failed application restores previous source only if no external edit intervened.
+Direct edits need `reload`; no settings or QML file watchers run.
+
+`start` stays idle. Manual locking waits for the compositor's secure acknowledgement;
+stale `lockIdle` requests recheck native idle state. Stop/restart refuse while
+acquiring or holding a lock. Native PAM authenticates the current user; there is
+no API/CLI unlock operation or password transport. Display power uses Hyprland's
+Lua dispatcher; off requests require a secure, natively idle lock. The shell
+serializes off/wake requests so resumed input remains locked with displays awake.
+See [Lock setup and checks](../../src/luna-lock/DOCS.md).
+
 ## App API
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.

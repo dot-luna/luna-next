@@ -1,0 +1,6 @@
+{
+  // Set 0 to disable automatic locking. Manual locking still works.
+  "idle_seconds": 600,
+  // Idle time while locked before displays power off; 0 keeps them on.
+  "dpms_seconds": 30,
+}

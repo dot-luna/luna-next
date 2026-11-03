@@ -1,0 +1,6 @@
+{
+  // Zero disables automatic locking; manual locking remains available.
+  "idle_seconds": 600,
+  // Seconds of inactivity while securely locked. Zero keeps displays on.
+  "dpms_seconds": 30,
+}

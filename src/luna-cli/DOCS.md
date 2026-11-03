@@ -181,6 +181,27 @@ Install with `luna install luna-screensaver`. The group accepts `--config PATH`,
 used by idle activation (otherwise `~/.local/bin/luna`). JSON mode returns the
 API response unchanged. See [screensaver behavior](../luna-screensaver/DOCS.md).
 
+## Lock
+
+`luna lock` locks the session; `open` does the same. It returns success after the
+compositor secures the lock. Super+L and Menu's Lock action use this command.
+`start` starts its idle monitor without locking. `status`, `reload`, `stop`, and
+`restart` control the daemon; stop and restart refuse while locking or locked.
+Unlock through the lock screen with your login password; there is no CLI unlock.
+
+`set-idle <seconds>` sets automatic locking (600 by default).
+`set-dpms <seconds>` sets the idle time while locked before displays power off
+(30 by default). Set either to 0 to disable its timer. Activity wakes displays
+and keeps the session locked. `get [key]` reads saved settings, with null for
+missing values; `get-config-file` locates the JSONC. Settings changes validate,
+save, and reload a running shell. Direct file edits need `luna lock reload`.
+
+Install with `luna install luna-lock`. Configuration replaces the installed shell
+and settings, restarts an idle daemon, and refuses an active lock. The group
+accepts `--config PATH`, `--install-dir PATH` for source QML, and `--launcher PATH`
+for Luna's idle/display commands (otherwise `~/.local/bin/luna`). JSON mode
+returns the API response unchanged. See [lock behavior](../luna-lock/DOCS.md).
+
 ## Apps and web apps
 
 - `luna install [names...] [--force] [--install-dir PATH]`: install and configure

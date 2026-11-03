@@ -2,7 +2,8 @@
 
 Luna's Hyprland Lua defaults: monitors, workspaces, input, theme, animations,
 shortcuts, and session startup. The KDE Polkit agent supplies desktop authentication
-prompts; Luna Menu and Screensaver start hidden, and Wallpaper starts at login.
+prompts; Luna Menu, Screensaver, and Lock start hidden, and Wallpaper starts at login.
+Super+L locks the session.
 
 The [app manifest](app.jsonc) exports `config/` to `$LUNA_CONFIG_HOME_DIR/hypr/`
 and includes Luna's entry in the user's Hyprland configuration before personal overrides.
