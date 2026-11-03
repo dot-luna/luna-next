@@ -78,7 +78,7 @@ ShellRoot {
 
     IdleMonitor {
         id: autoLockIdle
-        enabled: shell.idleArmed && !shell.stopping && !sessionLock.locked
+        enabled: shell.idleArmed && !shell.stopping && !shell.lockRequested && !sessionLock.locked
             && !sessionLock.secure && shell.idleSeconds > 0
         timeout: shell.idleSeconds
         respectInhibitors: true
@@ -123,6 +123,9 @@ ShellRoot {
         onAuthenticated: {
             displayPower.setOff(false);
             sessionLock.locked = false;
+            // Quickshell may release without notifying lockedChanged. Publish
+            // our request state after release to rearm dependent idle bindings.
+            shell.lockRequested = false;
         }
     }
 
