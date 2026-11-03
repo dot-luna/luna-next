@@ -15,6 +15,7 @@ PanelWindow {
     required property var theme
     property bool opened: false
     readonly property alias content: menuContent
+    property alias stayAwake: awake.enabled
     signal dismissed()
 
     visible: opened
@@ -48,6 +49,8 @@ PanelWindow {
 
     onDismissed: hide()
 
+    StayAwake { id: awake }
+
     Timer {
         id: focusDelay
         interval: 40
@@ -70,6 +73,7 @@ PanelWindow {
         theme: panel.theme
         visible: !powerScreen.active
         applications: DesktopEntries.applications.values
+        stayAwake: panel.stayAwake
         onDismissed: panel.dismissed()
         onApplicationActivated: entry => {
             if (Applications.launch(entry, context => Quickshell.execDetached(context)))
@@ -86,6 +90,11 @@ PanelWindow {
             if (action === "about") {
                 Quickshell.execDetached(System.aboutCommand());
                 panel.dismissed();
+            } else if (action === "stay-awake") {
+                const selected = menuContent.selectedIndex;
+                panel.stayAwake = !panel.stayAwake;
+                menuContent.jumpSelection(selected);
+                menuContent.focusSearch();
             } else if (action === "screensaver" || action === "lock") {
                 panel.hide();
                 applicationCommand.run(action);

@@ -8,7 +8,30 @@ import {
   type MenuContext,
   type MenuOptions,
   type MenuState,
+  type StayAwakeState,
 } from "./context.ts";
+import { stayAwakeActionSchema, type StayAwakeAction } from "./schema.ts";
+
+async function stayAwake(action: StayAwakeAction, options: MenuOptions): Promise<StayAwakeState> {
+  if (!stayAwakeActionSchema.safeParse(action).success)
+    throw new ApiError("INVALID_ARGUMENT", "Stay awake expects on, off, toggle, or status");
+  const context = await menuContext(options);
+  if (action === "on" || action === "toggle") await start(context);
+  else if (!(await running(context))) return { enabled: false };
+  const result = await command(context, [
+    "ipc",
+    "-p",
+    context.shellDirectory,
+    "call",
+    "--",
+    "menu",
+    "stayAwake",
+    action,
+  ]);
+  if (result.stdout !== "on" && result.stdout !== "off")
+    throw new ApiError("COMMAND_FAILED", `Unexpected stay-awake response: ${result.stdout}`);
+  return { enabled: result.stdout === "on" };
+}
 
 async function running(context: MenuContext) {
   const result = await ipc(context, "status", true);
@@ -55,6 +78,9 @@ async function operate(
 
 /** Show/toggle/system start a hidden instance when needed. Existing instances retain their theme snapshot. */
 export const menu = {
+  /** Session-only inhibition, owned by the menu. Status/off never start a stopped menu. */
+  stayAwake: (action: StayAwakeAction = "toggle", options: MenuOptions = {}) =>
+    respond(() => stayAwake(action, options)),
   status: (options: MenuOptions = {}) => respond(() => operate("status", options)),
   start: (options: MenuOptions = {}) => respond(() => operate("start", options)),
   show: (options: MenuOptions = {}) => respond(() => operate("show", options)),

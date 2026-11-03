@@ -18,6 +18,8 @@ Button {
 
     Accessible.name: entry.name
     Accessible.role: Accessible.ListItem
+    Accessible.checkable: typeof entry.checked === "boolean"
+    Accessible.checked: entry.checked === true
     focusPolicy: Qt.NoFocus
     height: 48 * textScale
     leftPadding: 12
@@ -58,6 +60,14 @@ Button {
             elide: Text.ElideRight
             text: row.entry.name
             textFormat: Text.PlainText
+        }
+        Label {
+            objectName: "toggleState"
+            visible: typeof row.entry.checked === "boolean"
+            text: row.entry.checked ? "On" : "Off"
+            color: row.selected ? row.theme.colors.selection_foreground : row.theme.colors.foreground
+            font.family: row.uiFont
+            font.pointSize: row.textSize
         }
         Label {
             visible: row.applicationEntry && !row.appsView

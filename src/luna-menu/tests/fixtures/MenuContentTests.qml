@@ -308,8 +308,8 @@ TestCase {
         keyClick(Qt.Key_Return);
         check(card.section, "system");
         check(input.text, "");
-        check(card.entries.map(entry => entry.name).join(","), "Screensaver,Lock,Suspend,Hibernate,Logout,Reboot,Shutdown");
-        for (let index = 2; index < 4; index++) {
+        check(card.entries.map(entry => entry.name).join(","), "Screensaver,Lock,Stay awake,Suspend,Hibernate,Logout,Reboot,Shutdown");
+        for (let index = 3; index < 5; index++) {
             card.activate(index);
             check(action, null);
         }
@@ -461,6 +461,48 @@ TestCase {
         tryCompare(window.content.Window.window, "active", true);
         verify(waitForRendering(window.content));
         return window;
+    }
+
+    function test_stay_awake_keyboard_mouse_and_hidden_menu_lifetime() {
+        const window = sessionWindow();
+        const content = window.content;
+        content.focusSearch();
+        tryCompare(findChild(content, "searchInput"), "activeFocus", true);
+        const index = content.entries.findIndex(entry => entry.action === "stay-awake");
+        const power = findChild(window.contentItem, "powerScreen");
+        check(window.stayAwake, false);
+        content.jumpSelection(index);
+        keyClick(Qt.Key_Return);
+        check(window.stayAwake, true, "Enter enables stay awake");
+        check(content.selectedIndex, index);
+        check(power.active, false);
+        check(window.opened, true);
+        const row = findChild(content, "applicationRow" + index);
+        tryVerify(() => row.entry.checked === true);
+        check(row.Accessible.checkable, true, "The row is accessible as checkable");
+        check(row.Accessible.checked, true, "The accessible row is checked");
+        check(findChild(row, "toggleState").text, "On");
+        window.hide();
+        check(window.stayAwake, true, "Hiding preserves stay awake");
+        window.show("system");
+        content.focusSearch();
+        const reopenedRow = findChild(content, "applicationRow" + index);
+        verify(waitForRendering(reopenedRow));
+        mouseClick(reopenedRow);
+        check(window.stayAwake, false, "Click disables stay awake after reopening");
+        const disabledRow = findChild(content, "applicationRow" + index);
+        check(disabledRow.Accessible.checked, false);
+        check(findChild(disabledRow, "toggleState").text, "Off");
+        const input = findChild(content, "searchInput");
+        input.text = "stay awake";
+        check(content.entries[0].action, "stay-awake");
+        keyClick(Qt.Key_Return);
+        check(window.stayAwake, true, "Enter enables stay awake in search results");
+        check(input.text, "stay awake");
+        // Offscreen floating surfaces can activate; layer-shell keyboard focus
+        // is compositor-only. The search must retain focus inside the menu.
+        check(input.focus, true, "Search keeps focus after toggling");
+        window.hide();
     }
 
     function test_window_power_actions_execute_only_after_expiry_and_logout_is_immediate() {

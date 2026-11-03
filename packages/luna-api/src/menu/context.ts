@@ -14,6 +14,10 @@ export interface MenuState {
   shellDirectory: string;
 }
 
+export interface StayAwakeState {
+  enabled: boolean;
+}
+
 export async function menuContext(options: MenuOptions) {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(options.env ?? Bun.env))

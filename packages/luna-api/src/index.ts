@@ -41,7 +41,8 @@ export type { WallpaperSettings } from "./wallpaper/schema.ts";
 
 export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./defaults/types.ts";
 
-export type { MenuOptions, MenuState } from "./menu/context.ts";
+export type { MenuOptions, MenuState, StayAwakeState } from "./menu/context.ts";
+export type { StayAwakeAction } from "./menu/schema.ts";
 
 export type { InfoOptions, LunaInfo, LunaInfoResponse } from "./info/types.ts";
 export type { ApiErrorCode, ApiResponse, ErrorResponse, SuccessResponse } from "./lib/response.ts";
