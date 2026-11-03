@@ -77,6 +77,98 @@ test("selected apps follow catalog order; dependencies and installation precede 
   ).toEqual(stages);
 });
 
+test("apps share matching dependencies with each other and install stages when selected alone", async () => {
+  for (const id of ["first", "second"]) {
+    f.app(
+      id,
+      {
+        name: id,
+        source: "local",
+        deps: [
+          { name: "gcc", source: "pacman", purpose: `Build ${id}` },
+          { name: "shared", source: "pacman", version: "1.0.0", purpose: `Run ${id}` },
+        ],
+      },
+      ["before_install"],
+    );
+  }
+  for (const entries of [f.entries, f.entries.toReversed()]) {
+    f.write(f.repository, "apps/apps.jsonc", JSON.stringify({ packages: entries }));
+    expect((await readCatalog(await appContext(options()))).map((app) => app.id)).toEqual(
+      entries.map((entry) => entry.split("/")[0]!),
+    );
+  }
+  expect(data(await Luna.apps.install(["second"], options())).installed).toEqual(["second"]);
+  expect(f.hooks().map((hook) => hook.app)).toEqual(["second"]);
+  const packages = f.commands().filter((command) => command.name === "sudo");
+  expect(packages.some((command) => command.args.includes("gcc"))).toBe(true);
+  expect(packages.some((command) => command.args.includes("shared"))).toBe(true);
+});
+
+test.each([
+  [
+    "app dependency sources",
+    { name: "shared", source: "pacman" },
+    { name: "shared", source: "aur" },
+  ],
+  [
+    "app dependency versions",
+    { name: "shared", source: "mise", version: "1.0.0" },
+    { name: "shared", source: "mise", version: "2.0.0" },
+  ],
+  ["install-stage dependency sources", undefined, { name: "gcc", source: "aur" }],
+  [
+    "install-stage dependency versions",
+    undefined,
+    { name: "gcc", source: "pacman", version: "1.0.0" },
+  ],
+])(
+  "conflicting %s stop before hooks or package commands in either catalog order",
+  async (_label, first, conflict) => {
+    f.app("first", { name: "first", source: "local", ...(first ? { deps: [first] } : {}) }, [
+      "before_install",
+    ]);
+    f.app("second", { name: "second", source: "local", deps: [conflict] }, ["before_install"]);
+    for (const entries of [f.entries, f.entries.toReversed()]) {
+      f.write(f.repository, "apps/apps.jsonc", JSON.stringify({ packages: entries }));
+      expect(await Luna.apps.install(["first"], options())).toMatchObject({
+        succes: false,
+        err: "INVALID_METADATA",
+        errMessage: expect.stringContaining("Conflicting dependency declaration"),
+      });
+    }
+    expect(f.hooks()).toEqual([]);
+    expect(
+      f.commands().some((command) => ["sudo", "pacman", "yay", "mise"].includes(command.name)),
+    ).toBe(false);
+  },
+);
+
+test.each(["duplicate primary", "primary dependency", "ambiguous selector"])(
+  "%s ownership conflicts remain invalid in either catalog order",
+  async (kind) => {
+    f.app("first", { name: "package", source: "pacman" }, ["before_install"]);
+    f.app(
+      "second",
+      kind === "duplicate primary"
+        ? { name: "package", source: "pacman" }
+        : kind === "primary dependency"
+          ? { name: "second", source: "local", deps: [{ name: "package", source: "pacman" }] }
+          : { name: "first", source: "local" },
+      ["before_install"],
+    );
+    for (const entries of [f.entries, f.entries.toReversed()]) {
+      f.write(f.repository, "apps/apps.jsonc", JSON.stringify({ packages: entries }));
+      expect(await Luna.apps.install([], options())).toMatchObject({
+        succes: false,
+        err: "INVALID_METADATA",
+      });
+    }
+    expect(f.hooks()).toEqual([]);
+    expect(f.commands().some((command) => command.name === "sudo")).toBe(false);
+  },
+);
+
 test("configuration replaces declared exports, preserves exclusions and supports independent native includes", async () => {
   f.app("shell", {
     name: "shell",

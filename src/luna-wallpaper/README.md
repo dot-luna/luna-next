@@ -2,14 +2,13 @@
 
 Quickshell wallpaper app for images, animations, and videos on the first monitor.
 
-Copy [example.conf](example.conf) to `~/.config/luna-next/wallpaper.conf` and set
-`wallpaper.source` to an absolute media path. From the repository root:
+With the [Luna CLI](../luna-cli/README.md) installed:
 
 ```sh
-mise run install:hocon-qml
-export QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
-quickshell -p src/luna-wallpaper/src/shell/shell.qml
+luna install luna-wallpaper
+luna wallpaper set /absolute/path/to/wallpaper.png
+luna wallpaper start
 ```
 
-Run `luna wallpaper reload` after direct config edits. See [DOCS.md](DOCS.md) for
-dependencies, config paths, and tests.
+Settings use `~/.config/luna/wallpaper.jsonc`. See [DOCS.md](DOCS.md) for
+commands, configuration, and tests.

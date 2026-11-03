@@ -33,22 +33,21 @@ export async function readCatalog(context: InstallContext) {
   const selectors = new Map<string, string>();
   const aliases = new Set<string>();
   const packages = await readPackages(context, false);
-  const owned = new Set(
+  const dependencies = new Map(
     [...packages.before_cli, ...packages.after_cli, ...packages.later, ...packages.mise].map(
-      (item) => item.name,
+      (item) => [item.name, item],
     ),
   );
+  const primaryNames = new Set<string>();
   for (const name of index.packages) {
     const file = await inside(root, name);
     const directory = dirname(file);
     const id = name.split("/")[0]!;
     validate(appNameSchema, id, "App directory name");
     const manifest = validate(appSchema, parse(await Bun.file(file).text(), file), file);
-    for (const packageName of [manifest.name, ...(manifest.deps ?? []).map((item) => item.name)]) {
-      if (owned.has(packageName))
-        throw new ApiError("INVALID_METADATA", `Duplicate package declaration: ${packageName}`);
-      owned.add(packageName);
-    }
+    if (primaryNames.has(manifest.name) || dependencies.has(manifest.name))
+      throw new ApiError("INVALID_METADATA", `Duplicate package declaration: ${manifest.name}`);
+    primaryNames.add(manifest.name);
     for (const selector of new Set([id, manifest.name])) {
       if (selectors.has(selector))
         throw new ApiError("INVALID_METADATA", `Ambiguous app selector: ${selector}`);
@@ -67,6 +66,24 @@ export async function readCatalog(context: InstallContext) {
           throw new ApiError("INVALID_METADATA", `App hook must be an executable file: ${script}`);
       }
     apps.push({ id, directory, manifest });
+  }
+  // Collect app ownership first so a dependency cannot claim a later app's name.
+  // Shared prerequisites stay in each manifest for standalone app installation.
+  for (const app of apps) {
+    for (const dependency of app.manifest.deps ?? []) {
+      if (primaryNames.has(dependency.name))
+        throw new ApiError("INVALID_METADATA", `Duplicate package declaration: ${dependency.name}`);
+      const previous = dependencies.get(dependency.name);
+      if (
+        previous &&
+        (previous.source !== dependency.source || previous.version !== dependency.version)
+      )
+        throw new ApiError(
+          "INVALID_METADATA",
+          `Conflicting dependency declaration: ${dependency.name}`,
+        );
+      dependencies.set(dependency.name, dependency);
+    }
   }
   return apps;
 }

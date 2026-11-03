@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import tempfile
 import time
@@ -11,12 +12,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "src/luna-wallpaper"
-QML_PATH = os.environ.get("QML_IMPORT_PATH", "")
-BUILT_QML = ROOT / "target/hocon-qml/qml"
-HAS_CONFIG = (BUILT_QML / "LunaNext/Config/qmldir").exists() or any(
-    (Path(path) / "LunaNext/Config/qmldir").exists()
-    for path in QML_PATH.split(os.pathsep) if path
-)
+BUN = shutil.which("bun")
 
 
 class Harness:
@@ -38,9 +34,8 @@ class Harness:
                         XDG_STATE_HOME=str(self.root / "state"),
                         DBUS_SYSTEM_BUS_ADDRESS="unix:path=/nonexistent-wallpaper-test-bus")
         for name in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "QT_LOGGING_RULES",
-                     "LUNA_WALLPAPER_CONFIG"):
+                     "LUNA_WALLPAPER_CONFIG", "LUNA_WALLPAPER_SETTINGS"):
             self.env.pop(name, None)
-        self.env["QML_IMPORT_PATH"] = os.pathsep.join(filter(None, (str(BUILT_QML), QML_PATH)))
         self.log_path = self.root / "shell.log"
         self.process = None
         self.addCleanup(self.stop)

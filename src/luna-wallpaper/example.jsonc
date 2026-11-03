@@ -1,0 +1,24 @@
+// Copy to ~/.config/luna/wallpaper.jsonc. Apply direct edits with luna wallpaper reload.
+// Omitted settings use these defaults. Only the first monitor is used.
+{
+  "wallpaper": {
+    // Absolute local image, animation, or video path; empty shows the background.
+    // Media is detected by content. Paths do not expand ~ or variables.
+    "source": "",
+    // fill crops to cover; fit shows all; stretch ignores aspect ratio;
+    // center uses original pixels; tile repeats images (videos use center).
+    "fit": "fill",
+    // Background color in #RRGGBB format.
+    "background_color": "#000000",
+  },
+  "playback": {
+    // Pause animation/video on disabled or sleeping Hyprland outputs.
+    "pause_when_output_inactive": true,
+  },
+  "transition": {
+    // fade or none; applies to images. Videos appear immediately.
+    "type": "fade",
+    // Integer milliseconds, 0..2147483647. Zero is immediate; ignored for none.
+    "duration_ms": 200,
+  },
+}

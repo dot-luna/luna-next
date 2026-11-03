@@ -1,8 +1,8 @@
-"""Exercise the real HOCON adapter and image renderer in an isolated offscreen shell.
+"""Exercise API-validated JSONC snapshots in an isolated offscreen renderer.
 
 Run: python3 -m unittest discover -s src/luna-wallpaper/tests -v
-Build packages/hocon-qml first. Video rendering is stubbed here; its controller
-has separate tests. These tests do not verify Wayland layer placement.
+Video rendering is stubbed here; its controller has separate tests.
+These tests do not verify Wayland layer placement.
 """
 
 import json
@@ -15,7 +15,7 @@ import time
 import unittest
 import zlib
 
-from _support import APP, HAS_CONFIG, Harness
+from _support import APP, BUN, Harness
 
 
 # Inserted into a disposable copy only; inspect media ownership without a GUI.
@@ -44,8 +44,8 @@ INSPECTOR = '''
                 for (const child of (item.children || [])) visit(child);
             }
             visit(surface);
-            return JSON.stringify({path: shell.configPath, config: shell.config, configStatus: shell.configStatus,
-                settings: surface.settings, status: surface.mediaStatus, kind: surface.kind,
+            return JSON.stringify({settings: shell.wallpaperSettings, settingsStatus: shell.settingsStatus,
+                renderSettings: surface.settings, status: surface.mediaStatus, kind: surface.kind,
                 images: images, videos: videos, visible: surface.visible,
                 fillModes: {fill: Image.PreserveAspectCrop, fit: Image.PreserveAspectFit,
                     stretch: Image.Stretch, center: Image.Pad, tile: Image.Tile},
@@ -61,18 +61,16 @@ INSPECTOR = '''
 '''
 
 
-@unittest.skipUnless(shutil.which("qs") and shutil.which("ffprobe") and HAS_CONFIG,
-                     "Quickshell, FFmpeg, and the built LunaNext.Config module required")
+@unittest.skipUnless(shutil.which("qs") and shutil.which("ffprobe") and BUN,
+                     "Quickshell, FFmpeg, and Bun required")
 class WallpaperShellTests(Harness, unittest.TestCase):
     def setUp(self):
         self.prepare(prefix="luna wallpaper ' ")
         self.renderer = self.root / "src/shell"
         shutil.copytree(APP / "src", self.renderer.parent, dirs_exist_ok=True)
-        self.config = Path(self.env["XDG_CONFIG_HOME"]) / "luna-next/wallpaper.conf"
-        self.defaults = self.config.parent / "defaults.conf"
+        self.config = Path(self.env["XDG_CONFIG_HOME"]) / "luna/wallpaper.jsonc"
         self.config.parent.mkdir(parents=True)
-        shutil.copyfile(APP / "example.conf", self.config)
-        shutil.copyfile(APP / "tests/fixtures/defaults.conf", self.defaults)
+        shutil.copyfile(APP / "example.jsonc", self.config)
         shell = self.renderer / "shell.qml"
         source = shell.read_text()
         self.assertTrue(source.rstrip().endswith("}"))
@@ -134,16 +132,27 @@ Item {
                     b"\x01\x00\x01\x00\x00\x02\x02" + bytes((pixel, 1)) + b"\x00")
         path.write_bytes(header + frame(0x44) + frame(0x4c) + b"\x3b")
 
-    def write_config(self, source=None, extra=""):
+    def write_config(self, source=None, fit="fit", playback=None, transition=None):
         source = self.image if source is None else source
+        settings = {"wallpaper": {"source": str(source), "fit": fit,
+                                  "background_color": "#102030"}}
+        if playback is not None:
+            settings["playback"] = playback
+        if transition is not None:
+            settings["transition"] = transition
         self.config.parent.mkdir(parents=True, exist_ok=True)
-        self.config.write_text('include file("defaults.conf")\nwallpaper {\n  source = '
-                               + json.dumps(str(source)) + '\n  fit = "fit"\n'
-                               '  background_color = "#102030"\n}\n' + extra)
+        self.config.write_text("// Renderer test settings\n" + json.dumps(settings) + "\n")
 
-    def start(self, cwd=None):
+    def settings_snapshot(self):
+        return subprocess.run(
+            [BUN, "run", str(APP / "tests/settings.ts"), str(self.config)],
+            env=self.env, capture_output=True, text=True, check=True, timeout=10,
+        ).stdout
+
+    def start(self, cwd=None, snapshot=None):
+        self.env["LUNA_WALLPAPER_SETTINGS"] = self.settings_snapshot() if snapshot is None else snapshot
         self.launch(cwd=cwd)
-        self.until(lambda: self.state()["configStatus"] in ("ready", "error"))
+        self.until(lambda: self.state()["settingsStatus"] in ("ready", "error"))
         self.until(lambda: self.state()["status"] in ("ready", "error"))
         return self.state()
 
@@ -158,110 +167,79 @@ Item {
                                 env=self.env, text=True, capture_output=True, timeout=3, check=True)
         return result.stdout.strip()
 
-    def test_public_status_reports_ready_and_configuration_or_media_errors(self):
+    def renderer_snapshot(self):
+        result = subprocess.run(["qs", "ipc", "-p", str(self.renderer), "call", "wallpaper", "snapshot"],
+                                env=self.env, text=True, capture_output=True, timeout=3, check=True)
+        return json.loads(result.stdout)
+
+    def test_public_status_reports_ready_and_snapshot_or_media_errors(self):
         self.write_config()
         self.assertEqual(self.start()["status"], "ready")
         self.assertEqual(self.renderer_status(), "ready")
 
-        self.config.write_text("wallpaper.fit = \"banana\"\n")
-        self.assertEqual(self.start()["configStatus"], "error")
+        state = self.start(snapshot="invalid JSON")
+        self.assertEqual(state["settingsStatus"], "error")
+        self.assertIsNone(state["settings"])
+        self.assert_dark(state)
         self.assertEqual(self.renderer_status(), "error")
 
         self.write_config(source=self.root / "missing-image.png")
         self.assertEqual(self.start()["status"], "error")
         self.assertEqual(self.renderer_status(), "error")
 
-    def test_hocon_includes_precedence_unknown_settings_and_original_files(self):
-        self.defaults.write_text('wallpaper { source = "", fit = "center", background_color = "#ff0000" }\n'
-                                 'playback.pause_when_output_inactive = true\nfuture.values = [1, 2]\n')
-        self.write_config()
-        before = {path: path.read_bytes() for path in (self.config, self.defaults, self.image)}
+    def test_jsonc_snapshot_preserves_sparse_unknown_settings_and_source(self):
+        self.write_config(playback={"pause_when_output_inactive": True})
+        document = json.loads(self.config.read_text().split("\n", 1)[1])
+        document["future"] = {"values": [1, 2]}
+        original = "// Keep the author's formatting\n" + json.dumps(document, indent=4) + "\n"
+        self.config.write_text(original)
         state = self.start()
-        self.assertEqual(state["configStatus"], "ready")
+        self.assertEqual(state["settingsStatus"], "ready")
         self.assertEqual(state["status"], "ready")
-        self.assertEqual(state["config"]["wallpaper"]["fit"], "fit")
-        self.assertEqual(state["config"]["future"]["values"], [1, 2])
-        self.assertTrue(state["config"]["playback"]["pause_when_output_inactive"])
+        self.assertEqual(state["settings"], document)
         self.assertEqual(state["kind"], "image")
         self.assertEqual(len(state["images"]), 1)
         self.assertEqual((state["images"][0]["width"], state["images"][0]["height"]), (1600, 900))
         self.assertIn("%23%3F.png", state["images"][0]["source"])
         self.assertEqual(state["videos"], [])
-        for path, original in before.items():
-            self.assertEqual(path.read_bytes(), original)
+        self.assertEqual(self.config.read_text(), original)
 
-    def test_configuration_uses_xdg_user_location_from_an_unrelated_directory(self):
+    def test_renderer_uses_snapshot_after_source_is_removed_from_an_unrelated_directory(self):
         self.write_config()
+        snapshot = self.settings_snapshot()
+        self.config.unlink()
         unrelated = self.root / "unrelated working directory"
         unrelated.mkdir()
-        # A repository-relative configuration must never take precedence.
-        (self.root / "config.conf").write_text("invalid repository-side config {")
-        state = self.start(cwd=unrelated)
-        self.assertEqual(state["path"], str(self.config))
+        state = self.start(cwd=unrelated, snapshot=snapshot)
         self.assertEqual(state["status"], "ready")
-        self.assertEqual(state["config"]["wallpaper"]["source"], str(self.image))
+        self.assertEqual(state["settings"]["wallpaper"]["source"], str(self.image))
+        self.assertFalse(self.config.exists())
 
-    def test_explicit_configuration_path_has_precedence_and_resolves_sibling_includes(self):
-        default_path = self.config
-        default_path.write_text("invalid default config {")
-        self.config = self.root / "custom ' config/wallpaper.conf"
-        self.write_config()
-        shutil.copyfile(self.defaults, self.config.parent / "defaults.conf")
-        self.env["LUNA_WALLPAPER_CONFIG"] = str(self.config)
-        state = self.start()
-        self.assertEqual(state["path"], str(self.config))
-        self.assertEqual(state["status"], "ready")
-        self.assertTrue(state["config"]["playback"]["pause_when_output_inactive"])
-        self.assertEqual(default_path.read_text(), "invalid default config {")
-
-    def test_empty_explicit_path_falls_back_to_xdg_location(self):
-        self.env["LUNA_WALLPAPER_CONFIG"] = ""
-        self.write_config()
-        state = self.start()
-        self.assertEqual(state["path"], str(self.config))
-        self.assertEqual(state["status"], "ready")
-
-    def test_empty_or_unset_xdg_base_uses_home_config_directory(self):
-        default_path = self.config
-        default_path.write_text("invalid xdg config {")
-        self.config = Path(self.env["HOME"]) / ".config/luna-next/wallpaper.conf"
-        self.write_config()
-        shutil.copyfile(self.defaults, self.config.parent / "defaults.conf")
-        for value in (None, ""):
-            with self.subTest(xdg_config_home=value):
-                if value is None:
-                    self.env.pop("XDG_CONFIG_HOME", None)
-                else:
-                    self.env["XDG_CONFIG_HOME"] = value
-                state = self.start()
-                self.assertEqual(state["path"], str(self.config))
-                self.assertEqual(state["status"], "ready")
-                self.assertEqual(default_path.read_text(), "invalid xdg config {")
-                self.stop()
-
-    def test_config_is_loaded_once_even_when_file_changes(self):
+    def test_settings_are_loaded_once_even_when_file_changes(self):
         self.write_config()
         first = self.start()
-        self.config.write_text('wallpaper.source = ""\nwallpaper.background_color = "#ffffff"\n')
+        self.write_config(source="")
         time.sleep(0.3)
         latest = self.state()
-        self.assertEqual(latest["config"], first["config"])
+        self.assertEqual(latest["settings"], first["settings"])
+        self.assertEqual(self.renderer_snapshot(), first["settings"])
         self.assertEqual(latest["status"], first["status"])
         self.assertEqual(latest["images"][0]["source"], first["images"][0]["source"])
 
-    def reload(self, path=None):
+    def reload(self, snapshot=None):
+        snapshot = self.settings_snapshot() if snapshot is None else snapshot
         return subprocess.run(
-            ["qs", "ipc", "-p", str(self.renderer), "call", "wallpaper", "reload", str(path or self.config)],
+            ["qs", "ipc", "-p", str(self.renderer), "call", "wallpaper", "reload", snapshot],
             env=self.env, capture_output=True, text=True, check=True, timeout=3,
         ).stdout.strip()
 
-    def test_explicit_reload_applies_included_settings_without_recreating_media(self):
+    def test_explicit_reload_applies_snapshot_without_recreating_media(self):
         self.write_config()
         first = self.start()
         pid = self.process.pid
-        original_config = self.config.read_bytes()
-        self.defaults.write_text('playback.pause_when_output_inactive = false\ntransition.duration_ms = 750\n')
-        self.config.write_text(self.config.read_text().replace('fit = "fit"', 'fit = "center"'))
+        self.write_config(fit="center", playback={"pause_when_output_inactive": False},
+                          transition={"duration_ms": 750})
+        original = self.config.read_bytes()
         self.assertEqual(self.reload(), "ok")
         self.until(lambda: self.renderer_status() == "ready")
         latest = self.state()
@@ -269,20 +247,17 @@ Item {
         self.assertEqual(latest["images"][0]["id"], first["images"][0]["id"])
         self.assertEqual(latest["images"][0]["fillMode"], latest["fillModes"]["center"])
         self.assertEqual(latest["fadeDuration"], 750)
-        self.assertFalse(latest["config"]["playback"]["pause_when_output_inactive"])
-        self.assertIn(b'include file("defaults.conf")', self.config.read_bytes())
-        self.assertEqual(self.config.read_bytes(), original_config.replace(b'fit = "fit"', b'fit = "center"'))
+        self.assertFalse(latest["settings"]["playback"]["pause_when_output_inactive"])
+        self.assertEqual(self.config.read_bytes(), original)
 
-    def test_invalid_reload_keeps_the_previous_configuration_and_media(self):
+    def test_malformed_reload_keeps_the_previous_settings_and_media(self):
         self.write_config()
         first = self.start()
-        self.config.write_text('wallpaper.fit = "invalid"\n')
-        self.assertTrue(self.reload().startswith("error: "))
+        self.assertTrue(self.reload(snapshot="invalid JSON").startswith("error: "))
         latest = self.state()
-        self.assertEqual(latest["config"], first["config"])
+        self.assertEqual(latest["settings"], first["settings"])
         self.assertEqual(latest["images"][0]["id"], first["images"][0]["id"])
         self.assertEqual(self.renderer_status(), "ready")
-        self.assertEqual(self.config.read_text(), 'wallpaper.fit = "invalid"\n')
 
     def test_media_reload_retains_the_current_image_until_the_replacement_decodes(self):
         replacement = self.root / "replacement.png"
@@ -298,9 +273,9 @@ Item {
                          'print(json.dumps({"streams": [{"codec_name": "png"}], "format": {"format_name": "png_pipe"}}))\n')
         probe.chmod(0o755)
         self.env["PATH"] = str(tools) + ":" + self.env["PATH"]
-        self.write_config(extra="transition.duration_ms = 500\n")
+        self.write_config(transition={"duration_ms": 500})
         first = self.start()
-        self.write_config(source=replacement, extra="transition.duration_ms = 500\n")
+        self.write_config(source=replacement, transition={"duration_ms": 500})
         self.assertEqual(self.reload(), "ok")
         self.until(lambda: replacement.with_suffix(".waiting").exists())
         pending = self.state()
@@ -372,98 +347,20 @@ Item {
         self.assertEqual(recovered["images"][0]["id"], image_id)
         self.assertEqual(recovered["videos"], [])
 
-    def test_missing_config_is_created_and_uses_safe_empty_settings(self):
+    def test_missing_config_is_created_by_api_and_uses_renderer_defaults(self):
         self.config.unlink()
-        self.defaults.unlink()
         self.config.parent.rmdir()
         state = self.start()
-        self.assertEqual(state["configStatus"], "ready")
+        self.assertEqual(state["settingsStatus"], "ready")
         self.assertEqual(state["status"], "ready")
-        self.assertEqual(self.config.read_text(), "")
-        self.assertEqual(state["config"], {})
+        self.assertEqual(json.loads(self.config.read_text()), {})
+        self.assertEqual(state["settings"], {})
+        self.assertEqual(state["fadeDuration"], 200)
         self.assert_dark(state)
 
-    def test_invalid_configuration_falls_back_without_rewriting(self):
-        for invalid in ('wallpaper {', 'wallpaper.source = 3', 'wallpaper.fit = "unknown"',
-                        'wallpaper.background_color = "not-a-color"', 'wallpaper = []',
-                        'wallpaper = null', 'playback = false', 'transition = "fade"',
-                        'playback.pause_when_output_inactive = "false"',
-                        'transition.type = "unknown"', 'transition.duration_ms = -1',
-                        'transition.duration_ms = "200"', 'transition.duration_ms = 0.5',
-                        'transition.duration_ms = 2147483648', 'transition.duration_ms = null',
-                        'wallpaper.background_color = "#12345678"',
-                        'wallpaper.background_color = "#123456\\n"'):
-            with self.subTest(config=invalid):
-                self.config.write_text(invalid)
-                state = self.start()
-                self.assertEqual(state["configStatus"], "error")
-                self.assertIsNone(state["config"])
-                self.assert_dark(state)
-                self.assertEqual(self.config.read_text(), invalid)
-                self.stop()
-
-    def test_invalid_media_paths_are_rejected_before_rendering(self):
-        for path in ("relative.png", "~/wallpaper.png", "$HOME/wallpaper.png", "file:///wallpaper.png",
-                     "/wallpaper\x00.png", "/wallpaper\x1f.png", "/wallpaper\x7f.png", "/wallpaper.png\n"):
-            with self.subTest(path=path):
-                source = "wallpaper.source = " + json.dumps(path) + "\n"
-                self.config.write_text(source)
-                state = self.start()
-                self.assertEqual(state["configStatus"], "error")
-                self.assertIsNone(state["config"])
-                self.assert_dark(state)
-                self.assertEqual(self.config.read_text(), source)
-                self.assertIn("/wallpaper/source", self.log_path.read_text())
-                self.stop()
-
-    def test_schema_accepts_duration_boundaries_and_preserves_optional_unknown_settings(self):
-        for duration in (0, 2147483647):
-            with self.subTest(duration=duration):
-                document = {"wallpaper": {"background_color": "#aBcDeF", "future": None},
-                            "playback": {"future": [1, "two"]},
-                            "transition": {"duration_ms": duration},
-                            "future": {"enabled": True}}
-                source = json.dumps(document)
-                self.config.write_text(source)
-                state = self.start()
-                self.assertEqual(state["configStatus"], "ready")
-                self.assertEqual(state["config"], document)
-                self.assertEqual(state["color"], "#abcdef")
-                self.assertEqual(state["fadeDuration"], duration)
-                self.assertEqual(state["images"], [])
-                self.assertEqual(self.config.read_text(), source)
-                self.stop()
-
-    def test_invalid_inherited_settings_report_the_field_without_rewriting(self):
-        self.defaults.write_text('wallpaper.fit = "invalid"\n')
-        self.config.write_text('include file("defaults.conf")\nwallpaper.source = ""\n')
-        before = {path: path.read_bytes() for path in (self.config, self.defaults)}
-        state = self.start()
-        self.assertEqual(state["configStatus"], "error")
-        self.assert_dark(state)
-        self.assertIn("/wallpaper/fit", self.log_path.read_text())
-        for path, original in before.items():
-            self.assertEqual(path.read_bytes(), original)
-
-    def test_unreadable_or_invalid_schema_fails_without_rewriting_config(self):
-        schema = self.renderer.parent / "config.schema.json"
-        original = self.config.read_bytes()
-        schema.unlink()
-        for content in (None, '{"type": "not-a-type"}'):
-            with self.subTest(schema=content):
-                if content is not None:
-                    schema.write_text(content)
-                state = self.start()
-                self.assertEqual(state["configStatus"], "error")
-                self.assertIsNone(state["config"])
-                self.assert_dark(state)
-                self.assertEqual(self.config.read_bytes(), original)
-                self.assertIn("config.schema.json", self.log_path.read_text())
-                self.stop()
-
-    def test_example_config_is_a_valid_configured_background(self):
-        self.config.write_text(self.config.read_text().replace('background_color = "#000000"',
-                                                             'background_color = "#102030"'))
+    def test_example_jsonc_is_a_valid_configured_background(self):
+        self.config.write_text(self.config.read_text().replace('"background_color": "#000000"',
+                                                             '"background_color": "#102030"'))
         state = self.start()
         self.assertEqual(state["status"], "ready")
         self.assertEqual(state["color"], "#102030")
@@ -501,7 +398,7 @@ Item {
     def test_animation_can_keep_playing_on_an_inactive_output(self):
         media = self.root / "finite.gif"
         self.gif(media)
-        self.write_config(source=media, extra="playback.pause_when_output_inactive = false\n")
+        self.write_config(source=media, playback={"pause_when_output_inactive": False})
         self.start()
         self.ipc("outputActive", False)
         time.sleep(0.3)
@@ -543,7 +440,7 @@ Item {
         self.stop()
         self.image.write_bytes(b"not an image")
         state = self.start()
-        self.assertEqual(state["configStatus"], "ready")
+        self.assertEqual(state["settingsStatus"], "ready")
         self.assertEqual(state["status"], "error")
         self.assert_dark(state)
 
@@ -551,8 +448,7 @@ Item {
         self.env["QT_SCALE_FACTOR"] = "2"
         for fit in ("center", "tile"):
             with self.subTest(fit=fit):
-                self.write_config()
-                self.config.write_text(self.config.read_text().replace('fit = "fit"', 'fit = "' + fit + '"'))
+                self.write_config(fit=fit)
                 state = self.start()
                 image = state["images"][0]
                 self.assertEqual(state["dpr"], 2)
@@ -565,8 +461,7 @@ Item {
     def test_all_image_fit_modes_change_presentation_without_downsampling(self):
         for fit in ("fill", "fit", "stretch", "center", "tile"):
             with self.subTest(fit=fit):
-                self.write_config()
-                self.config.write_text(self.config.read_text().replace('fit = "fit"', 'fit = "' + fit + '"'))
+                self.write_config(fit=fit)
                 state = self.start()
                 image = state["images"][0]
                 self.assertEqual(image["fillMode"], state["fillModes"][fit])
@@ -578,8 +473,7 @@ Item {
     def test_startup_transition_supports_disabled_zero_and_custom_fades(self):
         for kind, duration in (("none", 2000), ("fade", 0), ("fade", 2000)):
             with self.subTest(kind=kind, duration=duration):
-                self.write_config(extra='transition { type = "' + kind + '", duration_ms = '
-                                  + str(duration) + ' }\n')
+                self.write_config(transition={"type": kind, "duration_ms": duration})
                 state = self.start()
                 self.assertEqual(state["fadeDuration"], duration if kind == "fade" else 0)
                 if kind == "fade" and duration:

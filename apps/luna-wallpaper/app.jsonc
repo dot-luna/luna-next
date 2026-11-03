@@ -1,0 +1,26 @@
+{
+  "name": "luna-wallpaper",
+  "source": "local",
+  "alias": ["wallpaper"],
+  "alias_command": ["luna", "wallpaper"],
+  "deps": [
+    { "name": "quickshell", "source": "pacman", "purpose": "Render Luna's wallpaper surfaces" },
+    { "name": "ffmpeg", "source": "pacman", "purpose": "Detect wallpaper media by content" },
+    { "name": "mpvpaper", "source": "aur", "purpose": "Play video and animated PNG wallpapers" },
+    { "name": "qt6-svg", "source": "pacman", "purpose": "Render SVG wallpapers" },
+    {
+      "name": "qt6-imageformats",
+      "source": "pacman",
+      "purpose": "Render additional image formats",
+    },
+  ],
+  "hooks": {
+    // Refresh source QML on each configuration run; it needs no compilation.
+    "before_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/reload.ts"],
+  },
+  "exports": [
+    { "source": "generated/shell/", "target": "wallpaper/" },
+    { "source": "config/wallpaper.jsonc", "target": "wallpaper.jsonc" },
+  ],
+}
