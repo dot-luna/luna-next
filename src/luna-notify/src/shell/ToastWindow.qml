@@ -91,9 +91,11 @@ PanelWindow {
                     Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
                     onOpened: panel.keyboard = false
                     onReveal: item => {
-                        const y = item.mapToItem(stack, 0, 0).y;
-                        const offset = y < scroll.contentY ? y : Math.max(scroll.contentY, y + item.height - scroll.height);
-                        scroll.contentY = Math.max(0, Math.min(offset, scroll.contentHeight - scroll.height));
+                        // Focus can change before the expansion animation reaches its final layout.
+                        const y = panel.position(item.index);
+                        const viewportHeight = panel.implicitHeight;
+                        const offset = y < scroll.contentY ? y : Math.max(scroll.contentY, y + item.implicitHeight - viewportHeight);
+                        scroll.contentY = Math.max(0, Math.min(offset, panel.stackHeight - viewportHeight));
                     }
                 }
             }

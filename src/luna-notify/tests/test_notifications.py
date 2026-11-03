@@ -60,7 +60,10 @@ class NotificationTests(unittest.TestCase):
         content = content.replace("keyboard = true;", "keyboard = true; contentItem.Window.window.requestActivate();")
         content = "\n".join(line for line in content.splitlines() if not line.strip().startswith(
             ("anchors { top:", "margins {", "exclusionMode:", "WlrLayershell.")))
-        content = content.replace("id: panel", "id: panel\n    readonly property var testCards: cards\n    readonly property Item testStack: stack")
+        # FloatingWindow retains a user-resizable size; model PanelWindow's requested viewport.
+        content = content.replace("        anchors.fill: parent\n        contentHeight:",
+                                  "        width: panel.implicitWidth\n        height: panel.implicitHeight\n        contentHeight:")
+        content = content.replace("id: panel", "id: panel\n    readonly property var testCards: cards\n    readonly property Item testStack: stack\n    readonly property var testViewport: scroll")
         path.write_text(content)
         path = self.shell / "shell.qml"
         path.write_text(path.read_text().replace("import QtQuick", "import QtTest\nimport QtQuick.Window\nimport QtQuick", 1).rstrip()[:-1] + '''
@@ -70,6 +73,7 @@ class NotificationTests(unittest.TestCase):
         function state(): string {
             return JSON.stringify({visible: shell.toasts.visible, keyboard: shell.toasts.keyboard, expanded: shell.toasts.expanded,
                 width: shell.toasts.implicitWidth,
+                scroll: {y: shell.toasts.testViewport.contentY, height: shell.toasts.testViewport.height},
                 focus: shell.toasts.contentItem.Window.window && shell.toasts.contentItem.Window.window.activeFocusItem ? shell.toasts.contentItem.Window.window.activeFocusItem.objectName : "",
                 entries: notificationStore.notifications.map(n => ({id: n.id, title: n.summary, body: n.body})),
                 cards: Array.from({length: shell.toasts.testCards.count}, (_, i) => {
@@ -96,6 +100,10 @@ class NotificationTests(unittest.TestCase):
         }
         function capture(path: string): void {
             shell.toasts.testStack.grabToImage(result => result.saveToFile(path));
+        }
+        function focusAndBacktab(): void {
+            shell.toasts.focusToasts();
+            input.keyClick(Qt.Key_Backtab);
         }
         function press(key: int): void { input.keyClick(key); }
     }
@@ -335,6 +343,20 @@ class NotificationTests(unittest.TestCase):
         self.ipc("notify", "dismiss")
         self.wait_for(lambda: ("NotificationClosed", (critical[-1], 2)) in self.events)
         self.assertEqual(len(self.state()["entries"]),3)
+
+    def test_immediate_keyboard_expansion_scrolls_overflow_focus_into_view(self):
+        identifiers = [self.notify(title=f"Sticky {i}", timeout=0) for i in range(20)]
+        self.wait_for(lambda: len(self.state()["cards"]) == 20)
+        self.ipc("test", "moveAway")
+        self.wait_for(lambda: not self.state()["expanded"])
+        self.ipc("test", "focusAndBacktab")
+        self.wait_for(lambda: self.state()["focus"] == f"toast-{identifiers[0]}")
+        time.sleep(.25)  # Assert visibility after the 160 ms expansion finishes.
+        current = self.state()
+        card = current["cards"][0]
+        self.assertGreaterEqual(current["scroll"]["y"] + current["scroll"]["height"] + 1,
+                                card["y"] + card["height"])
+        self.assertLessEqual(current["scroll"]["y"], card["y"] + 1)
 
     def test_sender_requested_persistence_is_retained_when_the_stack_fills(self):
         sticky = [self.notify(title=f"Keep {i}", urgency=0, timeout=0) for i in range(4)]
