@@ -5,13 +5,26 @@ import Quickshell.Services.Notifications
 // The server owns live notifications; closed or expired content is never archived.
 QtObject {
     id: store
+    property int limit: 3
     readonly property var notifications: server.trackedNotifications.values
     signal received()
 
+    function persistent(notification) {
+        return notification.expireTimeout === 0
+            || (notification.expireTimeout < 0 && notification.urgency === NotificationUrgency.Critical);
+    }
     function receive(notification) {
-        // Bound both visible content and retained actions during bursts, including sticky senders.
-        while (notifications.length >= 3)
-            notifications[0].expire();
+        // Preserve sender-requested persistence and critical alerts with no timeout.
+        // Sticky bursts may exceed the limit and remain reachable when expanded.
+        while (notifications.length >= limit) {
+            const oldest = notifications.find(item => !persistent(item));
+            if (oldest) oldest.expire();
+            else if (persistent(notification)) break;
+            else {
+                notification.expire();
+                return;
+            }
+        }
         notification.tracked = true;
         received();
     }

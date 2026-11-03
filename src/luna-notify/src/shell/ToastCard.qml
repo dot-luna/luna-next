@@ -9,14 +9,19 @@ Rectangle {
     id: card
     required property var notification
     required property var theme
+    required property var settings
+    readonly property var style: settings.priority[notification.urgency === NotificationUrgency.Critical ? "critical"
+        : notification.urgency === NotificationUrgency.Low ? "low" : "normal"]
     property bool keyboardMode: false
-    signal releaseFocus()
+    property bool exposed: true
     signal reveal(var item)
-    readonly property var actions: notification.actions.filter(action => action.identifier !== "default")
-    readonly property var defaultAction: notification.actions.find(action => action.identifier === "default") || null
-    // The native timeout uses milliseconds; zero and critical alerts stay until closed.
-    readonly property real duration: notification.urgency === NotificationUrgency.Critical || notification.expireTimeout === 0
-        ? 0 : notification.expireTimeout < 0 ? 5000 : notification.expireTimeout
+    signal opened()
+    // Whatly uses "open"; other senders use the standard default action.
+    readonly property var openAction: notification.actions.find(action => action.identifier === "default")
+        || notification.actions.find(action => action.identifier === "open") || null
+    // Explicit sender timeouts win; only unspecified durations use Luna's priority defaults.
+    readonly property real duration: notification.expireTimeout >= 0 ? notification.expireTimeout
+        : notification.urgency === NotificationUrgency.Critical ? 0 : settings.timeout_ms
     property real remaining: duration
     property real lastTick: Date.now()
     readonly property string content: JSON.stringify([notification.appName, notification.desktopEntry, notification.resident, notification.transient,
@@ -24,23 +29,57 @@ Rectangle {
         notification.appIcon, notification.expireTimeout, notification.urgency,
         notification.actions.map(action => [action.identifier, action.text])])
 
-    function focusDismiss() { closeButton.forceActiveFocus(Qt.TabFocusReason); }
-    function invoke(action) { action.invoke(); }
+    function focusToast() { forceActiveFocus(Qt.TabFocusReason); }
+    function open() {
+        if (openAction) {
+            const action = openAction;
+            const current = notification;
+            const resident = current.resident;
+            opened();
+            action.invoke();
+            // Resident senders keep their notification after an action; this UI has no history.
+            if (resident) current.dismiss();
+            return;
+        }
+        // Never substitute another sender action: it could delete or reject something.
+        const desktopId = notification.desktopEntry.replace(/\.desktop$/, "");
+        const application = desktopId ? DesktopEntries.byId(desktopId) : null;
+        if (application && !application.noDisplay && application.command.length) {
+            opened();
+            application.execute();
+            notification.dismiss();
+        }
+    }
     function iconSource(value) {
         return value.startsWith("/") ? "file://" + value : value.includes(":") ? value : Quickshell.iconPath(value);
     }
-    // Changed-payload signals can arrive before dependent bindings settle. Quickshell
-    // emits no event for an identical replacement, so its remaining time is retained.
+    // Quickshell emits no event for an identical replacement; its remaining time is retained.
     onContentChanged: Qt.callLater(() => { remaining = duration; lastTick = Date.now(); })
-    implicitHeight: body.implicitHeight + 28
-    radius: Math.min(16, theme.appearance.rounding)
+    implicitHeight: Math.max(contentRow.implicitHeight, settings.appearance.avatar_size) + settings.appearance.padding * 2
+    radius: Math.min(12, theme.appearance.rounding)
     color: theme.colors.background
-    border.width: Math.max(1, theme.appearance.border_width)
-    border.color: notification.urgency === NotificationUrgency.Critical ? theme.colors.accent : theme.colors.muted
+    border.width: 1
+    border.color: activeFocus ? theme.colors.accent : Qt.alpha(theme.colors.muted, 0.55)
     clip: true
-    opacity: 0
+    activeFocusOnTab: exposed
+    objectName: "toast-" + notification.id
+    Accessible.role: Accessible.Button
+    Accessible.name: notification.appName + ": " + notification.summary + ". " + notification.body
+    Accessible.onPressAction: open()
+    onActiveFocusChanged: if (activeFocus) reveal(card)
+    property real entranceProgress: 0
+    opacity: style.opacity * entranceProgress
     Component.onCompleted: entrance.start()
-    NumberAnimation { id: entrance; target: card; property: "opacity"; to: 1; duration: 140; easing.type: Easing.OutCubic }
+    NumberAnimation { id: entrance; target: card; property: "entranceProgress"; to: 1; duration: 130; easing.type: Easing.OutCubic }
+
+    Rectangle {
+        objectName: "priorityStrip"
+        anchors { top: parent.top; bottom: parent.bottom }
+        x: card.style.strip_side === "left" ? 0 : card.width - width
+        width: card.style.strip_width
+        color: card.style.strip_color
+        visible: width > 0
+    }
 
     HoverHandler { id: hover }
     Timer {
@@ -49,138 +88,100 @@ Rectangle {
         running: card.remaining > 0
         onTriggered: {
             const now = Date.now();
-            if (!hover.hovered && !card.keyboardMode)
+            // Covered toasts have not been read yet; their countdown starts when exposed.
+            if (card.exposed && !hover.hovered && !card.keyboardMode)
                 card.remaining = Math.max(0, card.remaining - (now - card.lastTick));
             card.lastTick = now;
             if (card.remaining === 0) card.notification.expire();
         }
     }
-    Keys.onEscapePressed: card.releaseFocus()
-    Keys.onDeletePressed: card.notification.dismiss()
+    Keys.onReturnPressed: open()
+    Keys.onEnterPressed: open()
+    Keys.onSpacePressed: open()
+    Keys.onEscapePressed: notification.dismiss()
+    Keys.onDeletePressed: notification.dismiss()
 
-    ColumnLayout {
-        id: body
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
-        spacing: 8
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) card.notification.dismiss();
+            else card.open();
+        }
+    }
+    RowLayout {
+        id: contentRow
+        anchors { left: parent.left; right: parent.right; top: parent.top; margins: card.settings.appearance.padding }
+        spacing: 10
+        // image-data often contains a contact avatar, not a message attachment.
+        Item {
+            objectName: "avatar"
+            clip: true
+            Layout.alignment: Qt.AlignTop
+            Layout.preferredWidth: card.settings.appearance.avatar_size
+            Layout.preferredHeight: card.settings.appearance.avatar_size
             Image {
-                visible: card.notification.appIcon !== ""
-                source: visible ? card.iconSource(card.notification.appIcon) : ""
-                Layout.preferredWidth: 24
-                Layout.preferredHeight: 24
-                sourceSize: Qt.size(24, 24)
+                objectName: "priorityIcon"
+                anchors.centerIn: parent
+                width: Math.min(22, parent.width)
+                height: width
+                source: card.style.icon_source
+                sourceSize: Qt.size(44, 44)
+                visible: contact.status !== Image.Ready && applicationIcon.status !== Image.Ready
+            }
+            Image {
+                id: applicationIcon
+                anchors.fill: parent
+                source: card.notification.appIcon ? card.iconSource(card.notification.appIcon) : ""
+                sourceSize: Qt.size(72, 72)
                 fillMode: Image.PreserveAspectFit
+                visible: contact.status !== Image.Ready
             }
-            Label {
-                Layout.fillWidth: true
-                text: card.notification.appName
-                textFormat: Text.PlainText
-                elide: Text.ElideRight
-                font { family: card.theme.fonts.ui; pixelSize: 12 }
-                color: card.theme.colors.foreground
-            }
-            Button {
-                id: closeButton
-                objectName: "dismiss"
-                implicitWidth: 28
-                implicitHeight: 28
-                Accessible.name: "Dismiss notification"
-                focusPolicy: Qt.StrongFocus
-                onClicked: card.notification.dismiss()
-                onActiveFocusChanged: if (activeFocus) card.reveal(closeButton)
-                Keys.onReturnPressed: click()
-                Keys.onEnterPressed: click()
-                background: Rectangle {
-                    radius: 6
-                    color: closeButton.hovered ? card.theme.colors.selection : "transparent"
-                    border.width: closeButton.visualFocus ? 1 : 0
-                    border.color: card.theme.colors.accent
-                }
-                contentItem: Icon { name: "cancel-01"; ink: card.theme.colors.foreground; implicitWidth: 14; implicitHeight: 14 }
+            Image {
+                id: contact
+                objectName: "contactImage"
+                anchors.fill: parent
+                source: card.notification.image
+                sourceSize: Qt.size(72, 72)
+                fillMode: Image.PreserveAspectCrop
+                visible: status === Image.Ready
             }
         }
-        Button {
-            id: contentButton
-            objectName: "content"
+        ColumnLayout {
             Layout.fillWidth: true
-            padding: 0
-            focusPolicy: card.defaultAction ? Qt.StrongFocus : Qt.NoFocus
-            Accessible.name: card.notification.summary
-            onClicked: if (card.defaultAction) card.invoke(card.defaultAction)
-            onActiveFocusChanged: if (activeFocus) card.reveal(contentButton)
-            Keys.onReturnPressed: click()
-            Keys.onEnterPressed: click()
-            background: Rectangle {
-                color: "transparent"
-                radius: 4
-                border.width: contentButton.visualFocus ? 1 : 0
-                border.color: card.theme.colors.accent
-            }
-            contentItem: ColumnLayout {
-                spacing: 5
+            spacing: 4
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
                 Label {
                     Layout.fillWidth: true
                     text: card.notification.summary
                     textFormat: Text.PlainText
-                    wrapMode: Text.Wrap
-                    maximumLineCount: 2
                     elide: Text.ElideRight
-                    color: card.theme.colors.bright_foreground
-                    font { family: card.theme.fonts.ui; pixelSize: 14; weight: Font.DemiBold }
+                    color: card.style.title_color
+                    font { family: card.theme.fonts.ui; pixelSize: 13; weight: Font.DemiBold }
                 }
                 Label {
-                    Layout.fillWidth: true
+                    Layout.maximumWidth: 80
                     visible: text !== ""
-                    text: card.notification.body
+                    text: card.notification.appName
                     textFormat: Text.PlainText
-                    wrapMode: Text.Wrap
-                    maximumLineCount: 4
                     elide: Text.ElideRight
-                    color: card.theme.colors.foreground
-                    font { family: card.theme.fonts.ui; pixelSize: 13 }
-                }
-                Image {
-                    visible: card.notification.image !== ""
-                    source: visible ? card.notification.image : ""
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? 100 : 0
-                    fillMode: Image.PreserveAspectFit
-                    sourceSize: Qt.size(352, 100)
+                    color: card.style.text_color
+                    opacity: 0.6
+                    font { family: card.theme.fonts.ui; pixelSize: 11 }
                 }
             }
-        }
-        Flow {
-            Layout.fillWidth: true
-            spacing: 6
-            visible: card.actions.length > 0
-            Repeater {
-                model: card.actions
-                delegate: Button {
-                    id: actionButton
-                    required property var modelData
-                    text: modelData.text
-                    width: Math.min(implicitWidth, card.width - 28)
-                    focusPolicy: Qt.StrongFocus
-                    onClicked: card.invoke(modelData)
-                    onActiveFocusChanged: if (activeFocus) card.reveal(actionButton)
-                    Keys.onReturnPressed: click()
-                    Keys.onEnterPressed: click()
-                    background: Rectangle {
-                        radius: 6
-                        color: actionButton.hovered ? card.theme.colors.selection : card.theme.colors.lighter_background
-                        border.width: actionButton.visualFocus ? 1 : 0
-                        border.color: card.theme.colors.accent
-                    }
-                    contentItem: Label {
-                        text: actionButton.text
-                        textFormat: Text.PlainText
-                        elide: Text.ElideRight
-                        color: card.theme.colors.foreground
-                        font { family: card.theme.fonts.ui; pixelSize: 12 }
-                    }
-                }
+            Label {
+                Layout.fillWidth: true
+                visible: text !== ""
+                text: card.notification.body
+                textFormat: Text.PlainText
+                wrapMode: Text.Wrap
+                maximumLineCount: card.settings.appearance.body_lines
+                elide: Text.ElideRight
+                color: card.style.text_color
+                font { family: card.theme.fonts.ui; pixelSize: 12 }
             }
         }
     }

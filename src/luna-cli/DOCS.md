@@ -127,7 +127,9 @@ See [menu controls and appearance](../luna-menu/DOCS.md).
 `luna notify` shows status; `start`, `stop`, and `restart` control the standalone
 toast provider. `focus` selects visible toasts for keyboard interaction and
 `dismiss` closes the newest. Install with `luna install luna-notify`; stop other
-notification providers first. `--install-dir PATH` selects source QML.
+notification providers first. `--install-dir PATH` selects source QML;
+`--config PATH` selects the JSONC. `get [key]` reads saved settings and
+`get-config-file` locates them. Edit the JSONC and run `restart` to apply it.
 See [toast behavior and controls](../luna-notify/DOCS.md).
 
 ## Wallpaper

@@ -21,6 +21,7 @@ test("notify installs through the local app catalog, replaces only its QML expor
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-notify/app.jsonc"), join(app, "app.jsonc"));
     cpSync(join(repo, "apps/luna-notify/scripts"), join(app, "scripts"), { recursive: true });
+    cpSync(join(repo, "apps/luna-notify/config"), join(app, "config"), { recursive: true });
     cpSync(
       join(repo, "src/luna-notify/src/shell"),
       join(f.repository, "src/luna-notify/src/shell"),
@@ -71,6 +72,8 @@ else { console.error('no such name'); process.exit(1); }
     const destination = join(f.home, ".config/luna/notify");
     expect(readFileSync(join(destination, "shell.qml"), "utf8")).toContain("LUNA_NOTIFY_THEME");
     expect(readFileSync(join(destination, "icons/LICENSE.md"), "utf8")).toContain("Hugeicons");
+    const config = join(f.home, ".config/luna/notify.jsonc");
+    expect(Bun.JSONC.parse(readFileSync(config, "utf8")).priority.critical.strip_width).toBe(4);
     expect(readFileSync(qsLog, "utf8")).not.toContain("--daemonize");
     expect(f.commands().some((c) => c.name === "sudo" && c.args.includes("quickshell"))).toBe(true);
     expect(f.commands().some((c) => c.name === "sudo" && c.args.includes("systemd"))).toBe(true);

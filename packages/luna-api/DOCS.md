@@ -287,9 +287,13 @@ failure can leave metadata without its launcher; reinstall repairs it.
 ## Notification API
 
 `Luna.notify` exposes `start`, `stop`, `restart`, `status`, `focus`, and `dismiss`.
-All accept `NotifyOptions` (`repository` for source QML, `env` for child processes
-and paths) and return the standard response with `{running, shellDirectory}`.
+Lifecycle operations accept `NotifyOptions` (`repository` for source QML,
+`configFile` for explicit JSONC, `env` for child processes and paths) and return
+`{running, shellDirectory, configFile}` in the standard response.
+`get(key?, options)` reads sparse settings with `null` for missing keys;
+`getConfigFile(options)` locates the source without requiring Quickshell.
 Start confirms D-Bus ownership; another provider returns `CONFLICT` without being
 stopped. Missing QML returns `INVALID_PATH`; launch and bus errors return
-`COMMAND_FAILED`. Focus/dismiss leave a stopped provider stopped. Restart resolves
-the theme before replacing an instance. See [toast controls](../../src/luna-notify/DOCS.md).
+`COMMAND_FAILED`. Focus/dismiss leave a stopped provider stopped. Restart validates settings and resolves the theme/icons before replacing an
+instance. JSONC is parsed with Bun and validated by the notification API; defaults
+are merged only in memory. Unknown source fields and comments are left intact. See [toast controls](../../src/luna-notify/DOCS.md).
