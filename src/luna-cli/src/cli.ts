@@ -5,6 +5,7 @@ import { createOutput } from "./lib/output.ts";
 import { addSelfCommands } from "./self/commands.ts";
 import { addThemeCommands } from "./theme/commands.ts";
 import { addAppCommands } from "./apps/commands.ts";
+import { addNotifyCommands } from "./notify/commands.ts";
 import { addMenuCommands } from "./menu/commands.ts";
 import { addDefaultsCommands } from "./defaults/commands.ts";
 import { addWallpaperCommands } from "./wallpaper/commands.ts";
@@ -44,6 +45,9 @@ export async function runCli(argv: string[]): Promise<number> {
   });
 
   addWebappCommands(program, output, wantsJson, (value) => {
+    exitCode = value;
+  });
+  addNotifyCommands(program, output, (value) => {
     exitCode = value;
   });
   addMenuCommands(program, output, (value) => {

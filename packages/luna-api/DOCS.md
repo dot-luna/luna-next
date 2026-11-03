@@ -283,3 +283,13 @@ use a generic Chromium icon. Launchers retain resolved API paths and browser
 selection independently of the desktop environment. Browser profile and export paths must not overlap;
 linked export paths are rejected. Per-app locks serialize writes. A late I/O
 failure can leave metadata without its launcher; reinstall repairs it.
+
+## Notification API
+
+`Luna.notify` exposes `start`, `stop`, `restart`, `status`, `focus`, and `dismiss`.
+All accept `NotifyOptions` (`repository` for source QML, `env` for child processes
+and paths) and return the standard response with `{running, shellDirectory}`.
+Start confirms D-Bus ownership; another provider returns `CONFLICT` without being
+stopped. Missing QML returns `INVALID_PATH`; launch and bus errors return
+`COMMAND_FAILED`. Focus/dismiss leave a stopped provider stopped. Restart resolves
+the theme before replacing an instance. See [toast controls](../../src/luna-notify/DOCS.md).
