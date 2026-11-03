@@ -202,6 +202,26 @@ invalid documents return `INVALID_METADATA`, invalid patches `INVALID_ARGUMENT`,
 missing QML `INVALID_PATH`, and failed renderer commands/media `COMMAND_FAILED`.
 Direct file edits require `reload`; no files are watched.
 
+## Screensaver API
+
+`Luna.screensaver` exposes `start`, `show` (alias `open`), `showIdle`, `hide`, `stop`, `restart`,
+`reload`, `status`, `get(key?)`, `getConfigFile`, and `configure(settings)`; all accept options.
+Lifecycle results contain `{running, status, shellDirectory, configFile}`; status is stopped/hidden/visible.
+Start preserves running instances; show starts when needed. Restart waits for stop; reload leaves stopped instances stopped.
+
+Options: `env`, `configFile`, `repository` for source QML, and `launcher` (default `~/.local/bin/luna`).
+Settings use explicit `configFile`, then nonempty `LUNA_SCREENSAVER_CONFIG`, then `screensaver.jsonc` under
+`LUNA_CONFIG_HOME_DIR`, `$XDG_CONFIG_HOME/luna`, or `~/.config/luna`. Relative explicit paths use the working directory.
+Reads need no renderer, parse JSONC with Bun/Zod, create missing files as `{}`, and return null for missing keys.
+`idle_seconds` accepts integers 0–86400; omitted values default to 300 in the native idle monitor. Zero disables activation.
+Locking and display power belong to Luna Lock.
+
+`configure` validates, locks, saves atomically, and reloads a running shell; control and configuration require QML and Quickshell.
+Failed application restores source and live settings when no detected external edit would be overwritten.
+The shell receives settings, theme, and CLI-command snapshots; it reads no configuration files and watches none. Reload applies direct edits.
+Manual and idle show requests check `hyprctl -j locked` when `HYPRLAND_INSTANCE_SIGNATURE` is set, hiding over a locked session.
+See [screensaver setup and tests](../../src/luna-screensaver/DOCS.md).
+
 ## App API
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.

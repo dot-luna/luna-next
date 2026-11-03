@@ -309,11 +309,11 @@ TestCase {
         check(card.section, "system");
         check(input.text, "");
         check(card.entries.map(entry => entry.name).join(","), "Screensaver,Lock,Suspend,Hibernate,Logout,Reboot,Shutdown");
-        for (let index = 0; index < 4; index++) {
+        for (let index = 1; index < 4; index++) {
             card.activate(index);
             check(action, null);
         }
-        for (const name of ["logout", "reboot", "shutdown"]) {
+        for (const name of ["screensaver", "logout", "reboot", "shutdown"]) {
             input.text = name;
             check(card.entries.length, 2);
             keyClick(Qt.Key_Return);
@@ -338,8 +338,10 @@ TestCase {
         check(JSON.stringify(System.aboutCommand()), JSON.stringify(["xdg-terminal-exec",
             "--app-id=luna-next-fastfetch", "--title=Fastfetch", "--", "bash", "-c",
             'fastfetch; status=$?; read -r -s -n 1; exit "$status"']));
-        for (const unsupported of ["lock", "screensaver", "suspend", "hibernate", "unknown"])
+        for (const unsupported of ["lock", "suspend", "hibernate", "unknown"])
             check(System.command(unsupported).length, 0);
+        check(JSON.stringify(System.command("screensaver", "/a home/.local/bin/luna")),
+            JSON.stringify(["/a home/.local/bin/luna", "screensaver"]));
     }
 
     Component {
@@ -557,6 +559,16 @@ TestCase {
         const index = window.content.entries.findIndex(entry => entry.action === "about");
         window.content.activate(index);
         check(window.opened, false);
+    }
+
+    function test_window_screensaver_hides_immediately_without_a_power_countdown() {
+        const window = sessionWindow();
+        const power = findChild(window.contentItem, "powerScreen");
+        const process = findChild(window, "applicationCommand");
+        window.content.activate(window.content.entries.findIndex(entry => entry.action === "screensaver"));
+        check(window.opened, false);
+        check(power.active, false);
+        tryCompare(process, "finished", true);
     }
 
     function test_window_query_actions_use_native_launchers_and_dismiss() {

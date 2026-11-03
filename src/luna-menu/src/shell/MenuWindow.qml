@@ -86,6 +86,9 @@ PanelWindow {
             if (action === "about") {
                 Quickshell.execDetached(System.aboutCommand());
                 panel.dismissed();
+            } else if (action === "screensaver") {
+                panel.hide();
+                applicationCommand.run(action);
             } else {
                 focusDelay.stop();
                 powerScreen.begin(action);
@@ -129,6 +132,33 @@ PanelWindow {
             if (!sessionCommand.running && !sessionCommand.finished) {
                 sessionCommand.finished = true;
                 sessionCommand.fail();
+            }
+        })
+    }
+
+    Process {
+        id: applicationCommand
+        objectName: "applicationCommand"
+        property bool finished: false
+        property string action: ""
+        function run(request) {
+            action = request;
+            finished = false;
+            exec(System.command(request, Quickshell.env("HOME") + "/.local/bin/luna"));
+        }
+        function fail() {
+            console.error("Luna menu: couldn’t open " + action + ": " + applicationDiagnostics.text.trim());
+        }
+        stderr: StdioCollector { id: applicationDiagnostics }
+        onExited: (code, status) => {
+            finished = true;
+            if (code !== 0 || status !== 0) fail();
+        }
+        // A failed start has no exited signal; defer so normal exits finish first.
+        onRunningChanged: if (!running) Qt.callLater(() => {
+            if (!applicationCommand.running && !applicationCommand.finished) {
+                applicationCommand.finished = true;
+                applicationCommand.fail();
             }
         })
     }
