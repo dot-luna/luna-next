@@ -122,6 +122,14 @@ test source QML. Apps, About, session actions, terminal commands, URLs, and brow
 search are available; other main sections remain placeholders.
 See [menu controls and appearance](../luna-menu/DOCS.md).
 
+## Notifications
+
+`luna notify` shows status; `start`, `stop`, and `restart` control the standalone
+toast provider. `focus` selects visible toasts for keyboard interaction and
+`dismiss` closes the newest. Install with `luna install luna-notify`; stop other
+notification providers first. `--install-dir PATH` selects source QML.
+See [toast behavior and controls](../luna-notify/DOCS.md).
+
 ## Wallpaper
 
 `luna wallpaper` shows renderer status. `start`, `stop`, `restart`, `reload`, and

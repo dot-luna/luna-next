@@ -4,6 +4,7 @@ import { update } from "./self/update.ts";
 import { theme } from "./theme/index.ts";
 import { apps } from "./apps/index.ts";
 import { webapp } from "./webapp/index.ts";
+import { notify } from "./notify/index.ts";
 import { menu } from "./menu/index.ts";
 import { defaults } from "./defaults/index.ts";
 import { wallpaper } from "./wallpaper/index.ts";
@@ -17,6 +18,7 @@ export const Luna = {
   apps,
   webapp,
   menu,
+  notify,
   defaults,
   wallpaper,
   screensaver,
@@ -62,3 +64,5 @@ export type { WebappOptions } from "./webapp/context.ts";
 export type { WebappRecord } from "./webapp/schema.ts";
 
 export type { AppInstallResult, InstallFailure } from "./install/report.ts";
+
+export type { NotifyOptions, NotifyState } from "./notify/context.ts";

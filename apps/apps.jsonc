@@ -25,6 +25,7 @@
     "t3code/app.jsonc",
 
     "luna-menu/app.jsonc",
+    "luna-notify/app.jsonc",
     "luna-wallpaper/app.jsonc",
     "luna-screensaver/app.jsonc",
     "luna-lock/app.jsonc",
