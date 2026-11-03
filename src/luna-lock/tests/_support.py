@@ -94,18 +94,16 @@ QtObject {
     property Connections changes: Connections {
         target: session
         function onLockedChanged() {
-            if (!session.locked) session.secure = false;
+            if (!session.locked) {
+                session.unlockCalls++;
+                session.secure = false;
+            }
             else if (session.autoSecure) session.secure = true;
         }
     }
     property Loader holder: Loader {
         active: session.locked
         sourceComponent: session.surface
-    }
-    function unlock() {
-        unlockCalls++;
-        locked = false;
-        secure = false;
     }
 }
 ''')

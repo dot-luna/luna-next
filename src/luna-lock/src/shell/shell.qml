@@ -122,7 +122,7 @@ ShellRoot {
         secure: sessionLock.secure
         onAuthenticated: {
             displayPower.setOff(false);
-            sessionLock.unlock();
+            sessionLock.locked = false;
         }
     }
 
