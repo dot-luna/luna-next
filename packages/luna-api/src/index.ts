@@ -19,7 +19,12 @@ export const Luna = {
   wallpaper,
 };
 
-export type { WallpaperOptions, WallpaperState } from "./wallpaper/context.ts";
+export type {
+  WallpaperOptions,
+  WallpaperState,
+  WallpaperInstallOptions,
+  WallpaperEntry,
+} from "./wallpaper/context.ts";
 export type { WallpaperSettings } from "./wallpaper/schema.ts";
 
 export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./defaults/types.ts";

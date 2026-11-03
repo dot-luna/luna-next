@@ -128,19 +128,36 @@ See [menu controls and appearance](../luna-menu/DOCS.md).
 `status` control the renderer; `restart` replaces the process, while `reload`
 applies the current settings to the running renderer.
 
-Use `get [key]` to read saved settings, `get-config-file` to locate the JSONC,
-and `set <path>` to select absolute local media (`set ""` clears it). Settings
-commands are `fit <mode>`, `background <color>`, `pause-when-inactive <true|false>`,
-and `transition <type> [duration]`, with durations in milliseconds.
+`install <sources...>` (`add`) copies local files, imports media from folders,
+or downloads HTTP(S) URLs. Add `-r`/`--recursive` to include subfolders; imported
+files use their basenames in one library. Use `--name NAME` to rename one file or
+URL. Images and videos are accepted. Reimporting identical content keeps the
+existing copy; different content with an existing name is rejected.
 
-The group accepts `--config PATH` for an explicit JSONC file and
-`--install-dir PATH` for source QML. Missing settings read as null; omitted values
-use renderer defaults. Settings commands validate and save the JSONC, then reload
-a running renderer. After direct file edits, run `luna wallpaper reload`.
+`list` shows installed names and marks the selected wallpaper. `path [name]`
+(`dir`) locates the library or an installed file. `set <name-or-path>` selects an
+installed name or an absolute local path; `set ""` clears it. `current` reads the
+saved source, and `random` selects another installed wallpaper when available.
+`remove <names...> [--dry-run] [--yes]` protects selected and currently playing
+media. Removal requires `--yes` or `--dry-run` without an interactive terminal.
+
+The library defaults to `$LUNA_DATA_HOME_DIR/wallpapers`,
+`$XDG_DATA_HOME/luna/wallpapers`, or `~/.local/share/luna/wallpapers`.
+The group accepts `--library-dir PATH`, `--config PATH` for an explicit JSONC
+file, and `--install-dir PATH` for source QML. Installed copies remain usable
+after their original files move or are removed.
+
+Use `get [key]` to read saved settings and `get-config-file` to locate the JSONC.
+Settings commands are `fit <mode>`, `background <color>`,
+`pause-when-inactive <true|false>`, and `transition <type> [duration]`, with durations
+in milliseconds. Missing settings read as null; omitted values use renderer
+defaults. Settings commands validate and save the JSONC, then reload a running
+renderer. After direct file edits, run `luna wallpaper reload`.
 JSON mode returns the API response unchanged.
 
 ```sh
-luna wallpaper set "$HOME/Pictures/wallpaper.png"
+luna wallpaper install "$HOME/Pictures/wallpaper.png"
+luna wallpaper set wallpaper.png
 luna wallpaper transition fade 300
 ```
 

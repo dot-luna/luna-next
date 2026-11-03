@@ -6,6 +6,8 @@
   "deps": [
     { "name": "quickshell", "source": "pacman", "purpose": "Render Luna's wallpaper surfaces" },
     { "name": "ffmpeg", "source": "pacman", "purpose": "Detect wallpaper media by content" },
+    { "name": "file", "source": "pacman", "purpose": "Validate imported wallpaper media" },
+    { "name": "curl", "source": "pacman", "purpose": "Download wallpaper media" },
     { "name": "mpvpaper", "source": "aur", "purpose": "Play video and animated PNG wallpapers" },
     { "name": "qt6-svg", "source": "pacman", "purpose": "Render SVG wallpapers" },
     {

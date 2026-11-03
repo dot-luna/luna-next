@@ -6,7 +6,8 @@ With the [Luna CLI](../luna-cli/README.md) installed:
 
 ```sh
 luna install luna-wallpaper
-luna wallpaper set /absolute/path/to/wallpaper.png
+luna wallpaper install /path/to/wallpaper.png
+luna wallpaper set wallpaper.png
 luna wallpaper start
 ```
 
