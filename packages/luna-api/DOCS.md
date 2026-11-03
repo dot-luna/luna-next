@@ -142,6 +142,10 @@ source QML; `env` replaces the environment. Otherwise QML comes from Luna's inst
 menu config directory. Responses contain `{running, shellDirectory}`. Startup
 resolves one theme snapshot; no files are watched. Missing QML returns `INVALID_PATH`;
 missing Quickshell or failed IPC returns `COMMAND_FAILED`.
+`Luna.menu.stayAwake(action?, options?)` returns `{enabled}` for `on`, `off`,
+`toggle` (default), or `status`; invalid actions return `INVALID_ARGUMENT`.
+On/toggle start a hidden menu when needed. Status/off leave a stopped menu stopped.
+Inhibition survives hiding the menu and resets when its process stops.
 See the [menu docs](../../src/luna-menu/DOCS.md).
 
 ## Wallpaper API

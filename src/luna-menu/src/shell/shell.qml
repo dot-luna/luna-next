@@ -63,6 +63,15 @@ ShellRoot {
     IpcHandler {
         target: "menu"
         function status(): string { return shell.menuWindow ? "running" : "unavailable"; }
+        // The menu process owns the inhibitors; hiding its UI keeps them alive.
+        function stayAwake(action: string): string {
+            if (!shell.menuWindow) return "unavailable";
+            if (action === "on") shell.menuWindow.stayAwake = true;
+            else if (action === "off") shell.menuWindow.stayAwake = false;
+            else if (action === "toggle") shell.menuWindow.stayAwake = !shell.menuWindow.stayAwake;
+            else if (action !== "status") return "invalid action";
+            return shell.menuWindow.stayAwake ? "on" : "off";
+        }
         function show(): void { shell.show(); }
         function system(): void { shell.show("system"); }
         function hide(): void { if (shell.menuWindow) shell.menuWindow.hide(); }

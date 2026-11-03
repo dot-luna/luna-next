@@ -11,8 +11,8 @@ when using source QML without `luna install luna-menu`.
 
 ## Controls
 
-Apps opens installed applications. System lists Screensaver, Lock, Suspend,
-Hibernate, Logout, Reboot, and Shutdown; Screensaver, Lock, and the last three are active. About
+Apps opens installed applications. System lists Screensaver, Lock, Stay awake,
+Suspend, Hibernate, Logout, Reboot, and Shutdown; Suspend and Hibernate are placeholders. About
 opens the same terminal as Super+Shift+F (requires Fastfetch). Other main sections remain
 placeholders. Hidden and NoDisplay desktop entries are excluded.
 
@@ -30,6 +30,15 @@ Failed requests display an error; Esc returns to System. Screensaver and Lock di
 the menu immediately and run `~/.local/bin/luna screensaver` or `~/.local/bin/luna lock`,
 without a countdown. Install `luna-screensaver` or `luna-lock` to use them;
 startup failures are logged.
+
+Stay awake toggles automatic idle inhibition and shows On or Off. It stays active
+when the menu closes, preventing Luna's automatic screensaver and locking. Manual
+Screensaver and Lock still work; display power saving while locked is unchanged.
+It starts off and resets when the menu process stops or the session ends.
+The compositor must support `idle-inhibit-unstable-v1`.
+`luna stay-awake [on|off|toggle|status]` controls the same state (default: toggle);
+on/toggle start a hidden menu when needed. Status/off leave a stopped menu stopped.
+Use `--install-dir PATH` to select source QML.
 
 Up/Down and Tab/Shift+Tab select results. Home/End jump to either end; Page Up/Down
 move a visible page. Enter or click opens an entry. Escape, Alt+Left, or Backspace
@@ -76,6 +85,9 @@ Options are `repository` for explicit source QML and `env` to replace the proces
 environment. Responses contain `{running, shellDirectory}`. Missing QML returns
 `INVALID_PATH`; unavailable Quickshell or failed native commands return
 `COMMAND_FAILED`.
+
+`Luna.menu.stayAwake(action?, options?)` returns `{enabled}`; action is `on`, `off`,
+`toggle` (default), or `status`. Invalid actions return `INVALID_ARGUMENT`.
 
 ```sh
 /usr/lib/qt6/bin/qmllint src/luna-menu/src/shell/*.qml

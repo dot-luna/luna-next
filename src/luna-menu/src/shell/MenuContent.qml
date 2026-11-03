@@ -13,6 +13,7 @@ Rectangle {
 
     required property var theme
     property var applications: []
+    property bool stayAwake: false
     property string section: "root"
     readonly property bool appsView: section === "apps"
     readonly property string query: search.text
@@ -29,7 +30,7 @@ Rectangle {
         {name: "System", icon: "power-service", route: "system"}
     ]
     readonly property var matchingEntries: appsView ? Applications.find(applications, query)
-        : section === "system" ? Applications.sections(System.entries, query)
+        : section === "system" ? Applications.sections(System.entries(stayAwake), query)
         : Applications.rootEntries(menuEntries, applications, query)
     readonly property var entries: Query.results(matchingEntries, query)
     readonly property int selectedIndex: results.currentIndex

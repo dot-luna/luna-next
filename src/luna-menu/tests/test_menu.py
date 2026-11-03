@@ -36,6 +36,11 @@ class MenuTests(unittest.TestCase):
         window = "\n".join(line for line in window.splitlines() if not line.strip().startswith(
             ("anchors { top: true;", "exclusionMode:", "WlrLayershell.")))
         path.write_text(window + "\n")
+        awake = directory / "StayAwake.qml"
+        source = awake.read_text().replace("PanelWindow {", "FloatingWindow {")
+        source = "\n".join(line for line in source.splitlines() if not line.strip().startswith(
+            ("anchors { top: true;", "exclusionMode:", "WlrLayershell.")))
+        awake.write_text(source + "\n")
         return directory
 
     def test_real_shell_validates_hidden_ui_and_rejects_invalid_theme_input(self):
@@ -131,6 +136,12 @@ ShellRoot {
 
     def test_real_ipc_show_resets_root_and_hide_toggle_control_visibility(self):
         shell = self.offscreen_shell()
+        awake = shell / "StayAwake.qml"
+        source = awake.read_text().replace("id: awake", "id: awake\n    readonly property alias testSurfaces: surfaces.instances", 1)
+        source = source.replace("id: surface\n", "id: surface\n            readonly property bool testInhibiting: inhibitor.enabled && inhibitor.window === surface\n", 1)
+        awake.write_text(source)
+        window = shell / "MenuWindow.qml"
+        window.write_text(window.read_text().replace("id: panel", "id: panel\n    readonly property alias testSurfaces: awake.testSurfaces", 1))
         path = shell / "shell.qml"
         source = path.read_text()
         # Inspect a private copy only; the production IPC surface stays limited.
@@ -144,17 +155,22 @@ ShellRoot {
                 query: shell.menuWindow.content.query});
         }
         function enterApps(): void { shell.menuWindow.content.activate(0); }
+        function awakeSurfaces(): string {
+            return JSON.stringify(shell.menuWindow.testSurfaces
+                .map(window => ({visible: window.visible, inhibiting: window.testInhibiting,
+                    maskEmpty: window.mask.width === 0 && window.mask.height === 0})));
+        }
     }
 }
 ''')
 
-        def ipc(target, method):
+        def ipc(target, method, *args):
             # `show` is also an IPC CLI subcommand. The terminator keeps it a method.
-            return subprocess.run([QUICKSHELL, "ipc", "-p", str(shell), "call", "--", target, method],
+            return subprocess.run([QUICKSHELL, "ipc", "-p", str(shell), "call", "--", target, method, *args],
                                   env=self.env, capture_output=True, text=True, timeout=3)
 
-        def call(target, method):
-            output = ipc(target, method)
+        def call(target, method, *args):
+            output = ipc(target, method, *args)
             self.assertEqual(output.returncode, 0, output.stdout + output.stderr)
             return output.stdout.strip()
 
@@ -191,6 +207,22 @@ ShellRoot {
                 call("menu", "toggle")
                 self.assertFalse(state()["visible"])
                 self.assertEqual(call("menu", "status"), "running")
+                self.assertEqual(call("menu", "stayAwake", "status"), "off")
+                self.assertEqual(call("menu", "stayAwake", "on"), "on")
+                self.assertEqual(call("menu", "stayAwake", "on"), "on")
+                self.assertFalse(state()["visible"])
+                surfaces = json.loads(call("test", "awakeSurfaces"))
+                self.assertTrue(surfaces)
+                self.assertTrue(all(surface["visible"] and surface["inhibiting"] and surface["maskEmpty"] for surface in surfaces))
+                call("menu", "show")
+                call("menu", "hide")
+                self.assertEqual(call("menu", "stayAwake", "status"), "on")
+                self.assertEqual(call("menu", "stayAwake", "invalid"), "invalid action")
+                self.assertEqual(call("menu", "stayAwake", "status"), "on")
+                self.assertEqual(call("menu", "stayAwake", "toggle"), "off")
+                self.assertTrue(all(not surface["visible"] and not surface["inhibiting"]
+                                    for surface in json.loads(call("test", "awakeSurfaces"))))
+                self.assertEqual(call("menu", "stayAwake", "off"), "off")
             finally:
                 try:
                     os.killpg(process.pid, signal.SIGTERM)
