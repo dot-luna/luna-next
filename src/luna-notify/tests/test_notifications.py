@@ -28,6 +28,10 @@ class NotificationTests(unittest.TestCase):
                         HOME=str(self.root / "home"), XDG_CONFIG_HOME=str(self.root / "config"),
                         XDG_DATA_HOME=str(self.root / "data"), XDG_RUNTIME_DIR=str(self.root / "runtime"),
                         XDG_CACHE_HOME=str(self.root / "cache"), QS_NO_RELOAD_POPUP="1")
+        # Luna-specific roots take precedence over HOME/XDG and must never reach the host.
+        for name in tuple(self.env):
+            if name.startswith("LUNA_"):
+                self.env.pop(name)
         for name in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE"):
             self.env.pop(name, None)
         theme = subprocess.run(["bun", "src/luna-cli/src/index.ts", "--json", "theme", "get"],
@@ -172,6 +176,18 @@ class NotificationTests(unittest.TestCase):
         self.notify(urgency=2, timeout=100)
         self.wait_for(lambda: len(self.state()["cards"]) == 1)
         self.assertEqual(self.state()["cards"][0]["duration"], 0)
+
+    def test_replacements_reset_changed_content_but_identical_payloads_have_no_native_event(self):
+        identifier = self.notify(timeout=1800)
+        self.wait_for(lambda: len(self.state()["cards"]) == 1)
+        self.ipc("test", "moveAway")
+        self.wait_for(lambda: self.state()["cards"][0]["remaining"] < 1300)
+        remaining = self.state()["cards"][0]["remaining"]
+        self.assertEqual(self.notify(timeout=1800, replace=identifier), identifier)
+        self.assertLessEqual(self.state()["cards"][0]["remaining"], remaining)
+        self.notify(title="Updated", timeout=1800, replace=identifier)
+        self.wait_for(lambda: self.state()["cards"][0]["remaining"] > 1600)
+        self.assertEqual(len(self.state()["entries"]), 1)
 
     def test_real_cli_confirms_ownership_and_restarts_the_daemon(self):
         repository = self.root / "checkout"

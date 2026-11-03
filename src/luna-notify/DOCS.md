@@ -15,7 +15,9 @@ Use `--install-dir PATH` for source QML instead of the installed
 
 Toasts appear at the top right of the focused monitor, with at most three live
 notifications. A new arrival expires the oldest when full. Replacements update
-an existing toast. Sender timeouts use milliseconds; the default is five seconds.
+an existing toast and reset expiry when content changes. Identical replacements
+retain the existing timer because Quickshell emits no update event for them.
+Sender timeouts use milliseconds; the default is five seconds.
 Critical alerts and timeout zero stay until dismissed or displaced. Hovering or
 keyboard interaction pauses expiry. Expired and closed content is discarded;
 there is no history, notification list, or persistence.

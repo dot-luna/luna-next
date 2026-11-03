@@ -19,7 +19,8 @@ Rectangle {
         ? 0 : notification.expireTimeout < 0 ? 5000 : notification.expireTimeout
     property real remaining: duration
     property real lastTick: Date.now()
-    readonly property string content: JSON.stringify([notification.summary, notification.body, notification.image,
+    readonly property string content: JSON.stringify([notification.appName, notification.desktopEntry, notification.resident, notification.transient,
+        notification.summary, notification.body, notification.image,
         notification.appIcon, notification.expireTimeout, notification.urgency,
         notification.actions.map(action => [action.identifier, action.text])])
 
@@ -28,7 +29,8 @@ Rectangle {
     function iconSource(value) {
         return value.startsWith("/") ? "file://" + value : value.includes(":") ? value : Quickshell.iconPath(value);
     }
-    // Replacement signals can arrive before dependent bindings settle.
+    // Changed-payload signals can arrive before dependent bindings settle. Quickshell
+    // emits no event for an identical replacement, so its remaining time is retained.
     onContentChanged: Qt.callLater(() => { remaining = duration; lastTick = Date.now(); })
     implicitHeight: body.implicitHeight + 28
     radius: Math.min(16, theme.appearance.rounding)

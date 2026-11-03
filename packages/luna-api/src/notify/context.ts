@@ -4,7 +4,7 @@ import { metadata } from "../lib/files.ts";
 import { ApiError } from "../lib/response.ts";
 
 export interface NotifyOptions {
-  /** Select source QML from this checkout instead of the installed notify. */
+  /** Select source QML from this checkout instead of the installed toast provider. */
   repository?: string;
   /** Replaces Bun.env for runtime paths, theme selection, and child processes. */
   env?: Record<string, string>;
@@ -34,7 +34,7 @@ export async function notifyContext(options: NotifyOptions) {
   if (!shell || !isAbsolute(shell) || /[\x00-\x1f\x7f]/u.test(shell))
     throw new ApiError(
       "INVALID_PATH",
-      "The notify requires an absolute configuration or checkout path",
+      "Notifications require an absolute configuration or checkout path",
     );
   if (!(await metadata(join(shell, "shell.qml")))?.isFile())
     throw new ApiError("INVALID_PATH", `Notify shell is missing: ${shell}`);
@@ -70,7 +70,6 @@ export async function command(context: NotifyContext, args: string[], allowFailu
 }
 
 export function ipc(context: NotifyContext, method: string, allowFailure = false) {
-  // show is also a Quickshell CLI subcommand; -- keeps it an IPC method name.
   return command(
     context,
     ["ipc", "-p", context.shellDirectory, "call", "--", "notify", method],
