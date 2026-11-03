@@ -122,6 +122,30 @@ test source QML. Apps, About, session actions, terminal commands, URLs, and brow
 search are available; other main sections remain placeholders.
 See [menu controls and appearance](../luna-menu/DOCS.md).
 
+## Wallpaper
+
+`luna wallpaper` shows renderer status. `start`, `stop`, `restart`, `reload`, and
+`status` control the renderer; `restart` replaces the process, while `reload`
+applies the current settings to the running renderer.
+
+Use `get [key]` to read saved settings, `get-config-file` to locate the JSONC,
+and `set <path>` to select absolute local media (`set ""` clears it). Settings
+commands are `fit <mode>`, `background <color>`, `pause-when-inactive <true|false>`,
+and `transition <type> [duration]`, with durations in milliseconds.
+
+The group accepts `--config PATH` for an explicit JSONC file and
+`--install-dir PATH` for source QML. Missing settings read as null; omitted values
+use renderer defaults. Settings commands validate and save the JSONC, then reload
+a running renderer. After direct file edits, run `luna wallpaper reload`.
+JSON mode returns the API response unchanged.
+
+```sh
+luna wallpaper set "$HOME/Pictures/wallpaper.png"
+luna wallpaper transition fade 300
+```
+
+See [wallpaper settings and setup](../luna-wallpaper/DOCS.md).
+
 ## Apps and web apps
 
 - `luna install [names...] [--force] [--install-dir PATH]`: install and configure

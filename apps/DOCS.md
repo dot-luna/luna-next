@@ -6,12 +6,13 @@ Apps can declare an optional `deps` array using the package objects shown in
 its hooks. Omit `deps` when no additional packages are needed.
 
 Use `deps` only for packages directly tied to the app, such as Zsh plugins.
-General tools, editors, and shared runtimes belong in `installs/`, usually in
+General tools and editors belong in `installs/`, usually in
 `later`; use an earlier stage when setup needs them.
 
-Each package must have one declaration. Do not add a dependency already listed in
-`installs/`, another app's `name`, or any app's `deps`. Put shared prerequisites in
-an earlier install stage and required apps earlier in `apps.jsonc`.
+App package names must be unique and absent from `installs/` and all app dependencies.
+Apps can repeat dependencies declared by other apps or `installs/` when their
+`source` and `version` agree; descriptive purposes can differ. Keep each app's
+required dependencies in its manifest so selecting that app installs them.
 
 Hooks run as the user with the app folder as their working directory and Luna's
 environment available. A nonzero exit stops that app's operation; completed steps

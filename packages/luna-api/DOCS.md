@@ -144,6 +144,36 @@ resolves one theme snapshot; no files are watched. Missing QML returns `INVALID_
 missing Quickshell or failed IPC returns `COMMAND_FAILED`.
 See the [menu docs](../../src/luna-menu/DOCS.md).
 
+## Wallpaper API
+
+`Luna.wallpaper` provides `get(key?, options?)`, `getConfigFile(options?)`,
+`set(source, options?)`, `configure(settings, options?)`, `start`, `stop`,
+`restart`, `reload`, and `status`. Lifecycle methods accept `options?` and return
+`{running, status, shellDirectory, configFile}`. Reload leaves a stopped renderer
+stopped; restart performs a full stop/start. Start preserves an existing instance.
+
+Options accept `env`, `repository` for source QML, and `configFile`. The file
+defaults to nonempty `LUNA_WALLPAPER_CONFIG`, then
+`$LUNA_CONFIG_HOME_DIR/wallpaper.jsonc`, `$XDG_CONFIG_HOME/luna/wallpaper.jsonc`,
+or `~/.config/luna/wallpaper.jsonc`. Explicit relative paths use the caller's working
+directory. Installed QML lives in the corresponding `wallpaper/` directory.
+
+Reads parse JSONC with Bun and validate with the feature's Zod schema in
+`src/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
+omitted values use renderer defaults without rewriting source. `get` returns sparse
+saved settings; missing dotted keys return null. Unknown fields are retained.
+See [wallpaper settings and dependencies](../../src/luna-wallpaper/DOCS.md).
+
+`set` changes `wallpaper.source`; an empty string clears media. `configure` merges
+supplied groups, validates, locks and atomically saves the normalized JSONC document,
+then explicitly reloads a running renderer and waits for media readiness. These
+mutations require installed or source QML and Quickshell. Read operations do not.
+Failed application restores the exact previous source and renderer settings when
+no detected external edit would be overwritten. Conflicts return `CONFLICT`;
+invalid documents return `INVALID_METADATA`, invalid patches `INVALID_ARGUMENT`,
+missing QML `INVALID_PATH`, and failed renderer commands/media `COMMAND_FAILED`.
+Direct file edits require `reload`; no files are watched.
+
 ## App API
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.

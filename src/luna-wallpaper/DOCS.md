@@ -2,35 +2,53 @@
 
 ## Dependencies
 
-| Dependency | Purpose |
-| --- | --- |
-| Linux, a Wayland compositor with layer-shell support, and graphics drivers | Wallpaper surfaces. |
-| Quickshell and Qt 6 Quick/QML/Wayland | Run the app. Needs `Quickshell.Io`, `Quickshell.Wayland`, and `Quickshell.Hyprland` modules. |
-| [LunaNext.Config](../../packages/hocon-qml/DOCS.md#build-and-install) | Read HOCON. Build/install and session import-path setup are in the module docs. |
-| FFmpeg (`ffprobe`) | Detect media by content, including extensionless files. |
-| [mpvpaper](https://github.com/GhostNaN/mpvpaper) and libmpv 0.38+ | Video and animated PNG playback. |
-| Coreutils (`mktemp`, `rm`) on `PATH` | Temporary video files and cleanup. |
-| Qt SVG and Qt Image Formats plugins | SVG and additional formats such as WebP. |
+| Dependency                                                                 | Purpose                                                                                      |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Linux, a Wayland compositor with layer-shell support, and graphics drivers | Wallpaper surfaces.                                                                          |
+| Quickshell and Qt 6 Quick/QML/Wayland                                      | Run the app. Needs `Quickshell.Io`, `Quickshell.Wayland`, and `Quickshell.Hyprland` modules. |
+| FFmpeg (`ffprobe`)                                                         | Detect media by content, including extensionless files.                                      |
+| [mpvpaper](https://github.com/GhostNaN/mpvpaper) and libmpv 0.38+          | Video and animated PNG playback.                                                             |
+| Coreutils (`mktemp`, `rm`) on `PATH`                                       | Temporary video files and cleanup.                                                           |
+| Qt SVG and Qt Image Formats plugins                                        | SVG and additional formats such as WebP.                                                     |
 
 ## Configuration
 
-Uses `LUNA_WALLPAPER_CONFIG` when nonempty, otherwise
-`$XDG_CONFIG_HOME/luna-next/wallpaper.conf` (default:
-`~/.config/luna-next/wallpaper.conf`). Relative environment paths use the working
-directory. Includes resolve relative to their source file.
+The [Luna CLI](../luna-cli/README.md) loads JSONC through the shared
+[Luna API](../../packages/luna-api/DOCS.md). JSON is also accepted. Configuration
+uses `--config <path>`, then nonempty `LUNA_WALLPAPER_CONFIG`, otherwise
+`$LUNA_CONFIG_HOME_DIR/wallpaper.jsonc`, `$XDG_CONFIG_HOME/luna/wallpaper.jsonc`,
+or `~/.config/luna/wallpaper.jsonc`. Relative paths use the working directory.
 
-Copy [example.conf](example.conf) to your config path. It lists every setting,
-accepted value, and default. The app reads at startup and on explicit reload;
-there is no file watcher. It does not copy the example or rewrite existing files.
+See [example.jsonc](example.jsonc) for every setting, accepted value, and default.
+Missing files and parent directories are created automatically. Empty files and
+omitted settings use defaults in memory. Unknown settings are preserved. Invalid
+known settings are rejected before they reach the renderer.
 
-The [luna CLI](../luna-cli/README.md) applies its config changes automatically.
-After direct file edits, run `luna wallpaper reload`. Reload keeps the window and
-unchanged media running; `restart` performs a full stop/start.
+## Commands
 
-Missing files and parent directories are created; empty files or omitted settings
-use defaults. [config.schema.json](src/config.schema.json) validates resolved
-settings once, without inserting defaults. Unknown settings are ignored. Invalid
-known settings or config/media failures leave a black background and log an error.
+```sh
+luna wallpaper start
+luna wallpaper set /absolute/path/to/wallpaper.png
+luna wallpaper get wallpaper.source
+luna wallpaper reload
+luna wallpaper restart
+luna wallpaper status
+luna wallpaper stop
+```
+
+`get` without a key returns the source settings; missing keys return `null`.
+Use `luna wallpaper --config /path/to/wallpaper.jsonc <command>` for another file.
+For a source checkout, add `--install-dir /absolute/path/to/luna-next` to renderer
+commands and mutations, for example `luna wallpaper start --install-dir "$PWD"`
+from the repository root. Use the same checkout for subsequent commands.
+`set` validates and saves atomically, then applies the change to a running
+renderer. Failed application restores the previous source when no external edit
+would be overwritten.
+
+After direct file edits, run `reload`. It sends a validated settings snapshot and
+keeps the window and unchanged media running. `restart` performs a full stop/start.
+The renderer reads no configuration files and has no file watcher. Media failures
+are reported through status and the Quickshell log.
 
 ## Playback
 
@@ -47,12 +65,12 @@ player and surface; a brief decoding gap can still occur when switching files.
 
 ## Tests
 
-After building the config module, run from the repository root:
+From the repository root:
 
 ```sh
 python3 -m unittest discover -s src/luna-wallpaper/tests -v
 ```
 
-Needs Python 3, Quickshell, FFmpeg, and the built config module. Tests run
-offscreen with a fake video player; they do not test live Wayland placement or
-hardware decoding.
+Needs Python 3, Bun, Quickshell, and FFmpeg. Tests load snapshots through the real
+Luna API and run offscreen with a fake video player; they do not test live Wayland
+placement or hardware decoding.

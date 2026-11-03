@@ -1,6 +1,6 @@
 # luna
 
-Luna CLI for setup, theme management, project information, and CLI updates.
+Luna CLI for setup, themes, wallpaper, project information, and CLI updates.
 
 Build and run from the repository root:
 

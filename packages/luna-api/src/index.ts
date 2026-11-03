@@ -6,8 +6,21 @@ import { apps } from "./apps/index.ts";
 import { webapp } from "./webapp/index.ts";
 import { menu } from "./menu/index.ts";
 import { defaults } from "./defaults/index.ts";
+import { wallpaper } from "./wallpaper/index.ts";
 
-export const Luna = { info, self: { install, update }, theme, apps, webapp, menu, defaults };
+export const Luna = {
+  info,
+  self: { install, update },
+  theme,
+  apps,
+  webapp,
+  menu,
+  defaults,
+  wallpaper,
+};
+
+export type { WallpaperOptions, WallpaperState } from "./wallpaper/context.ts";
+export type { WallpaperSettings } from "./wallpaper/schema.ts";
 
 export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./defaults/types.ts";
 

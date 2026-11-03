@@ -45,4 +45,5 @@ dofile(arg[1])
     expect(help.stdout.toString()).toContain(`Usage: luna ${args.join(" ")}`);
   }
   expect(commands.some((command) => command.includes("menu start"))).toBe(true);
+  expect(commands.some((command) => command.includes("wallpaper start"))).toBe(true);
 });

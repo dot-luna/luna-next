@@ -7,6 +7,7 @@ import { addThemeCommands } from "./theme/commands.ts";
 import { addAppCommands } from "./apps/commands.ts";
 import { addMenuCommands } from "./menu/commands.ts";
 import { addDefaultsCommands } from "./defaults/commands.ts";
+import { addWallpaperCommands } from "./wallpaper/commands.ts";
 
 import { addWebappCommands } from "./webapp/commands.ts";
 
@@ -47,6 +48,9 @@ export async function runCli(argv: string[]): Promise<number> {
     exitCode = value;
   });
   addDefaultsCommands(program, output, (value) => {
+    exitCode = value;
+  });
+  addWallpaperCommands(program, output, (value) => {
     exitCode = value;
   });
 

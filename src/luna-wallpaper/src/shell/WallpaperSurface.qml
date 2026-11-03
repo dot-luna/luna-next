@@ -54,7 +54,7 @@ PanelWindow {
     mask: Region {}
     WlrLayershell.layer: WlrLayer.Background
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    WlrLayershell.namespace: "luna-next-wallpaper"
+    WlrLayershell.namespace: "luna-wallpaper"
 
     function fail(message) {
         deadline.stop();
