@@ -104,6 +104,8 @@ export function install(): void {
       );
       installFile(file === desktop ? renderedDesktop : file, target);
     }
+    safePath(path.join(locations.dataHome, "applications/mimeinfo.cache"));
+    run(["update-desktop-database", path.join(locations.dataHome, "applications")]);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }

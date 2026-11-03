@@ -4,6 +4,11 @@
   "url": "https://github.com/dot-luna/whatly.git",
   "processes": ["whatly"],
   "deps": [
+    {
+      "name": "desktop-file-utils",
+      "source": "pacman",
+      "purpose": "Register Whatly's desktop URL handler",
+    },
     { "name": "gcc", "source": "pacman", "purpose": "Build Whatly's native client" },
     { "name": "cmake", "source": "pacman", "purpose": "Configure Whatly's native build" },
     { "name": "ninja", "source": "pacman", "purpose": "Build Whatly's native client" },

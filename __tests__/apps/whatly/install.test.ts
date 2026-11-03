@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
   );
   write(
     join(build, "desktop"),
-    "[Desktop Entry]\nType=Application\nName=Whatly\nExec=whatly %u\nIcon=whatly\nActions=Chat;\n\n[Desktop Action Chat]\nName=New Chat\nExec=whatly -n\n",
+    "[Desktop Entry]\nType=Application\nName=Whatly\nExec=whatly %u\nIcon=whatly\nMimeType=x-scheme-handler/whatsapp;\nActions=Chat;\n\n[Desktop Action Chat]\nName=New Chat\nExec=whatly -n\n",
   );
   for (const name of ["metadata", "LICENSE", "icon.svg"]) write(join(build, name), name);
   // Match upstream's absolute install destinations; --prefix alone would leak outside staging.
@@ -141,7 +141,23 @@ test("Whatly stages a real CMake build, installs custom paths and preserves prof
     expect(text).toContain("Name=Whatly\n");
     expect(text).toContain("Icon=whatly\n");
     expect(text).not.toContain("Exec=whatly");
+    expect(readFileSync(join(f.data, "applications/mimeinfo.cache"), "utf8")).toContain(
+      "x-scheme-handler/whatsapp=net.shakaran.whatly.desktop;",
+    );
     if (Bun.which("gio")) {
+      const registered = Bun.spawnSync([Bun.which("gio")!, "mime", "x-scheme-handler/whatsapp"], {
+        env: {
+          ...f.env,
+          XDG_CONFIG_HOME: join(f.root, "desktop config"),
+          XDG_CONFIG_DIRS: join(f.root, "system config"),
+          XDG_DATA_DIRS: join(f.root, "system data"),
+          GIO_USE_VFS: "local",
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(registered.exitCode, registered.stderr.toString()).toBe(0);
+      expect(registered.stdout.toString()).toContain("net.shakaran.whatly.desktop");
       rmSync(f.env.TEST_LAUNCH_LOG);
       const opened = Bun.spawnSync([Bun.which("gio")!, "launch", desktop, args[0]!], {
         env: { ...f.env, GIO_USE_VFS: "local" },
@@ -210,6 +226,7 @@ test("Whatly's indexed manifest declares a build without configuration exports",
     expect(manifest.deps?.map((dependency) => dependency.name)).toEqual(
       expect.arrayContaining([
         "gcc",
+        "desktop-file-utils",
         "cmake",
         "ninja",
         "qt6-tools",
