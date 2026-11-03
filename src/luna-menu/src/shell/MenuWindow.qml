@@ -86,7 +86,7 @@ PanelWindow {
             if (action === "about") {
                 Quickshell.execDetached(System.aboutCommand());
                 panel.dismissed();
-            } else if (action === "screensaver") {
+            } else if (action === "screensaver" || action === "lock") {
                 panel.hide();
                 applicationCommand.run(action);
             } else {

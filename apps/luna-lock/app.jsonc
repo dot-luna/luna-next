@@ -1,0 +1,21 @@
+{
+  "name": "luna-lock",
+  "source": "local",
+  "alias": ["lock"],
+  "alias_command": ["luna", "lock"],
+  "deps": [
+    {
+      "name": "quickshell",
+      "source": "pacman",
+      "purpose": "Render Luna's session lock and authenticate with PAM",
+    },
+  ],
+  "hooks": {
+    "before_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/reload.ts"],
+  },
+  "exports": [
+    { "source": "generated/shell/", "target": "lock/" },
+    { "source": "config/lock.jsonc", "target": "lock.jsonc" },
+  ],
+}

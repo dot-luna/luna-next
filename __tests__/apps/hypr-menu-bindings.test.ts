@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
 
-test("Hyprland opens System directly with Super+Esc and keeps Super+Space as the menu toggle", () => {
+test("Hyprland menu and lock shortcuts invoke the installed Luna commands", () => {
   const path = fileURLToPath(new URL("../../apps/hypr/config/bindings/apps.lua", import.meta.url));
   const script = `
 hl = { dsp = { exec_cmd = function(command) return command end } }
@@ -20,4 +20,5 @@ end)
   );
   expect(bindings["SUPER + Escape"]).toBe('"$HOME/.local/bin/luna" menu system');
   expect(bindings["SUPER + Space"]).toBe('"$HOME/.local/bin/luna" menu toggle');
+  expect(bindings["SUPER + L"]).toBe('"$HOME/.local/bin/luna" lock');
 });

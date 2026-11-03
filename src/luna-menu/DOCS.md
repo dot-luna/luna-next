@@ -12,7 +12,7 @@ when using source QML without `luna install luna-menu`.
 ## Controls
 
 Apps opens installed applications. System lists Screensaver, Lock, Suspend,
-Hibernate, Logout, Reboot, and Shutdown; Screensaver and the last three are active. About
+Hibernate, Logout, Reboot, and Shutdown; Screensaver, Lock, and the last three are active. About
 opens the same terminal as Super+Shift+F (requires Fastfetch). Other main sections remain
 placeholders. Hidden and NoDisplay desktop entries are excluded.
 
@@ -26,9 +26,10 @@ Typing alone never executes an action; press Enter or click its row.
 Reboot and Shutdown fade to black with a five-second countdown. Esc or Cancel
 returns to System before execution; hiding or reopening also cancels a pending
 countdown. Logout runs immediately. Native authorization and inhibitors apply.
-Failed requests display an error; Esc returns to System. Screensaver dismisses
-the menu immediately and runs `~/.local/bin/luna screensaver`, without a countdown.
-Install `luna-screensaver` to use it; startup failures are logged.
+Failed requests display an error; Esc returns to System. Screensaver and Lock dismiss
+the menu immediately and run `~/.local/bin/luna screensaver` or `~/.local/bin/luna lock`,
+without a countdown. Install `luna-screensaver` or `luna-lock` to use them;
+startup failures are logged.
 
 Up/Down and Tab/Shift+Tab select results. Home/End jump to either end; Page Up/Down
 move a visible page. Enter or click opens an entry. Escape, Alt+Left, or Backspace
