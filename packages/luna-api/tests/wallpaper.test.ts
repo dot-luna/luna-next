@@ -245,6 +245,31 @@ test("failed asynchronous media reload restores the exact source and previous re
   expect(f.commands().filter((c) => c.args.includes("kill"))).toHaveLength(0);
 });
 
+test("failed mutation restores active settings independently of unreloaded disk edits", async () => {
+  f.source('{"wallpaper":{"source":"/active.png","fit":"center"}}');
+  await Luna.wallpaper.start(f.options);
+  const edited =
+    '// pending manual edit\n{"wallpaper":{"source":"/unreloaded.png","fit":"tile"}}\n';
+  f.source(edited);
+  expect(await Luna.wallpaper.set("/broken.png", f.options)).toMatchObject({
+    succes: false,
+    err: "COMMAND_FAILED",
+  });
+  expect(f.read()).toBe(edited);
+  expect(f.state()).toMatchObject({
+    status: "ready",
+    settings: { wallpaper: { source: "/active.png", fit: "center" } },
+  });
+});
+
+test("startup waits for valid media beyond the old ten-second API deadline", async () => {
+  f.env.LUNA_TEST_READY_DELAY = "11000";
+  expect(await Luna.wallpaper.start(f.options)).toMatchObject({
+    succes: true,
+    data: { running: true, status: "ready" },
+  });
+}, 15000);
+
 test("rejected reload restores source, while an external edit prevents obsolete source and renderer recovery", async () => {
   f.source("{}\n");
   await Luna.wallpaper.start(f.options);

@@ -2,7 +2,7 @@ import { locked, writeFile } from "../lib/files.ts";
 import { ApiError, respond } from "../lib/response.ts";
 import { wallpaperContext, type WallpaperOptions } from "./context.ts";
 import { lookup, patchSettings, readSettings } from "./settings.ts";
-import { rendererContext, reload, start, state, stop } from "./runtime.ts";
+import { rendererContext, reload, snapshot, start, state, stop } from "./runtime.ts";
 
 async function operate(
   action: "status" | "start" | "stop" | "restart" | "reload",
@@ -29,6 +29,7 @@ async function configure(patch: unknown, options: WallpaperOptions) {
     const value = patchSettings(previous.value, patch);
     const renderer = await rendererContext(context);
     const running = (await state(renderer)).running;
+    const active = running ? await snapshot(renderer) : null;
     const next = JSON.stringify(value, null, 2) + "\n";
     await writeFile(context.configFile, next, previous.source);
     if (!running) return value;
@@ -46,7 +47,7 @@ async function configure(patch: unknown, options: WallpaperOptions) {
         );
       }
       try {
-        await reload(renderer, previous.value);
+        if (active !== null) await reload(renderer, active);
       } catch (recovery) {
         throw new ApiError(
           "COMMAND_FAILED",

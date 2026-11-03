@@ -73,6 +73,7 @@ beforeEach(() => {
       `  if (!existsSync(state)) process.exit(1);\n` +
       `  const method = args[args.indexOf("wallpaper") + 1];\n` +
       `  if (method === "status") console.log(readFileSync(state, "utf8"));\n` +
+      `  else if (method === "snapshot") console.log(existsSync(snapshot) ? readFileSync(snapshot, "utf8") : "{}");\n` +
       `  else if (method === "reload") { writeFileSync(snapshot, args.at(-1)); console.log("ok"); }\n` +
       `  else process.exit(9);\n` +
       `} else if (args[0] === "kill") { if (existsSync(state)) unlinkSync(state); }\n` +

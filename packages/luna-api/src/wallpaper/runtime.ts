@@ -2,6 +2,7 @@ import { realpath } from "node:fs/promises";
 import { join } from "pathe";
 import { metadata } from "../lib/files.ts";
 import { ApiError } from "../lib/response.ts";
+import { wallpaperSettingsSchema } from "./schema.ts";
 import type { WallpaperContext, WallpaperState } from "./context.ts";
 import type { WallpaperSettings } from "./schema.ts";
 
@@ -68,7 +69,9 @@ export async function state(context: RendererContext): Promise<WallpaperState> {
 }
 
 async function ready(context: RendererContext) {
-  const deadline = Date.now() + 10000;
+  // Probing/images allow 20s; video can then need another 15s. Leave room for
+  // process startup and IPC so the renderer owns media failure decisions.
+  const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
     const current = await state(context);
     if (current.status === "ready") return current;
@@ -83,6 +86,17 @@ async function ready(context: RendererContext) {
     "COMMAND_FAILED",
     "Wallpaper did not become ready; inspect the Quickshell log",
   );
+}
+
+/** The active snapshot can differ from disk after direct edits without reload. */
+export async function snapshot(context: RendererContext): Promise<WallpaperSettings | null> {
+  const result = await ipc(context, "snapshot");
+  try {
+    const value: unknown = JSON.parse(result.stdout);
+    return value === null ? null : wallpaperSettingsSchema.parse(value);
+  } catch (error) {
+    throw new ApiError("COMMAND_FAILED", `Invalid wallpaper renderer snapshot: ${String(error)}`);
+  }
 }
 
 export async function start(context: RendererContext, settings: WallpaperSettings) {

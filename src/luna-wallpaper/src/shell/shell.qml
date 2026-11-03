@@ -7,7 +7,7 @@ import Quickshell.Io
 ShellRoot {
     id: shell
 
-    property var settings: null
+    property var wallpaperSettings: null
     property string settingsStatus: "loading"
 
     // The Luna API owns JSONC parsing and validation. Publish its JSON snapshot
@@ -15,11 +15,11 @@ ShellRoot {
     function loadSettings(snapshot) {
         try {
             const next = JSON.parse(snapshot);
-            settings = next;
+            wallpaperSettings = next;
             settingsStatus = "ready";
             return "ok";
         } catch (error) {
-            if (!settings)
+            if (!wallpaperSettings)
                 settingsStatus = "error";
             console.warn("Luna wallpaper settings: " + error.message);
             return "error: " + error.message;
@@ -35,7 +35,7 @@ ShellRoot {
     WallpaperSurface {
         id: surface
         screen: Quickshell.screens[0] || null
-        settings: shell.settings
+        settings: shell.wallpaperSettings
     }
 
     IpcHandler {
@@ -45,6 +45,10 @@ ShellRoot {
         // status() until asynchronous probing, decoding, or player updates finish.
         function reload(settings: string): string {
             return shell.loadSettings(settings);
+        }
+
+        function snapshot(): string {
+            return JSON.stringify(shell.wallpaperSettings);
         }
 
         function status(): string {

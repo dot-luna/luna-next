@@ -44,7 +44,7 @@ INSPECTOR = '''
                 for (const child of (item.children || [])) visit(child);
             }
             visit(surface);
-            return JSON.stringify({settings: shell.settings, settingsStatus: shell.settingsStatus,
+            return JSON.stringify({settings: shell.wallpaperSettings, settingsStatus: shell.settingsStatus,
                 renderSettings: surface.settings, status: surface.mediaStatus, kind: surface.kind,
                 images: images, videos: videos, visible: surface.visible,
                 fillModes: {fill: Image.PreserveAspectCrop, fit: Image.PreserveAspectFit,
@@ -167,6 +167,11 @@ Item {
                                 env=self.env, text=True, capture_output=True, timeout=3, check=True)
         return result.stdout.strip()
 
+    def renderer_snapshot(self):
+        result = subprocess.run(["qs", "ipc", "-p", str(self.renderer), "call", "wallpaper", "snapshot"],
+                                env=self.env, text=True, capture_output=True, timeout=3, check=True)
+        return json.loads(result.stdout)
+
     def test_public_status_reports_ready_and_snapshot_or_media_errors(self):
         self.write_config()
         self.assertEqual(self.start()["status"], "ready")
@@ -217,6 +222,7 @@ Item {
         time.sleep(0.3)
         latest = self.state()
         self.assertEqual(latest["settings"], first["settings"])
+        self.assertEqual(self.renderer_snapshot(), first["settings"])
         self.assertEqual(latest["status"], first["status"])
         self.assertEqual(latest["images"][0]["source"], first["images"][0]["source"])
 

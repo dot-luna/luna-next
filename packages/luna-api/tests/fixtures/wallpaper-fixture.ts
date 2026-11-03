@@ -34,7 +34,7 @@ const file = Bun.env.LUNA_TEST_STATE;
 let state = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {running: false};
 if (args.includes('--daemonize')) {
   if (Bun.env.LUNA_TEST_START_FAIL) { console.error('startup fixture failure'); process.exit(7); }
-  state = {running: true, settings: JSON.parse(Bun.env.LUNA_WALLPAPER_SETTINGS), status: 'ready'};
+  state = {running: true, settings: JSON.parse(Bun.env.LUNA_WALLPAPER_SETTINGS), status: 'ready', readyAt: Date.now() + Number(Bun.env.LUNA_TEST_READY_DELAY || 0)};
 } else if (args[0] === 'kill') state.running = false;
 else if (args[0] === 'ipc') {
   if (!state.running) process.exit(1);
@@ -42,8 +42,11 @@ else if (args[0] === 'ipc') {
   if (marker < 0 || args[marker + 1] !== 'wallpaper') process.exit(2);
   const method = args[marker + 2];
   if (method === 'status') {
-    if (state.loading) { state.loading--; console.log('loading'); }
+    if (Date.now() < state.readyAt) console.log('loading');
+    else if (state.loading) { state.loading--; console.log('loading'); }
     else console.log(state.status);
+  } else if (method === 'snapshot') {
+    console.log(JSON.stringify(state.settings));
   } else if (method === 'reload') {
     const settings = JSON.parse(args[marker + 3]);
     const broken = settings.wallpaper?.source?.includes('broken');
