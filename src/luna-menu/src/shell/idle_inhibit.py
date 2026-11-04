@@ -16,11 +16,16 @@ PATH = "/org/freedesktop/ScreenSaver"
 class ScreenSaver(dbus.service.Object):
     """Each cookie belongs to its calling connection and expires on disconnect."""
 
+    SUPPORTS_MULTIPLE_OBJECT_PATHS = True
+
     def __init__(self, bus, name):
         super().__init__(name, PATH)
         self.cookies = {}
         self.next_cookie = 0
         self.inhibited = None
+        # Firefox/VLC use /ScreenSaver; portal clients use the specification's path.
+        # Both endpoints share ownership and the same outstanding requests.
+        self.add_to_connection(bus, "/ScreenSaver")
         bus.add_signal_receiver(self.owner_changed, signal_name="NameOwnerChanged",
                                 dbus_interface="org.freedesktop.DBus")
         self.publish()

@@ -87,6 +87,18 @@ class IdleInhibitTests(unittest.TestCase):
         service.UnInhibit(main_cookie)
         self.state(False)
 
+    def test_application_paths_share_the_same_cookie_registry(self):
+        portal = self.start()
+        browser = dbus.Interface(self.bus.get_object(SERVICE, "/ScreenSaver"), SERVICE)
+        browser_cookie = browser.Inhibit("browser", "Watching a video")
+        self.state(True)
+        portal_cookie = portal.Inhibit("portal", "Presentation")
+        portal.UnInhibit(browser_cookie)
+        ready, _, _ = select.select([self.bridge.stdout], [], [], 0.1)
+        self.assertFalse(ready, "The portal's request remains active")
+        browser.UnInhibit(portal_cookie)
+        self.state(False)
+
     def test_does_not_replace_an_existing_provider(self):
         self.bus.request_name(SERVICE, dbus.bus.NAME_FLAG_DO_NOT_QUEUE)
         result = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True,

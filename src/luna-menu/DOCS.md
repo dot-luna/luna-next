@@ -45,6 +45,7 @@ Use `--install-dir PATH` to select source QML.
 
 The running menu also serves `org.freedesktop.ScreenSaver` on the session bus,
 translating application D-Bus idle-inhibit requests into Wayland inhibitors.
+Both `/ScreenSaver` and `/org/freedesktop/ScreenSaver` share the same requests.
 Requests remain active until their owner releases them or disconnects. They are
 separate from the manual Stay awake toggle, so switching it off cannot release
 a video's request. Keep `luna menu start` running for this bridge; a full Luna

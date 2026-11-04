@@ -233,7 +233,7 @@ deadline = time.monotonic() + 3
 while not bus.name_has_owner("org.freedesktop.ScreenSaver"):
     if time.monotonic() > deadline: raise RuntimeError("No idle-inhibit service")
     time.sleep(0.025)
-service = dbus.Interface(bus.get_object("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver"),
+service = dbus.Interface(bus.get_object("org.freedesktop.ScreenSaver", "/ScreenSaver"),
                          "org.freedesktop.ScreenSaver")
 cookie = service.Inhibit("fixture-video", "Watching a video")
 print(cookie, flush=True)
