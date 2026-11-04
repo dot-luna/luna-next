@@ -109,7 +109,10 @@ the media, Qt image decoding is attempted.
 
 Video loops silently with automatic hardware decoding when available. Personal
 mpv settings and scripts are disabled. Exiting the app stops its player. Pausing
-on sleeping or disabled outputs is supported on Hyprland.
+on sleeping or disabled outputs is supported on Hyprland. Playback also pauses
+while a fullscreen window covers the wallpaper's monitor and visible workspace,
+and resumes when uncovered. Maximized windows and fullscreen windows on other
+monitors or hidden workspaces do not pause it.
 
 Images remain visible while their replacement loads. Video changes reuse the
 player and surface; a brief decoding gap can still occur when switching files.

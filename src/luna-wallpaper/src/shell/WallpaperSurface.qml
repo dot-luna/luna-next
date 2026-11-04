@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import "Wallpaper.js" as Wallpaper
 
 // Own the image slots and reusable video backend for this output.
 PanelWindow {
@@ -40,7 +41,8 @@ PanelWindow {
     readonly property bool hasHyprland: !!Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")
     readonly property var monitor: hasHyprland && screen ? Hyprland.monitorFor(screen) : null
     readonly property bool outputActive: !monitor || !monitor.lastIpcObject || (monitor.lastIpcObject.dpmsStatus !== false && monitor.lastIpcObject.disabled !== true)
-    readonly property bool pauseMedia: (settings?.playback?.pause_when_output_inactive ?? true) && !outputActive
+    readonly property bool fullscreenCovered: Wallpaper.fullscreenCovered(monitor, Hyprland.toplevels.values)
+    readonly property bool pauseMedia: fullscreenCovered || ((settings?.playback?.pause_when_output_inactive ?? true) && !outputActive)
 
     visible: screen !== null
     anchors {
@@ -201,6 +203,23 @@ PanelWindow {
     Component.onCompleted: {
         completed = true;
         apply(false);
+    }
+
+    Connections {
+        target: Hyprland
+        enabled: surface.hasHyprland && surface.kind !== "image" && !!surface.sourcePath
+        onEnabledChanged: if (enabled) {
+            Hyprland.refreshMonitors();
+            Hyprland.refreshToplevels();
+        }
+        function onRawEvent(event) {
+            if (["fullscreen", "workspacev2", "focusedmon", "focusedmonv2", "activespecial",
+                 "activespecialv2", "movewindowv2", "openwindow", "closewindow",
+                 "monitoraddedv2", "monitorremoved"].includes(event.name)) {
+                Hyprland.refreshMonitors();
+                Hyprland.refreshToplevels();
+            }
+        }
     }
 
     Timer {

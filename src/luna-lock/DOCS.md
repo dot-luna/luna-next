@@ -27,6 +27,9 @@ defaults in memory; reads preserve the source.
 | `dpms_seconds` | 30 | Display power-off timeout while securely locked; 0 disables it. Idle inhibitors are ignored. |
 
 Both settings accept integers from 0 to 86400. See [example.jsonc](example.jsonc).
+The running [menu](../luna-menu/DOCS.md) bridges application D-Bus requests into
+Wayland idle inhibition. These prevent automatic locking, while manual locking
+and display power-off after a secure lock still work.
 
 ```sh
 luna lock

@@ -141,7 +141,7 @@ ShellRoot {
         source = source.replace("id: surface\n", "id: surface\n            readonly property bool testInhibiting: inhibitor.enabled && inhibitor.window === surface\n", 1)
         awake.write_text(source)
         window = shell / "MenuWindow.qml"
-        window.write_text(window.read_text().replace("id: panel", "id: panel\n    readonly property alias testSurfaces: awake.testSurfaces", 1))
+        window.write_text(window.read_text().replace("id: panel", "id: panel\n    readonly property alias testSurfaces: awake.testSurfaces\n    readonly property alias testApplicationInhibited: applicationInhibitor.inhibited", 1))
         path = shell / "shell.qml"
         source = path.read_text()
         # Inspect a private copy only; the production IPC surface stays limited.
@@ -155,6 +155,8 @@ ShellRoot {
                 query: shell.menuWindow.content.query});
         }
         function enterApps(): void { shell.menuWindow.content.activate(0); }
+        function busAddress(): string { return Quickshell.env("DBUS_SESSION_BUS_ADDRESS"); }
+        function applicationInhibited(): bool { return shell.menuWindow.testApplicationInhibited; }
         function awakeSurfaces(): string {
             return JSON.stringify(shell.menuWindow.testSurfaces
                 .map(window => ({visible: window.visible, inhibiting: window.testInhibiting,
@@ -223,6 +225,49 @@ ShellRoot {
                 self.assertTrue(all(not surface["visible"] and not surface["inhibiting"]
                                     for surface in json.loads(call("test", "awakeSurfaces"))))
                 self.assertEqual(call("menu", "stayAwake", "off"), "off")
+
+                client = subprocess.Popen(["/usr/bin/python3", "-u", "-c", '''
+import dbus, sys, time
+bus = dbus.SessionBus()
+deadline = time.monotonic() + 3
+while not bus.name_has_owner("org.freedesktop.ScreenSaver"):
+    if time.monotonic() > deadline: raise RuntimeError("No idle-inhibit service")
+    time.sleep(0.025)
+service = dbus.Interface(bus.get_object("org.freedesktop.ScreenSaver", "/ScreenSaver"),
+                         "org.freedesktop.ScreenSaver")
+cookie = service.Inhibit("fixture-video", "Watching a video")
+print(cookie, flush=True)
+sys.stdin.readline()
+service.UnInhibit(cookie)
+'''], env=dict(self.env, DBUS_SESSION_BUS_ADDRESS=call("test", "busAddress")),
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                try:
+                    self.assertTrue(client.stdout.readline().strip(), "The D-Bus client must acquire inhibition")
+                    deadline = time.monotonic() + 3
+                    while call("test", "applicationInhibited") != "true":
+                        if time.monotonic() >= deadline:
+                            self.fail("Application inhibition did not reach QML:\n" + log_path.read_text())
+                        time.sleep(0.025)
+                    self.assertEqual(call("menu", "stayAwake", "status"), "off")
+                    self.assertTrue(all(surface["inhibiting"] for surface in json.loads(call("test", "awakeSurfaces"))))
+                    call("menu", "stayAwake", "on")
+                    call("menu", "stayAwake", "off")
+                    self.assertTrue(all(surface["inhibiting"] for surface in json.loads(call("test", "awakeSurfaces"))))
+                    call("menu", "stayAwake", "on")
+                    client.communicate("release\n", timeout=5)
+                    self.assertEqual(client.returncode, 0)
+                    deadline = time.monotonic() + 3
+                    while call("test", "applicationInhibited") != "false":
+                        if time.monotonic() >= deadline:
+                            self.fail("Application inhibition was not released")
+                        time.sleep(0.025)
+                    self.assertTrue(all(surface["inhibiting"] for surface in json.loads(call("test", "awakeSurfaces"))))
+                    self.assertEqual(call("menu", "stayAwake", "off"), "off")
+                    self.assertTrue(all(not surface["inhibiting"] for surface in json.loads(call("test", "awakeSurfaces"))))
+                finally:
+                    if client.poll() is None:
+                        client.kill()
+                        client.communicate(timeout=5)
             finally:
                 try:
                     os.killpg(process.pid, signal.SIGTERM)

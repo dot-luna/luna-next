@@ -57,11 +57,16 @@ else process.exit(2);
     const destination = join(f.home, ".config/luna/menu");
     expect(readFileSync(join(destination, "shell.qml"), "utf8")).toContain("LUNA_MENU_THEME");
     expect(readFileSync(join(destination, "icons/LICENSE.md"), "utf8")).toContain("Hugeicons");
+    expect(readFileSync(join(destination, "idle_inhibit.py"), "utf8")).toContain(
+      "org.freedesktop.ScreenSaver",
+    );
     expect(readFileSync(qsLog, "utf8")).not.toContain("--daemonize");
     expect(f.commands().some((c) => c.name === "sudo" && c.args.includes("quickshell"))).toBe(true);
     expect(
       f.commands().some((c) => c.name === "sudo" && c.args.includes("xdg-terminal-exec")),
     ).toBe(true);
+    for (const dependency of ["python-dbus", "python-gobject"])
+      expect(f.commands().some((c) => c.name === "sudo" && c.args.includes(dependency))).toBe(true);
     f.write(f.home, ".config/luna/menu/stale.qml", "remove");
     writeFileSync(running, "running");
     expect(await Luna.apps.configure(["luna-menu"], options)).toMatchObject({

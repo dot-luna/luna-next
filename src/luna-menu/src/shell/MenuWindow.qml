@@ -15,7 +15,7 @@ PanelWindow {
     required property var theme
     property bool opened: false
     readonly property alias content: menuContent
-    property alias stayAwake: awake.enabled
+    property bool stayAwake: false
     signal dismissed()
 
     visible: opened
@@ -49,7 +49,9 @@ PanelWindow {
 
     onDismissed: hide()
 
-    StayAwake { id: awake }
+    ApplicationInhibitor { id: applicationInhibitor }
+    // Manual state stays separate: switching it off cannot release a video's request.
+    StayAwake { id: awake; enabled: panel.stayAwake || applicationInhibitor.inhibited }
 
     Timer {
         id: focusDelay
