@@ -5,7 +5,7 @@ import QtQuick.Window
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import "Applications.js" as Applications
-import "System.js" as System
+import "Menu.js" as Menu
 import "Query.js" as Query
 
 Rectangle {
@@ -15,23 +15,14 @@ Rectangle {
     property var applications: []
     property bool stayAwake: false
     property string section: "root"
+    // Only visited parents belong here; directly opened sections have no back target.
+    property var sectionHistory: []
     readonly property bool appsView: section === "apps"
     readonly property string query: search.text
-    readonly property var menuEntries: [
-        {name: "Apps", icon: "grid-view", route: "apps"},
-        {name: "Insert", icon: "smile"},
-        {name: "Learn", icon: "book-open-01"},
-        {name: "Trigger", icon: "flash"},
-        {name: "Style", icon: "paint-board"},
-        {name: "Setup", icon: "settings-02"},
-        {name: "Install", icon: "download-01"},
-        {name: "Remove", icon: "delete-02"},
-        {name: "About", icon: "information-circle", action: "about"},
-        {name: "System", icon: "power-service", route: "system"}
-    ]
+    readonly property var menuEntries: Menu.entries(stayAwake)
     readonly property var matchingEntries: appsView ? Applications.find(applications, query)
-        : section === "system" ? Applications.sections(System.entries(stayAwake), query)
-        : Applications.rootEntries(menuEntries, applications, query)
+        : Menu.search(Menu.children(menuEntries, section), query).concat(
+            section === "root" && query.trim() ? Applications.find(applications, query) : [])
     readonly property var entries: Query.results(matchingEntries, query)
     readonly property int selectedIndex: results.currentIndex
     readonly property var selectedEntry: entries[selectedIndex] || null
@@ -55,13 +46,26 @@ Rectangle {
 
     function focusSearch() { search.forceActiveFocus(Qt.OtherFocusReason); }
     function reset(destination) {
+        sectionHistory = [];
+        showSection(destination);
+    }
+    function showSection(destination) {
         section = destination || "root";
         search.clear();
         results.currentIndex = entries.length ? 0 : -1;
         results.positionViewAtBeginning();
     }
+    function navigate(destination) {
+        sectionHistory = sectionHistory.concat([section]);
+        showSection(destination);
+        focusSearch();
+    }
     function back() {
-        if (section !== "root" || query !== "") reset();
+        if (sectionHistory.length) {
+            const previous = sectionHistory[sectionHistory.length - 1];
+            sectionHistory = sectionHistory.slice(0, -1);
+            showSection(previous);
+        } else if (section === "root" && query !== "") reset();
         else dismissed();
         focusSearch();
     }
@@ -85,9 +89,7 @@ Rectangle {
         const entry = entries[index];
         if (!entry) return;
         if (entry.route) {
-            section = entry.route;
-            search.clear();
-            focusSearch();
+            navigate(entry.route);
         } else if (entry.queryAction) {
             queryActivated(entry);
         } else if (entry.action) {
@@ -172,7 +174,9 @@ Rectangle {
                     selectionColor: card.theme.colors.accent
                     background: Item {}
                     Accessible.name: card.appsView ? "Search applications"
-                        : card.section === "system" ? "Search system actions" : "Search menu"
+                        : card.section === "system" ? "Search system actions"
+                        : card.section === "toggles" ? "Search toggles"
+                        : card.section === "trigger" ? "Search triggers" : "Search menu"
                     Accessible.description: card.selectedEntry ? card.selectedEntry.name : "No matching entries"
                     Keys.priority: Keys.BeforeItem
                     Keys.onPressed: event => card.handleKey(event)

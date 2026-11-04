@@ -11,13 +11,16 @@ when using source QML without `luna install luna-menu`.
 
 ## Controls
 
-Apps opens installed applications. System lists Screensaver, Lock, Stay awake,
+Apps opens installed applications. Trigger → Toggles contains Stay awake.
+System lists Screensaver, Lock,
 Suspend, Hibernate, Logout, Reboot, and Shutdown; Suspend and Hibernate are placeholders. About
 opens the same terminal as Super+Shift+F (requires Fastfetch). Other main sections remain
 placeholders. Hidden and NoDisplay desktop entries are excluded.
 
-Typing at the root searches sections and applications; Apps and System searches
-stay within their section. A nonempty query always adds Search in browser last
+Typing at the root searches all nested menu entries and applications. Each submenu
+searches its descendants; Apps searches applications. Nested results show their
+menu path, which can also be searched (for example, `system lock`).
+A nonempty query always adds Search in browser last
 (DuckDuckGo in the default browser). A web URL or domain offers Open in browser
 first. `!command` offers Run in terminal first, using the default terminal and
 `$SHELL` (otherwise `/bin/sh`). Terminal output stays until a silent keypress.
@@ -36,13 +39,15 @@ when the menu closes, preventing Luna's automatic screensaver and locking. Manua
 Screensaver and Lock still work; display power saving while locked is unchanged.
 It starts off and resets when the menu process stops or the session ends.
 The compositor must support `idle-inhibit-unstable-v1`.
-`luna stay-awake [on|off|toggle|status]` controls the same state (default: toggle);
+`luna toggle stay-awake [on|off|toggle|status]` controls the same state (default: toggle);
 on/toggle start a hidden menu when needed. Status/off leave a stopped menu stopped.
 Use `--install-dir PATH` to select source QML.
 
 Up/Down and Tab/Shift+Tab select results. Home/End jump to either end; Page Up/Down
 move a visible page. Enter or click opens an entry. Escape, Alt+Left, or Backspace
-in an empty Apps or System search returns to the root; Escape at the root dismisses.
+in an empty submenu search returns to the previously visited menu. A directly
+opened submenu, including System via Super+Esc, dismisses instead. Escape at the
+root dismisses, or clears a nonempty search first.
 The clear button resets the query. Any mouse button outside dismisses the menu,
 including on other monitors. Opening resets the search on the focused monitor.
 

@@ -1,5 +1,5 @@
-import { Luna, type MenuOptions, type StayAwakeAction } from "@luna/api";
-import { Argument, type Command } from "commander";
+import { Luna, type MenuOptions } from "@luna/api";
+import type { Command } from "commander";
 import type { createOutput } from "../lib/output.ts";
 
 export function addMenuCommands(
@@ -25,24 +25,4 @@ export function addMenuCommands(
   group.action(() => run("show"));
   for (const action of ["show", "system", "hide", "toggle", "start", "stop", "status"] as const)
     group.command(action).action(() => run(action));
-
-  const awake = program
-    .command("stay-awake")
-    .description("Toggle automatic idle inhibition until the menu stops")
-    .addArgument(
-      new Argument("[action]", "Stay awake control")
-        .choices(["on", "off", "toggle", "status"])
-        .default("toggle"),
-    )
-    .option("--install-dir <path>", "Luna source checkout")
-    .action(async (action: StayAwakeAction) => {
-      setExitCode(
-        output.response(
-          await Luna.menu.stayAwake(action, {
-            repository: awake.opts<{ installDir?: string }>().installDir,
-          }),
-          (state) => `Stay awake: ${state.enabled ? "on" : "off"}`,
-        ),
-      );
-    });
 }

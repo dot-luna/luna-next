@@ -308,8 +308,8 @@ TestCase {
         keyClick(Qt.Key_Return);
         check(card.section, "system");
         check(input.text, "");
-        check(card.entries.map(entry => entry.name).join(","), "Screensaver,Lock,Stay awake,Suspend,Hibernate,Logout,Reboot,Shutdown");
-        for (let index = 3; index < 5; index++) {
+        check(card.entries.map(entry => entry.name).join(","), "Screensaver,Lock,Suspend,Hibernate,Logout,Reboot,Shutdown");
+        for (let index = 2; index < 4; index++) {
             card.activate(index);
             check(action, null);
         }
@@ -323,12 +323,95 @@ TestCase {
         keyClick(Qt.Key_Escape);
         check(card.section, "root");
         check(input.text, "");
-        card.reset("system");
+        for (const key of [Qt.Key_Backspace, Qt.Key_Left]) {
+            input.text = "system";
+            keyClick(Qt.Key_Return);
+            keyClick(key, key === Qt.Key_Left ? Qt.AltModifier : Qt.NoModifier);
+            check(card.section, "root");
+        }
+    }
+
+    function test_parent_search_finds_every_nested_child_with_its_path() {
+        for (const name of ["screensaver", "lock", "logout", "reboot", "shutdown", "stay awake"]) {
+            input.text = name;
+            const entry = card.entries.find(entry => entry.action === name.replace(" ", "-"));
+            verify(entry !== undefined, "Root finds " + name);
+            verify(entry.parentName.length > 0);
+        }
+        input.text = "system lock";
+        check(card.entries[0].action, "lock");
+        check(card.entries[0].parentName, "System");
+        keyClick(Qt.Key_Return);
+        check(action, "lock");
+        input.text = "trigger toggles stay awake";
+        check(card.entries[0].action, "stay-awake");
+        check(card.entries[0].parentName, "Trigger › Toggles");
+        card.stayAwake = true;
+        check(card.entries[0].checked, true, "Search results keep live toggle state");
+        const list = findChild(card, "applicationList");
+        list.forceLayout();
+        verify(waitForRendering(card));
+        check(findChild(card, "applicationRow0").entry.parentName, "Trigger › Toggles");
+
+        card.reset("trigger");
+        check(card.entries.map(entry => entry.name).join(","), "Toggles");
+        input.text = "stay awake";
+        check(card.entries[0].action, "stay-awake");
+        check(card.entries[0].parentName, "Toggles");
+        input.text = "lock";
+        check(card.entries.length, 1, "Search stays within the current parent's descendants");
+        check(card.entries[0].queryAction, "search");
+    }
+
+    function test_trigger_toggles_navigation_returns_through_visited_parents() {
+        card.activate(card.entries.findIndex(entry => entry.route === "trigger"));
+        check(card.section, "trigger");
+        keyClick(Qt.Key_Return);
+        check(card.section, "toggles");
+        check(card.entries.length, 1);
+        check(card.entries[0].action, "stay-awake");
+        keyClick(Qt.Key_Return);
+        check(action, "stay-awake");
+        keyClick(Qt.Key_Escape);
+        check(card.section, "trigger");
         keyClick(Qt.Key_Backspace);
         check(card.section, "root");
-        card.reset("system");
-        keyClick(Qt.Key_Left, Qt.AltModifier);
+        check(dismissed, 0);
+        keyClick(Qt.Key_Escape);
+        check(dismissed, 1);
+    }
+
+    function test_search_navigation_returns_to_the_parent_that_was_actually_visited() {
+        input.text = "toggles";
+        keyClick(Qt.Key_Return);
+        check(card.section, "toggles");
+        keyClick(Qt.Key_Escape);
         check(card.section, "root");
+        check(input.text, "");
+        check(dismissed, 0);
+    }
+
+    function test_directly_opened_sections_dismiss_without_inventing_a_parent() {
+        for (const section of ["system", "apps", "trigger", "toggles"]) {
+            for (const query of ["", "some query"]) {
+                card.reset();
+                card.activate(0);
+                card.reset(section);
+                input.text = query;
+                const before = dismissed;
+                keyClick(Qt.Key_Escape);
+                check(dismissed, before + 1);
+                check(card.section, section);
+            }
+        }
+    }
+
+    function test_requested_system_icons_are_used() {
+        const entries = System.entries();
+        check(entries.find(entry => entry.action === "screensaver").icon, "play");
+        check(entries.find(entry => entry.action === "lock").icon, "ai-lock");
+        check(entries.find(entry => entry.action === "shutdown").icon, "shut-down");
+        verify(entries.every(entry => entry.action !== "stay-awake"));
     }
 
     function test_about_uses_the_fastfetch_terminal_and_unknown_actions_have_no_command() {
@@ -423,7 +506,7 @@ TestCase {
     }
 
     function test_url_opening_and_final_browser_search_work_in_every_section() {
-        for (const section of ["root", "apps", "system"]) {
+        for (const section of ["root", "apps", "system", "trigger", "toggles"]) {
             card.reset(section);
             input.text = "editor";
             check(card.entries[card.entries.length - 1].queryAction, "search");
@@ -466,6 +549,7 @@ TestCase {
     function test_stay_awake_keyboard_mouse_and_hidden_menu_lifetime() {
         const window = sessionWindow();
         const content = window.content;
+        window.show("toggles");
         content.focusSearch();
         tryCompare(findChild(content, "searchInput"), "activeFocus", true);
         const index = content.entries.findIndex(entry => entry.action === "stay-awake");
@@ -484,7 +568,7 @@ TestCase {
         check(findChild(row, "toggleState").text, "On");
         window.hide();
         check(window.stayAwake, true, "Hiding preserves stay awake");
-        window.show("system");
+        window.show("toggles");
         content.focusSearch();
         const reopenedRow = findChild(content, "applicationRow" + index);
         verify(waitForRendering(reopenedRow));
@@ -562,6 +646,28 @@ TestCase {
         power.updateCountdown(Date.now() + 10000);
         check(process.finished, false);
         window.hide();
+    }
+
+    function test_window_escape_closes_direct_system_even_after_cancelling_power() {
+        const window = sessionWindow();
+        const content = window.content;
+        content.focusSearch();
+        tryCompare(findChild(content, "searchInput"), "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        check(window.opened, false);
+        window.show();
+        content.activate(content.entries.findIndex(entry => entry.route === "system"));
+        content.activate(content.entries.findIndex(entry => entry.action === "reboot"));
+        keyClick(Qt.Key_Escape);
+        keyClick(Qt.Key_Escape);
+        check(content.section, "root", "Cancelling power preserves navigation from root");
+        check(window.opened, true);
+        window.show("system");
+        content.activate(content.entries.findIndex(entry => entry.action === "reboot"));
+        keyClick(Qt.Key_Escape);
+        check(window.opened, true);
+        keyClick(Qt.Key_Escape);
+        check(window.opened, false, "Cancelling power preserves a direct opening");
     }
 
     function test_failed_session_request_shows_an_error_and_escape_restores_the_system_menu() {

@@ -122,8 +122,9 @@ test source QML. Apps, About, session actions, terminal commands, URLs, and brow
 search are available; other main sections remain placeholders.
 See [menu controls and appearance](../luna-menu/DOCS.md).
 
-`luna stay-awake [on|off|toggle|status]` toggles automatic idle inhibition by
-default. System → Stay awake controls the same state. On/toggle start a hidden
+`luna toggle` lists available toggles.
+`luna toggle stay-awake [on|off|toggle|status]` toggles automatic idle inhibition by
+default. Trigger → Toggles → Stay awake controls the same state. On/toggle start a hidden
 menu if needed; closing the menu keeps inhibition active, while stopping its
 process resets it. Accepts `--install-dir PATH` and global `--json`.
 

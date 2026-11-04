@@ -209,12 +209,24 @@ test("stay awake rejects invalid actions and unexpected IPC responses", async ()
   ).toMatchObject({ succes: false, err: "COMMAND_FAILED" });
 });
 
-test("stay-awake CLI supports toggle, explicit state, JSON, and argument errors", () => {
+test("toggle stay-awake CLI supports toggle, explicit state, JSON, and argument errors", () => {
   const f = fixture();
   const cli = new URL("../../../src/luna-cli/src/index.ts", import.meta.url).pathname;
   const run = (args: string[]) =>
     Bun.spawnSync([process.execPath, cli, ...args], { env: f.options.env });
-  expect(run(["stay-awake"]).stdout.toString()).toBe("Stay awake: on\n");
+  const help = run(["toggle"]);
+  expect(help.exitCode).toBe(0);
+  expect(help.stdout.toString()).toContain("stay-awake");
+  for (const action of ["status", "off"]) {
+    const stopped = run(["--json", "toggle", "stay-awake", action]);
+    expect(stopped.exitCode).toBe(0);
+    expect(JSON.parse(stopped.stdout.toString())).toEqual({
+      succes: true,
+      data: { enabled: false },
+    });
+  }
+  expect(f.commands().some((command) => command.args.includes("--daemonize"))).toBe(false);
+  expect(run(["toggle", "stay-awake"]).stdout.toString()).toBe("Stay awake: on\n");
   expect(f.state().visible).toBe(false);
   for (const [action, enabled] of [
     ["status", true],
@@ -222,20 +234,21 @@ test("stay-awake CLI supports toggle, explicit state, JSON, and argument errors"
     ["on", true],
     ["toggle", false],
   ] as const) {
-    const result = run(["--json", "stay-awake", action]);
+    const result = run(["--json", "toggle", "stay-awake", action]);
     expect(result.exitCode, result.stderr.toString()).toBe(0);
     expect(JSON.parse(result.stdout.toString())).toEqual({ succes: true, data: { enabled } });
   }
-  const invalid = run(["--json", "stay-awake", "invalid"]);
+  const invalid = run(["--json", "toggle", "stay-awake", "invalid"]);
   expect(invalid.exitCode).toBe(2);
   expect(JSON.parse(invalid.stdout.toString())).toMatchObject({
     succes: false,
     err: "INVALID_ARGUMENT",
   });
+  expect(run(["--json", "stay-awake"]).exitCode).toBe(2);
   const source = join(f.root, "checkout");
   const shell = join(source, "src/luna-menu/src/shell");
   mkdirSync(shell, { recursive: true });
   writeFileSync(join(shell, "shell.qml"), "// source\n");
-  expect(run(["stay-awake", "--install-dir", source, "on"]).exitCode).toBe(0);
+  expect(run(["toggle", "stay-awake", "--install-dir", source, "on"]).exitCode).toBe(0);
   expect(f.commands().at(-1).args).toContain(shell);
 });
