@@ -407,7 +407,7 @@ class NotificationTests(unittest.TestCase):
         self.wait_for(lambda: self.state()["cards"][0]["priority"]["fallbackVisible"])
 
     def test_jsonc_controls_renderer_size_stack_limit_hover_and_priority_style(self):
-        self.config.write_text(json.dumps({"timeout_ms":300, "appearance":{"width":320, "avatar_size":28, "shadow_size":0, "border_color":"#668899"},
+        self.config.write_text(json.dumps({"timeout_ms":300, "appearance":{"width":320, "avatar_size":28, "shadow_size":0, "border_color":"#668899", "border_width":0},
             "stack":{"limit":2, "expand_on_hover":False},
             "priority":{"critical":{"strip_width":7, "strip_side":"right", "title_color":"#ff8877", "strip_color":"#ff8877"}}}))
         repository = self.root / "config-checkout"
@@ -430,11 +430,15 @@ class NotificationTests(unittest.TestCase):
         self.assertIsNone(card["shadow"])
         self.assertEqual(card["surface"]["x"],0)
         self.assertEqual(card["priority"]["borderColor"],"#668899")
+        self.assertEqual(card["priority"]["borderWidth"],0)
         self.assertEqual(card["priority"]["stripWidth"],7)
-        self.assertAlmostEqual(card["priority"]["stripX"], 312, delta=.5)
+        self.assertAlmostEqual(card["priority"]["stripX"], 313, delta=.5)
         self.assertEqual(card["priority"]["title"],"#ff8877")
         self.ipc("notify", "focus")
         self.wait_for(lambda: self.state()["expanded"])
+        focused = self.state()["cards"][-1]
+        self.assertEqual(focused["priority"]["borderWidth"],1)
+        self.assertEqual(focused["priority"]["borderColor"], self.settings_snapshot()["theme"]["colors"]["accent"])
         for _ in range(2):
             self.ipc("notify", "dismiss")
         critical = self.notify(title="Critical remains", urgency=2, timeout=0)

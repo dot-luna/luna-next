@@ -63,7 +63,8 @@ luna notify restart
 See the [default JSONC](../../apps/luna-notify/config/notify.jsonc) for timeout,
 layout, stack, and priority options. `appearance.border_color` accepts the color
 values below; `border_width` accepts 0–3 px, `shadow_size` 0–16 px, and
-`shadow_opacity` 0–0.5. Set `shadow_size` to 0 to remove elevation. Toast width
+`shadow_opacity` 0–0.5. Keyboard focus retains at least a 1 px accent border.
+Set `shadow_size` to 0 to remove elevation. Toast width
 includes room for the shadow. Each priority also accepts `text_color`,
 `title_color`, `strip_color`, `strip_width` (0–12 px), and `strip_side`
 (`left` or `right`, default `left`). Colors accept `foreground`,

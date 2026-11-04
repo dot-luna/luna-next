@@ -94,7 +94,8 @@ Item {
             GradientStop { position: 0; color: Qt.tint(card.theme.colors.background, "#09ffffff") }
             GradientStop { position: 1; color: card.theme.colors.background }
         }
-        border.width: card.settings.appearance.border_width
+        // Keyboard selection remains visible even when the resting border is disabled.
+        border.width: card.activeFocus ? Math.max(1, card.settings.appearance.border_width) : card.settings.appearance.border_width
         border.color: card.activeFocus ? card.theme.colors.accent : card.settings.appearance.border_color
         clip: true
         Rectangle {
