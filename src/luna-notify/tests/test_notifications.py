@@ -331,7 +331,7 @@ class NotificationTests(unittest.TestCase):
         self.assertEqual(card["avatar"]["imageWidth"], 36)
         self.assertEqual(card["avatar"]["imageHeight"], 36)
         self.assertFalse(card["priority"]["fallbackVisible"])
-        self.assertLessEqual(card["height"], 80)
+        self.assertLessEqual(card["surface"]["height"], 80)
         self.ipc("test", "clickToast", "false")
         self.wait_for(lambda: ("ActionInvoked", (identifier, "open")) in self.events)
         self.wait_for(lambda: self.state()["entries"] == [])
