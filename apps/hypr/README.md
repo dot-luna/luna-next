@@ -5,6 +5,10 @@ shortcuts, and session startup. The KDE Polkit agent supplies desktop authentica
 prompts; Luna Menu, Screensaver, and Lock start hidden, and Wallpaper starts at login.
 Super+L locks the session.
 
+Print selects a screenshot region, Shift+Print captures the current screen,
+Alt+Print captures the active window, and Ctrl+Print captures all screens.
+Install the screenshot dependencies with `luna install luna-screenshot`.
+
 The [app manifest](app.jsonc) exports `config/` to `$LUNA_CONFIG_HOME_DIR/hypr/`
 and includes Luna's entry in the user's Hyprland configuration before personal overrides.
 

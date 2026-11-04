@@ -14,6 +14,9 @@ function entries() {
 // Run Luna apps through their API CLI; native session requests retain authorization and inhibitors.
 function command(action, launcher) {
     if ((action === "screensaver" || action === "lock") && launcher) return [launcher, action];
+    const captureMode = action.replace(/^screenshot-/, "");
+    if (action !== captureMode && ["region", "screen", "window", "all"].includes(captureMode) && launcher)
+        return [launcher, "screenshot", captureMode];
     if (action === "logout") return ["hyprctl", "eval", "hl.dispatch(hl.dsp.exit())"];
     if (action === "reboot") return ["systemctl", "reboot"];
     if (action === "shutdown") return ["systemctl", "poweroff"];
