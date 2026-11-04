@@ -6,6 +6,8 @@
   "deps": [
     {"name": "quickshell", "source": "pacman", "purpose": "Render Luna's application menu"},
     {"name": "xdg-terminal-exec", "source": "pacman", "purpose": "Launch terminal applications from desktop entries"},
+    {"name": "python-dbus", "source": "pacman", "purpose": "Receive application idle-inhibit requests"},
+    {"name": "python-gobject", "source": "pacman", "purpose": "Run the idle-inhibit D-Bus event loop"},
   ],
   "hooks": {
     // QML needs no compilation; refresh its source on every configuration run.

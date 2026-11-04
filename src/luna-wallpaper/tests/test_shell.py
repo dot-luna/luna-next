@@ -28,7 +28,7 @@ INSPECTOR = '''
             function visit(item) {
                 if (!item || seen.indexOf(item) !== -1) return;
                 seen.push(item);
-                if (item.objectName === "fake-video") videos.push({source: item.sourcePath});
+                if (item.objectName === "fake-video") videos.push({source: item.sourcePath, paused: item.paused});
                 if (item.source !== undefined && item.sourceSize !== undefined) {
                     if (knownImages.indexOf(item) === -1) knownImages.push(item);
                     images.push({id: knownImages.indexOf(item), source: String(item.source), status: item.status,
@@ -55,6 +55,11 @@ INSPECTOR = '''
         }
         function outputActive(value: bool): void {
             surface.monitor = {lastIpcObject: {dpmsStatus: value}};
+        }
+        function fullscreen(snapshot: string): void {
+            const state = JSON.parse(snapshot);
+            surface.monitor = state.monitor;
+            surface.testToplevels = state.windows;
         }
         function decodeError(): void { surface.decoded(surface.currentImage, Image.Error); }
     }
@@ -86,6 +91,8 @@ class WallpaperShellTests(Harness, unittest.TestCase):
             "anchors {", "exclusionMode:", "WlrLayershell.")))
         source, replaced = re.subn(r"readonly property var monitor:.*", "property var monitor: null", source)
         self.assertEqual(replaced, 1)
+        source = source.replace("Hyprland.toplevels.values", "surface.testToplevels")
+        source = source.replace("id: surface", "id: surface\n    property var testToplevels: []", 1)
         surface.write_text(source)
         (self.renderer / "VideoWallpaper.qml").write_text('''import QtQuick
 Item {
@@ -324,7 +331,7 @@ Item {
             self.assertEqual(self.reload(), "ok")
             self.until(lambda: self.renderer_status() == "ready")
             state = self.state()
-            self.assertEqual(state["videos"], [{"source": str(video)}])
+            self.assertEqual(state["videos"], [{"source": str(video), "paused": False}])
             self.assertEqual(state["images"], [])
             self.assertEqual(self.process.pid, pid)
         self.write_config()
@@ -418,7 +425,40 @@ Item {
         state = self.start()
         self.assertEqual(state["kind"], "video")
         self.assertEqual(state["images"], [])
-        self.assertEqual(state["videos"], [{"source": str(self.image)}])
+        self.assertEqual(state["videos"], [{"source": str(self.image), "paused": False}])
+
+    def test_video_pauses_only_for_fullscreen_on_its_visible_monitor_and_workspace(self):
+        tools = self.root / "bin"
+        tools.mkdir()
+        probe = tools / "ffprobe"
+        probe.write_text('#!/usr/bin/python3\nprint(\'{"streams":[{"codec_name":"h264"}],'
+                         '"format":{"format_name":"mov,mp4"}}\')\n')
+        probe.chmod(0o755)
+        self.env["PATH"] = str(tools) + ":" + self.env["PATH"]
+        self.write_config(playback={"pause_when_output_inactive": False})
+        self.start()
+        monitor = {"id": 1, "lastIpcObject": {"activeWorkspace": {"id": 3},
+                   "dpmsStatus": True, "specialWorkspace": {"id": -99}}}
+        for output, workspace, mode, hidden, paused in (
+            (1, 3, 2, False, True),
+            (2, 3, 2, False, False),
+            (1, 4, 2, False, False),
+            (1, 3, 1, False, False),
+            (1, 3, 0, False, False),
+            (1, 3, 2, True, False),
+            (1, -99, 2, False, True),
+            (1, 3, 0, False, False),
+        ):
+            with self.subTest(output=output, workspace=workspace, mode=mode, hidden=hidden):
+                snapshot = {"monitor": monitor, "windows": [{"lastIpcObject": {
+                    "monitor": output, "workspace": {"id": workspace}, "fullscreen": mode,
+                    "mapped": True, "hidden": hidden}}]}
+                self.ipc("fullscreen", json.dumps(snapshot))
+                self.until(lambda: self.state()["videos"][0]["paused"] == paused)
+                self.assertEqual(self.state()["videos"][0]["source"], str(self.image))
+
+        self.ipc("fullscreen", json.dumps({"monitor": monitor, "windows": []}))
+        self.assertFalse(self.state()["videos"][0]["paused"])
 
     def test_missing_ffprobe_still_allows_qt_to_decode_images(self):
         tools = self.root / "bin"

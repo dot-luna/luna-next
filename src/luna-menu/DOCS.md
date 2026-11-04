@@ -43,6 +43,13 @@ The compositor must support `idle-inhibit-unstable-v1`.
 on/toggle start a hidden menu when needed. Status/off leave a stopped menu stopped.
 Use `--install-dir PATH` to select source QML.
 
+The running menu also serves `org.freedesktop.ScreenSaver` on the session bus,
+translating application D-Bus idle-inhibit requests into Wayland inhibitors.
+Requests remain active until their owner releases them or disconnects. They are
+separate from the manual Stay awake toggle, so switching it off cannot release
+a video's request. Keep `luna menu start` running for this bridge; a full Luna
+session starts it automatically. Another D-Bus provider is never replaced.
+
 Up/Down and Tab/Shift+Tab select results. Home/End jump to either end; Page Up/Down
 move a visible page. Enter or click opens an entry. Escape, Alt+Left, or Backspace
 in an empty submenu search returns to the previously visited menu. A directly
@@ -66,6 +73,8 @@ follow that menu. UI icons use the free Hugeicons set, documented in
 to Luna's menu configuration directory. Configuration replaces that owned directory without
 backups and restarts an already-running menu hidden; a stopped menu stays stopped.
 Opening links and searches requires `xdg-utils`, included in a full Luna installation.
+Application idle inhibition requires `python-dbus` and `python-gobject`, installed
+with `luna-menu`.
 No separate systemd service is required. Hyprland starts it hidden at login, and
 the shortcut can start it on demand.
 
@@ -100,7 +109,8 @@ python3 -m unittest discover -s src/luna-menu/tests -v
 bun test packages/luna-api/tests/menu.test.ts __tests__/apps/luna-menu __tests__/apps/hypr-environment.test.ts __tests__/apps/hypr-menu-bindings.test.ts __tests__/apps/shortcuts.test.ts
 ```
 
-QML tests require Quickshell and `dbus-run-session`. They use private XDG paths,
+QML tests require Quickshell, `dbus-run-session`, `python-dbus`, and `python-gobject`.
+They use private XDG paths,
 fake application/session executables, and real Qt keyboard/mouse events. No test
 logs out, reboots, or shuts down the host. Offscreen tests
 retain production content but replace compositor-specific windows. Focused-monitor

@@ -19,6 +19,8 @@ are created automatically; omitted settings use defaults in memory.
 [`idle_seconds`](example.jsonc) accepts an integer from 0 to 86400, defaults to
 300, and disables automatic display at 0. Idle inhibitors are respected. Locking
 and display power belong to the separate lock service.
+The running [menu](../luna-menu/DOCS.md) bridges application D-Bus requests into
+Wayland idle inhibition; keep it running for video apps that use D-Bus.
 
 ```sh
 luna screensaver show
