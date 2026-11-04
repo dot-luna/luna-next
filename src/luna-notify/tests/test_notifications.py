@@ -82,12 +82,18 @@ class NotificationTests(unittest.TestCase):
                     const image = input.findChild(c, "contactImage");
                     const fallback = input.findChild(c, "priorityIcon");
                     const strip = input.findChild(c, "priorityStrip");
+                    const surface = input.findChild(c, "toastSurface");
+                    const shadow = input.findChild(c, "toastShadow");
                     return {duration: c.duration, remaining: c.remaining, height: c.implicitHeight, hovered: c.testHovered,
                         y: c.y, exposed: c.exposed, opacity: c.opacity,
                         priority: {title: c.style.title_color, body: c.style.text_color,
-                            stripWidth: strip.width, stripColor: String(strip.color), stripX: strip.x, borderColor: String(c.border.color),
+                            stripWidth: strip.width, stripColor: String(strip.color), stripX: strip.x, borderColor: String(surface.border.color),
+                            borderWidth: surface.border.width,
                             fallbackVisible: fallback.visible, fallbackReady: fallback.status === Image.Ready,
                             icon: c.style.icon},
+                        surface: {x: surface.x, y: surface.y, width: surface.width, height: surface.height},
+                        shadow: shadow ? {color: String(shadow.color), x: shadow.x, y: shadow.y,
+                            width: shadow.width, height: shadow.height} : null,
                         avatar: {width: avatar.width, height: avatar.height,
                         visible: avatar.visible, imageWidth: image.width, imageHeight: image.height, ready: image.status === Image.Ready}};
                 })});
@@ -370,7 +376,7 @@ class NotificationTests(unittest.TestCase):
         self.wait_for(lambda: ("NotificationClosed", (sticky[-1], 2)) in self.events)
 
     def test_priority_styles_and_missing_icon_fallback(self):
-        for urgency, icon, opacity, strip_width in [(0, "information-circle", .65, 0),
+        for urgency, icon, opacity, strip_width in [(0, "information-circle", 1, 0),
                                                    (1, "notification-02", 1, 0),
                                                    (2, "alert-02", 1, 4)]:
             with self.subTest(urgency=urgency):
@@ -381,11 +387,19 @@ class NotificationTests(unittest.TestCase):
                 card = self.state()["cards"][0]
                 self.assertTrue(card["priority"]["fallbackVisible"])
                 self.assertEqual(card["priority"]["icon"], icon)
+                self.assertEqual(card["priority"]["borderWidth"], 1)
+                self.assertGreater(card["surface"]["x"], 0)
+                self.assertLess(card["shadow"]["x"], card["surface"]["x"])
+                self.assertGreater(card["shadow"]["width"], card["surface"]["width"])
+                self.assertGreaterEqual(card["shadow"]["x"], 0)
+                self.assertLessEqual(card["shadow"]["y"] + card["shadow"]["height"], card["height"])
+                if urgency < 2:
+                    self.assertEqual(card["priority"]["title"], self.settings_snapshot()["theme"]["colors"]["bright_foreground"])
                 self.assertEqual(card["priority"]["stripWidth"], strip_width)
                 if urgency == 2:
                     self.assertEqual(card["priority"]["title"], card["priority"]["stripColor"])
                     self.assertNotEqual(card["priority"]["borderColor"], card["priority"]["stripColor"])
-                    self.assertEqual(card["priority"]["stripX"], 0)
+                    self.assertEqual(card["priority"]["stripX"], 1)
                 self.ipc("notify", "dismiss")
                 self.wait_for(lambda: self.state()["entries"] == [])
         self.notify(icon=str(self.root / "missing-icon.png"))
@@ -393,7 +407,7 @@ class NotificationTests(unittest.TestCase):
         self.wait_for(lambda: self.state()["cards"][0]["priority"]["fallbackVisible"])
 
     def test_jsonc_controls_renderer_size_stack_limit_hover_and_priority_style(self):
-        self.config.write_text(json.dumps({"timeout_ms":300, "appearance":{"width":320, "avatar_size":28},
+        self.config.write_text(json.dumps({"timeout_ms":300, "appearance":{"width":320, "avatar_size":28, "shadow_size":0, "border_color":"#668899"},
             "stack":{"limit":2, "expand_on_hover":False},
             "priority":{"critical":{"strip_width":7, "strip_side":"right", "title_color":"#ff8877", "strip_color":"#ff8877"}}}))
         repository = self.root / "config-checkout"
@@ -413,8 +427,11 @@ class NotificationTests(unittest.TestCase):
         self.assertFalse(self.state()["expanded"])
         card = self.state()["cards"][-1]
         self.assertEqual(card["avatar"]["width"],28)
+        self.assertIsNone(card["shadow"])
+        self.assertEqual(card["surface"]["x"],0)
+        self.assertEqual(card["priority"]["borderColor"],"#668899")
         self.assertEqual(card["priority"]["stripWidth"],7)
-        self.assertAlmostEqual(card["priority"]["stripX"], 313, delta=.5)
+        self.assertAlmostEqual(card["priority"]["stripX"], 312, delta=.5)
         self.assertEqual(card["priority"]["title"],"#ff8877")
         self.ipc("notify", "focus")
         self.wait_for(lambda: self.state()["expanded"])

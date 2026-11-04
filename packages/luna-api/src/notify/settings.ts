@@ -21,6 +21,7 @@ export async function notifySnapshot(context: {
   const theme = await currentTheme(themeContext({ env: context.env }));
   const colors = theme.colors as Record<string, string>;
   const resolveColor = (value: string) => (value.startsWith("#") ? value : colors[value]!);
+  settings.appearance.border_color = resolveColor(settings.appearance.border_color);
   for (const style of Object.values(settings.priority)) {
     style.title_color = resolveColor(style.title_color);
     style.text_color = resolveColor(style.text_color);
