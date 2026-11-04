@@ -112,7 +112,8 @@ PanelWindow {
         uiFont: menuContent.uiFont
         textSize: menuContent.textSize
         onCancelled: {
-            menuContent.reset("system");
+            if (menuContent.section === "system") menuContent.showSection("system");
+            else menuContent.navigate("system");
             menuContent.focusSearch();
         }
         onRequested: action => sessionCommand.run(action)

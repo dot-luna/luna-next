@@ -70,8 +70,8 @@ Button {
             font.pointSize: row.textSize
         }
         Label {
-            visible: row.applicationEntry && !row.appsView
-            text: "Apps"
+            visible: Boolean(row.entry.parentName) || (row.applicationEntry && !row.appsView)
+            text: row.entry.parentName || "Apps"
             color: row.selected ? row.theme.colors.selection_foreground : row.theme.colors.foreground
             opacity: 0.65
             font.family: row.uiFont

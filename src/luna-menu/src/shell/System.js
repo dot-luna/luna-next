@@ -1,14 +1,13 @@
 // Unsupported actions deliberately have no command.
-function entries(stayAwake) {
+function entries() {
     return [
-        {name: "Screensaver", icon: "computer", action: "screensaver"},
-        {name: "Lock", icon: "lock-key", action: "lock"},
-        {name: "Stay awake", icon: "computer", action: "stay-awake", checked: stayAwake},
+        {name: "Screensaver", icon: "play", action: "screensaver"},
+        {name: "Lock", icon: "ai-lock", action: "lock"},
         {name: "Suspend", icon: "moon-02"},
         {name: "Hibernate", icon: "snowflake"},
         {name: "Logout", icon: "logout-01", action: "logout"},
         {name: "Reboot", icon: "refresh", action: "reboot"},
-        {name: "Shutdown", icon: "power-service", action: "shutdown"}
+        {name: "Shutdown", icon: "shut-down", action: "shutdown"}
     ];
 }
 
