@@ -250,6 +250,28 @@ Lua dispatcher; off requests require a secure, natively idle lock. The shell
 serializes off/wake requests so resumed input remains locked with displays awake.
 See [Lock setup and checks](../../src/luna-lock/DOCS.md).
 
+## Screenshot API
+
+`Luna.screenshot.capture(mode?, options?)` saves a PNG and copies it to the Wayland
+clipboard. Modes are `region` (default), `screen` (focused monitor), `window`
+(the active window's visible rectangle), and `all` (combined desktop). Escape
+returns `{cancelled: true, path: null}`; success returns `{cancelled: false, path}`.
+Window capture includes overlapping content; it does not render hidden windows.
+
+Install capture dependencies with `luna install luna-screenshot`. Screen/window
+need Hyprland. Options accept `env`, `directory`, and `repository` for the menu
+to dismiss. Directory selection is explicit `directory`, then `LUNA_SCREENSHOT_DIR`,
+then `~/Pictures/Screenshots`; relative paths use the working directory and `~/`
+expands through HOME. Files use local timestamps and unique suffixes, with exclusive
+creation. No settings file is needed.
+
+Only one capture runs per runtime directory. The menu closes before capture;
+selection cancellation saves nothing and keeps the clipboard. Tool/capture failures
+return `COMMAND_FAILED` and remove partial files. Clipboard failures retain the
+completed image and include its path in the error. Busy captures return `CONFLICT`;
+invalid modes/paths return `INVALID_ARGUMENT`/`INVALID_PATH`. Notifications are best
+effort and do not affect success.
+
 ## App API
 
 `Luna.apps.install(names?, options?)` installs missing apps and configures them.

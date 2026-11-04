@@ -105,6 +105,7 @@ ShellRoot {
         self.assertEqual(counts["passed"], expected + 1, output)
         for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
             self.assertNotIn(error, output)
+        self.assertIn("Luna menu: couldn’t open screenshot-region: fixture denied request", output)
         launches = [json.loads(line) for line in (self.root / "launched.jsonl").read_text().splitlines()]
         self.assertEqual(len(launches), 6)
         native = next(entry for entry in launches if entry["kind"] == "record-app")
@@ -128,6 +129,11 @@ ShellRoot {
         self.assertCountEqual(sessions, [
             {"command": "luna", "args": ["screensaver"]},
             {"command": "luna", "args": ["lock"]},
+            {"command": "luna", "args": ["screenshot", "region"]},
+            {"command": "luna", "args": ["screenshot", "screen"]},
+            {"command": "luna", "args": ["screenshot", "window"]},
+            {"command": "luna", "args": ["screenshot", "all"]},
+            {"command": "luna", "args": ["screenshot", "region"]},  # The explicitly denied capture.
             {"command": "systemctl", "args": ["reboot"]},
             {"command": "systemctl", "args": ["poweroff"]},
             {"command": "systemctl", "args": ["poweroff"]},  # The explicitly denied request.

@@ -8,6 +8,12 @@ function entries(stayAwake) {
         {name: "Trigger", icon: "flash", route: "trigger", children: [
             {name: "Toggles", icon: "toggle-on", route: "toggles", children: [
                 {name: "Stay awake", icon: "computer", action: "stay-awake", checked: stayAwake}
+            ]},
+            {name: "Screenshot", icon: "computer", route: "screenshot", children: [
+                {name: "Select Region", icon: "grid-view", action: "screenshot-region"},
+                {name: "Active Screen", icon: "computer", action: "screenshot-screen"},
+                {name: "Active Window", icon: "computer", action: "screenshot-window"},
+                {name: "All Screens", icon: "grid-view", action: "screenshot-all"}
             ]}
         ]},
         {name: "Style", icon: "paint-board"},

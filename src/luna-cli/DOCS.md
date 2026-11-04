@@ -218,6 +218,17 @@ accepts `--config PATH`, `--install-dir PATH` for source QML, and `--launcher PA
 for Luna's idle/display commands (otherwise `~/.local/bin/luna`). JSON mode
 returns the API response unchanged. See [lock behavior](../luna-lock/DOCS.md).
 
+## Screenshots
+
+`luna screenshot [region|screen|window|all]` saves a PNG and copies it to the
+clipboard. The default is `region`; cancelling selection succeeds without output.
+`--directory PATH` selects the save folder. Human output is the saved path;
+`--json` returns the API response unchanged, including cancellation.
+
+Install with `luna install luna-screenshot`. In Hyprland, Print selects a region,
+Shift+Print captures the current screen, Alt+Print captures the active window,
+and Ctrl+Print captures all screens.
+
 ## Apps and web apps
 
 - `luna install [names...] [--force] [--install-dir PATH]`: install and configure

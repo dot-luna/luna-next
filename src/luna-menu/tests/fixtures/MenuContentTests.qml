@@ -354,7 +354,7 @@ TestCase {
         check(findChild(card, "applicationRow0").entry.parentName, "Trigger › Toggles");
 
         card.reset("trigger");
-        check(card.entries.map(entry => entry.name).join(","), "Toggles");
+        check(card.entries.map(entry => entry.name).join(","), "Toggles,Screenshot");
         input.text = "stay awake";
         check(card.entries[0].action, "stay-awake");
         check(card.entries[0].parentName, "Toggles");
@@ -381,6 +381,29 @@ TestCase {
         check(dismissed, 1);
     }
 
+    function test_screenshot_route_keyboard_mouse_search_and_back() {
+        card.activate(card.entries.findIndex(entry => entry.route === "trigger"));
+        card.jumpSelection(card.entries.findIndex(entry => entry.route === "screenshot"));
+        keyClick(Qt.Key_Return);
+        check(card.section, "screenshot");
+        check(card.entries.map(entry => entry.name).join(","), "Select Region,Active Screen,Active Window,All Screens");
+        keyClick(Qt.Key_Return);
+        check(action, "screenshot-region");
+        const row = findChild(card, "applicationRow3");
+        verify(waitForRendering(row));
+        mouseClick(row);
+        check(action, "screenshot-all");
+        keyClick(Qt.Key_Escape);
+        check(card.section, "trigger");
+        keyClick(Qt.Key_Escape);
+        check(card.section, "root");
+        input.text = "trigger screenshot active window";
+        check(card.entries[0].action, "screenshot-window");
+        check(card.entries[0].parentName, "Trigger › Screenshot");
+        keyClick(Qt.Key_Return);
+        check(action, "screenshot-window");
+    }
+
     function test_search_navigation_returns_to_the_parent_that_was_actually_visited() {
         input.text = "toggles";
         keyClick(Qt.Key_Return);
@@ -392,7 +415,7 @@ TestCase {
     }
 
     function test_directly_opened_sections_dismiss_without_inventing_a_parent() {
-        for (const section of ["system", "apps", "trigger", "toggles"]) {
+        for (const section of ["system", "apps", "trigger", "toggles", "screenshot"]) {
             for (const query of ["", "some query"]) {
                 card.reset();
                 card.activate(0);
@@ -421,12 +444,17 @@ TestCase {
         check(JSON.stringify(System.aboutCommand()), JSON.stringify(["xdg-terminal-exec",
             "--app-id=luna-next-fastfetch", "--title=Fastfetch", "--", "bash", "-c",
             'fastfetch; status=$?; read -r -s -n 1; exit "$status"']));
-        for (const unsupported of ["suspend", "hibernate", "unknown"])
+        for (const unsupported of ["suspend", "hibernate", "unknown", "screenshot-unknown"])
             check(System.command(unsupported).length, 0);
         check(JSON.stringify(System.command("screensaver", "/a home/.local/bin/luna")),
             JSON.stringify(["/a home/.local/bin/luna", "screensaver"]));
         check(JSON.stringify(System.command("lock", "/a home/.local/bin/luna")),
             JSON.stringify(["/a home/.local/bin/luna", "lock"]));
+        for (const mode of ["region", "screen", "window", "all"]) {
+            check(JSON.stringify(System.command("screenshot-" + mode, "/a home/.local/bin/luna")),
+                JSON.stringify(["/a home/.local/bin/luna", "screenshot", mode]));
+            check(System.command("screenshot-" + mode).length, 0);
+        }
     }
 
     Component {
@@ -506,7 +534,7 @@ TestCase {
     }
 
     function test_url_opening_and_final_browser_search_work_in_every_section() {
-        for (const section of ["root", "apps", "system", "trigger", "toggles"]) {
+        for (const section of ["root", "apps", "system", "trigger", "toggles", "screenshot"]) {
             card.reset(section);
             input.text = "editor";
             check(card.entries[card.entries.length - 1].queryAction, "search");
@@ -721,6 +749,35 @@ TestCase {
             check(power.active, false);
             tryCompare(process, "finished", true);
         }
+    }
+
+    function test_window_screenshots_dismiss_before_dispatch_without_a_power_countdown() {
+        for (const mode of ["region", "screen", "window", "all"]) {
+            const window = sessionWindow();
+            window.show("screenshot");
+            const power = findChild(window.contentItem, "powerScreen");
+            const process = findChild(window, "applicationCommand");
+            let startedHidden = false;
+            process.runningChanged.connect(() => {
+                if (process.running) startedHidden = !window.visible && !window.opened;
+            });
+            window.content.activate(window.content.entries.findIndex(entry => entry.action === "screenshot-" + mode));
+            check(window.opened, false);
+            check(power.active, false);
+            tryCompare(process, "finished", true);
+            check(startedHidden, true, "The menu is hidden before the screenshot process starts");
+        }
+    }
+
+    function test_failed_screenshot_keeps_the_menu_hidden_without_a_power_screen() {
+        const window = sessionWindow();
+        window.show("screenshot");
+        const process = findChild(window, "applicationCommand");
+        process.environment = {MENU_SESSION_FAIL: "1"};
+        window.content.activate(0);
+        tryCompare(process, "finished", true);
+        check(window.opened, false);
+        check(findChild(window.contentItem, "powerScreen").active, false);
     }
 
     function test_window_query_actions_use_native_launchers_and_dismiss() {

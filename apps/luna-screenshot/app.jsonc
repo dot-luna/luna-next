@@ -1,0 +1,10 @@
+{
+  "name": "luna-screenshot",
+  "source": "local",
+  "deps": [
+    { "name": "grim", "source": "pacman", "purpose": "Capture Wayland screenshots" },
+    { "name": "slurp", "source": "pacman", "purpose": "Select a screenshot region" },
+    { "name": "wl-clipboard", "source": "pacman", "purpose": "Copy screenshots to the clipboard" },
+    { "name": "libnotify", "source": "pacman", "purpose": "Show screenshot notifications" },
+  ],
+}

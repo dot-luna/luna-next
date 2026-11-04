@@ -10,6 +10,7 @@ import { defaults } from "./defaults/index.ts";
 import { wallpaper } from "./wallpaper/index.ts";
 import { lock } from "./lock/index.ts";
 import { screensaver } from "./screensaver/index.ts";
+import { screenshot } from "./screenshot/index.ts";
 
 export const Luna = {
   info,
@@ -23,7 +24,10 @@ export const Luna = {
   wallpaper,
   screensaver,
   lock,
+  screenshot,
 };
+
+export type { ScreenshotMode, ScreenshotOptions, ScreenshotResult } from "./screenshot/context.ts";
 
 export type { LockOptions, LockState } from "./lock/context.ts";
 export type { LockSettings } from "./lock/schema.ts";

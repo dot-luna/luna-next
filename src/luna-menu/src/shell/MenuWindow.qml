@@ -97,9 +97,10 @@ PanelWindow {
                 panel.stayAwake = !panel.stayAwake;
                 menuContent.jumpSelection(selected);
                 menuContent.focusSearch();
-            } else if (action === "screensaver" || action === "lock") {
+            } else if (action === "screensaver" || action === "lock" || action.startsWith("screenshot-")) {
                 panel.hide();
-                applicationCommand.run(action);
+                // Yield to the event loop after hiding, before starting capture or a fullscreen app.
+                Qt.callLater(() => applicationCommand.run(action));
             } else {
                 focusDelay.stop();
                 powerScreen.begin(action);

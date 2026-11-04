@@ -12,6 +12,9 @@ when using source QML without `luna install luna-menu`.
 ## Controls
 
 Apps opens installed applications. Trigger → Toggles contains Stay awake.
+Trigger → Screenshot offers Select Region, Active Screen, Active Window, and All Screens.
+Each dismisses the menu before running `luna screenshot region|screen|window|all`.
+Screenshot failures are logged, like Screensaver and Lock startup failures.
 System lists Screensaver, Lock,
 Suspend, Hibernate, Logout, Reboot, and Shutdown; Suspend and Hibernate are placeholders. About
 opens the same terminal as Super+Shift+F (requires Fastfetch). Other main sections remain

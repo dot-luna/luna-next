@@ -12,6 +12,7 @@ import { addDefaultsCommands } from "./defaults/commands.ts";
 import { addWallpaperCommands } from "./wallpaper/commands.ts";
 import { addScreensaverCommands } from "./screensaver/commands.ts";
 import { addLockCommands } from "./lock/commands.ts";
+import { addScreenshotCommands } from "./screenshot/commands.ts";
 
 import { addWebappCommands } from "./webapp/commands.ts";
 
@@ -67,6 +68,9 @@ export async function runCli(argv: string[]): Promise<number> {
     exitCode = value;
   });
   addLockCommands(program, output, (value) => {
+    exitCode = value;
+  });
+  addScreenshotCommands(program, output, wantsJson, (value) => {
     exitCode = value;
   });
 
