@@ -1,9 +1,18 @@
 {
   "timeout_ms": 5000,
-  "appearance": { "width": 340, "padding": 12, "avatar_size": 36, "body_lines": 2 },
+  "appearance": {
+    "width": 340,
+    "padding": 12,
+    "avatar_size": 36,
+    "body_lines": 2,
+    "border_color": "muted",
+    "border_width": 1,
+    "shadow_size": 8,
+    "shadow_opacity": 0.24,
+  },
   "stack": { "limit": 3, "gap": 8, "peek": 8, "inset": 5, "expand_on_hover": true },
   "priority": {
-    "low": { "opacity": 0.65, "icon": "information-circle" },
+    "low": { "opacity": 1, "icon": "information-circle" },
     "normal": { "opacity": 1, "icon": "notification-02" },
     "critical": {
       "opacity": 1,

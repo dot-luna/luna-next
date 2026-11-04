@@ -39,8 +39,9 @@ keyboard focus to the previous application.
 
 Bodies are plain text, limited to two lines. Notification images appear as 36 px
 square avatars beside the message, falling back to the app icon, then a free Hugeicons
-priority icon. Low priority is muted; critical titles and a 4 px left strip use
-the theme error color. There are no large
+priority icon. Low and normal priorities use full opacity and the same text colors.
+Cards have a theme-colored border, a subtle surface highlight, and a soft shadow.
+Critical titles and a 4 px left strip use the theme error color. There are no large
 image previews. Inline replies, markup, sounds, and Do Not Disturb are not included.
 
 ## Configuration
@@ -60,7 +61,11 @@ luna notify restart
 
 `get` without a key returns source settings; missing keys return `null`.
 See the [default JSONC](../../apps/luna-notify/config/notify.jsonc) for timeout,
-layout, stack, and priority options. Each priority also accepts `text_color`,
+layout, stack, and priority options. `appearance.border_color` accepts the color
+values below; `border_width` accepts 0–3 px, `shadow_size` 0–16 px, and
+`shadow_opacity` 0–0.5. Keyboard focus retains at least a 1 px accent border.
+Set `shadow_size` to 0 to remove elevation. Toast width
+includes room for the shadow. Each priority also accepts `text_color`,
 `title_color`, `strip_color`, `strip_width` (0–12 px), and `strip_side`
 (`left` or `right`, default `left`). Colors accept `foreground`,
 `bright_foreground`, `muted`, `accent`, `error`, or `#RRGGBB`. Fallback icons are

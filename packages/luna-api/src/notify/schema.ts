@@ -23,6 +23,10 @@ export const notifySettingsSchema = z.looseObject({
       padding: z.number().int().min(8).max(24).optional(),
       avatar_size: z.number().int().min(24).max(64).optional(),
       body_lines: z.number().int().min(1).max(5).optional(),
+      border_color: color.optional(),
+      border_width: z.number().int().min(0).max(3).optional(),
+      shadow_size: z.number().int().min(0).max(16).optional(),
+      shadow_opacity: z.number().min(0).max(0.5).optional(),
     })
     .optional(),
   stack: z
@@ -46,13 +50,22 @@ export type NotifySettings = z.infer<typeof notifySettingsSchema>;
 
 export const notifyDefaults = {
   timeout_ms: 5000,
-  appearance: { width: 340, padding: 12, avatar_size: 36, body_lines: 2 },
+  appearance: {
+    width: 340,
+    padding: 12,
+    avatar_size: 36,
+    body_lines: 2,
+    border_color: "muted",
+    border_width: 1,
+    shadow_size: 8,
+    shadow_opacity: 0.24,
+  },
   stack: { limit: 3, gap: 8, peek: 8, inset: 5, expand_on_hover: true },
   priority: {
     low: {
-      opacity: 0.65,
+      opacity: 1,
       icon: "information-circle",
-      title_color: "foreground",
+      title_color: "bright_foreground",
       text_color: "foreground",
       strip_color: "muted",
       strip_width: 0,

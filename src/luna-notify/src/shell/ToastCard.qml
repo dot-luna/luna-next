@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Notifications
 
-Rectangle {
+Item {
     id: card
     required property var notification
     required property var theme
@@ -55,12 +55,9 @@ Rectangle {
     }
     // Quickshell emits no event for an identical replacement; its remaining time is retained.
     onContentChanged: Qt.callLater(() => { remaining = duration; lastTick = Date.now(); })
-    implicitHeight: Math.max(contentRow.implicitHeight, settings.appearance.avatar_size) + settings.appearance.padding * 2
-    radius: Math.min(12, theme.appearance.rounding)
-    color: theme.colors.background
-    border.width: 1
-    border.color: activeFocus ? theme.colors.accent : Qt.alpha(theme.colors.muted, 0.55)
-    clip: true
+    // Reserve the shadow inside the toast bounds so the stack viewport cannot crop it.
+    readonly property int shadowPadding: settings.appearance.shadow_size > 0 ? settings.appearance.shadow_size + 2 : 0
+    implicitHeight: Math.max(contentRow.implicitHeight, settings.appearance.avatar_size) + (settings.appearance.padding + shadowPadding) * 2
     activeFocusOnTab: exposed
     objectName: "toast-" + notification.id
     Accessible.role: Accessible.Button
@@ -72,13 +69,43 @@ Rectangle {
     Component.onCompleted: entrance.start()
     NumberAnimation { id: entrance; target: card; property: "entranceProgress"; to: 1; duration: 130; easing.type: Easing.OutCubic }
 
+    // Layered rectangles keep elevation visible with Qt's software renderer too.
+    Repeater {
+        model: card.settings.appearance.shadow_size
+        delegate: Rectangle {
+            required property int index
+            objectName: "toastShadow"
+            readonly property int spread: index + 1
+            x: surface.x - spread
+            y: surface.y - spread + 2
+            width: surface.width + spread * 2
+            height: surface.height + spread * 2
+            radius: surface.radius + spread
+            color: Qt.rgba(0, 0, 0, card.settings.appearance.shadow_opacity / card.settings.appearance.shadow_size)
+            z: -1
+        }
+    }
     Rectangle {
-        objectName: "priorityStrip"
-        anchors { top: parent.top; bottom: parent.bottom }
-        x: card.style.strip_side === "left" ? 0 : card.width - width
-        width: card.style.strip_width
-        color: card.style.strip_color
-        visible: width > 0
+        id: surface
+        objectName: "toastSurface"
+        anchors { fill: parent; margins: card.shadowPadding }
+        radius: Math.min(12, card.theme.appearance.rounding)
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.tint(card.theme.colors.background, "#09ffffff") }
+            GradientStop { position: 1; color: card.theme.colors.background }
+        }
+        // Keyboard selection remains visible even when the resting border is disabled.
+        border.width: card.activeFocus ? Math.max(1, card.settings.appearance.border_width) : card.settings.appearance.border_width
+        border.color: card.activeFocus ? card.theme.colors.accent : card.settings.appearance.border_color
+        clip: true
+        Rectangle {
+            objectName: "priorityStrip"
+            anchors { top: parent.top; bottom: parent.bottom; margins: surface.border.width }
+            x: card.style.strip_side === "left" ? surface.border.width : surface.width - width - surface.border.width
+            width: card.style.strip_width
+            color: card.style.strip_color
+            visible: width > 0
+        }
     }
 
     HoverHandler { id: hover }
@@ -111,7 +138,7 @@ Rectangle {
     }
     RowLayout {
         id: contentRow
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: card.settings.appearance.padding }
+        anchors { left: parent.left; right: parent.right; top: parent.top; margins: card.settings.appearance.padding + card.shadowPadding }
         spacing: 10
         // image-data often contains a contact avatar, not a message attachment.
         Item {

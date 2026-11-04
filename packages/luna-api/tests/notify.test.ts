@@ -198,6 +198,12 @@ test("notify reads sparse JSONC once, preserves source, and rejects invalid rest
     appearance: { width: 320 },
     priority: { low: { opacity: 0.8 }, critical: { strip_width: 4 } },
   });
+  expect(f.state().settings.appearance).toMatchObject({
+    border_color: f.state().theme.colors.muted,
+    border_width: 1,
+    shadow_size: 8,
+    shadow_opacity: 0.24,
+  });
   expect(f.state().settings.priority.critical.icon_source).toStartWith(
     "data:image/svg+xml;base64,",
   );
@@ -210,6 +216,10 @@ test("notify reads sparse JSONC once, preserves source, and rejects invalid rest
     strip_width: 7,
     title_color: "#ff8877",
   });
+  expect(f.state().settings.priority.low.opacity).toBe(1);
+  expect(f.state().settings.priority.low.title_color).toBe(
+    f.state().settings.priority.normal.title_color,
+  );
   writeFileSync(configFile, '{"priority":{"low":{"opacity":-1}}}');
   const killed = f.commands().filter((c) => c.args[0] === "kill").length;
   expect(await Luna.notify.restart(f.options)).toMatchObject({
@@ -253,6 +263,10 @@ test("notify settings honor explicit and environment paths without Quickshell, c
 
 test.each([
   { appearance: { width: 0 } },
+  { appearance: { border_width: 4 } },
+  { appearance: { border_color: "invalid" } },
+  { appearance: { shadow_size: 17 } },
+  { appearance: { shadow_opacity: 0.6 } },
   { stack: { limit: 0 } },
   { stack: { expand_on_hover: "yes" } },
   { priority: { critical: { strip_width: 13 } } },
