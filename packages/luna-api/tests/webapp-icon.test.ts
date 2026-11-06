@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { existsSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
 import { AppFixture } from "./fixtures/app-fixture.ts";
@@ -53,7 +53,7 @@ const install = async (path = "/", options = {}) =>
   );
 const appDirectory = (id: string) => join(f.home, ".local/share/luna/webapps", id);
 function desktopIcon(path: string) {
-  return `Icon=${path.replaceAll("\\", "\\\\").replaceAll(" ", "\\s")}\n`;
+  return `Icon=${path.replaceAll("\\", "\\\\")}\n`;
 }
 
 test("uses the largest original image from redirected page and manifest URLs, including undeclared sizes", async () => {
@@ -132,6 +132,26 @@ test("falls back from invalid icons and a broken manifest to the touch icon", as
   serve("/touch.png", bytes);
   const app = await install();
   expect(readFileSync(join(appDirectory(app.id), "icon.png"))).toEqual(bytes);
+});
+
+test("rejects malformed SVG instead of preferring it over a usable full-resolution PNG", async () => {
+  const bytes = await png(512);
+  serve("/", '<link rel="icon" href="/broken.svg"><link rel="icon" href="/logo.png">');
+  serve("/broken.svg", "<svg>not an SVG document", { "content-type": "image/svg+xml" });
+  serve("/logo.png", bytes);
+  const app = await install();
+  expect(readFileSync(join(appDirectory(app.id), "icon.png"))).toEqual(bytes);
+  expect(existsSync(join(appDirectory(app.id), "icon.svg"))).toBe(false);
+});
+
+test("accepts a valid SVG with a standard DOCTYPE instead of choosing a smaller PNG", async () => {
+  const svg =
+    '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M0 0h20v20z"/></svg>';
+  serve("/", '<link rel="icon" href="/logo.svg"><link rel="icon" href="/small.png">');
+  serve("/logo.svg", svg);
+  serve("/small.png", await png(32));
+  const app = await install();
+  expect(readFileSync(join(appDirectory(app.id), "icon.svg"), "utf8")).toBe(svg);
 });
 
 test("downloads the original conventional ICO when page retrieval fails", async () => {
@@ -220,7 +240,7 @@ test("icon exports reject symlinks before changing launch metadata or external f
   expect(readFileSync(external, "utf8")).toBe("keep");
 });
 
-test("escapes spaces in custom icon paths for desktop entries", async () => {
+test("retains literal spaces in custom desktop icon paths", async () => {
   serve("/", '<link rel="icon" href="/icon.png">');
   serve("/icon.png", await png(64));
   const root = join(f.root, "custom data/icons");
@@ -229,3 +249,71 @@ test("escapes spaces in custom icon paths for desktop entries", async () => {
   expect(existsSync(icon)).toBe(true);
   expect(readFileSync(app.desktopFile, "utf8")).toContain(desktopIcon(icon));
 });
+
+test.skipIf(!Bun.which("quickshell"))(
+  "Quickshell resolves and displays the downloaded icon from a path with spaces",
+  async () => {
+    serve("/", '<link rel="icon" href="/icon.svg">');
+    serve(
+      "/icon.svg",
+      '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><path fill="red" d="M0 0h512v512H0z"/></svg>',
+    );
+    const app = await install();
+    const expected = join(appDirectory(app.id), "icon.svg");
+    const shell = join(f.root, "icon-smoke.qml");
+    f.write(
+      f.root,
+      "icon-smoke.qml",
+      `import QtQuick
+import Quickshell
+ShellRoot {
+  property Image icon: Image {
+    onStatusChanged: {
+      if (status === Image.Ready) { console.log("ICON_READY", sourceSize.width, sourceSize.height); Qt.quit(); }
+      if (status === Image.Error) { console.log("ICON_ERROR"); Qt.quit(); }
+    }
+  }
+  Timer {
+    interval: 100; running: true; repeat: true
+    onTriggered: {
+      const app = DesktopEntries.applications.values.find(entry => entry.id === ${JSON.stringify(app.id)});
+      if (!app) return;
+      console.log("ICON_PATH_MATCH", app.icon === ${JSON.stringify(expected)});
+      icon.source = "file://" + app.icon.split("/").map(encodeURIComponent).join("/");
+      stop();
+    }
+  }
+}`,
+    );
+    const runtime = join(f.root, "runtime");
+    mkdirSync(runtime, { mode: 0o700 });
+    const child = Bun.spawn([Bun.which("quickshell")!, "--path", shell], {
+      env: {
+        ...f.env,
+        XDG_DATA_HOME: join(f.home, ".local/share"),
+        XDG_RUNTIME_DIR: runtime,
+        QT_QPA_PLATFORM: "offscreen",
+        QT_QUICK_BACKEND: "software",
+      },
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const timer = setTimeout(() => child.kill(), 5000);
+    try {
+      const [stdout, stderr, code] = await Promise.all([
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text(),
+        child.exited,
+      ]);
+      const output = stdout + stderr;
+      expect(code, output).toBe(0);
+      expect(output).toContain("ICON_PATH_MATCH true");
+      expect(output).toContain("ICON_READY 512 512");
+    } finally {
+      clearTimeout(timer);
+      child.kill();
+    }
+  },
+  10000,
+);

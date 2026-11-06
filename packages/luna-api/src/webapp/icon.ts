@@ -49,10 +49,13 @@ async function download(url: string, deadline: AbortSignal, limit: number) {
 }
 
 async function image(bytes: Buffer): Promise<WebsiteIcon | undefined> {
-  const text = bytes.toString("utf8");
   // SVG is scalable; keep its source rather than rasterizing it at a fixed desktop size.
-  if (/^\s*(?:<\?xml[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?:\s|>)/iu.test(text))
-    return { bytes, extension: "svg", size: Infinity };
+  try {
+    if (Bun.XML.parse(bytes, { compact: false }).name === "svg")
+      return { bytes, extension: "svg", size: Infinity };
+  } catch {
+    // Malformed XML must not outrank a usable raster icon.
+  }
   if (bytes.length >= 6 && bytes.readUInt32LE(0) === 0x10000) {
     const count = bytes.readUInt16LE(4);
     if (!count || bytes.length < 6 + count * 16) return;

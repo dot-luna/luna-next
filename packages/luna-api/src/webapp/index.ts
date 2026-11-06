@@ -109,7 +109,7 @@ export async function installWebapp(context: WebappContext, name: string, url: s
       "Type=Application",
       `Name=${title}`,
       `Exec=${launchArgs.map(desktopArgument).join(" ")}`,
-      `Icon=${iconPath ? iconPath.replaceAll("\\", "\\\\").replaceAll(" ", "\\s") : "applications-internet"}`,
+      `Icon=${iconPath ? iconPath.replaceAll("\\", "\\\\") : "applications-internet"}`,
       "Terminal=false",
       "Categories=Network;",
       `StartupWMClass=${app.id}`,
