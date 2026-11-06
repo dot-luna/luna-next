@@ -26,6 +26,19 @@ export const webappRecipeSchema = z.strictObject({ name: webappNameSchema, url: 
 export const webappRecordSchema = webappRecipeSchema.extend({
   id: z.string().regex(/^luna-webapp-[0-9a-f]+$/u),
 });
+export const webappManifestSchema = z.object({
+  icons: z
+    .array(
+      z
+        .object({
+          src: z.string(),
+          purpose: z.string().optional(),
+        })
+        .nullable()
+        .catch(null),
+    )
+    .catch([]),
+});
 export type WebappRecord = z.infer<typeof webappRecordSchema>;
 export const webappCatalogSchema = z.array(webappRecipeSchema).superRefine((values, context) => {
   const names = new Set<string>();

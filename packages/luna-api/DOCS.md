@@ -291,13 +291,20 @@ or hook changes. Failed operations retain completed changes for a later retry.
 `Luna.webapp.install(name, url, options?)`, `list(options?)`,
 `uninstall(name, options?)`, and `launch(name, options?)` manage desktop launchers.
 Names are exact, nonblank display names (at most 100 UTF-8 bytes); URLs must use
-HTTP(S), without credentials. Installing the same name updates its URL.
+HTTP(S), without credentials. Installing the same name updates its URL and icon.
 
 Chromium and the configured `Luna` profile must exist before install/launch
 (`luna install chromium`). Launch uses `--app=URL --profile-directory=Luna`,
 without browser tabs/address bar; window decorations depend on the compositor.
 Installation does not open Chromium or change its profile. Uninstall removes
-only the launcher and metadata; browser data and unrelated apps remain.
+only the launcher, metadata, and downloaded icon; browser data and unrelated apps remain.
+
+Installation downloads the largest available icon from the site's manifest,
+touch icons, or favicons, preserving its original bytes and resolution. SVGs
+take priority because they scale without losing detail. Discovery uses HTTP(S)
+only, checking up to 24 icon URLs with a 15-second total deadline, five redirects
+per request, and an 8 MiB limit per icon. Unavailable icons use the generic web
+icon; installation still succeeds. Reinstall existing web apps to refresh their icons.
 
 Options accept `env`, `dataDir`, `applicationsDir`, `launcher`, `profileRoot`, and
 `chromium`. Defaults are `$LUNA_DATA_HOME_DIR/webapps` (otherwise
@@ -305,7 +312,7 @@ Options accept `env`, `dataDir`, `applicationsDir`, `launcher`, `profileRoot`, a
 `$HOME/.local/bin/luna`, and `$CHROME_USER_DATA_DIR` (otherwise
 `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium`). XDG roots
 fall back under HOME. Desktop entries invoke the installed Luna executable and
-use a generic Chromium icon. Launchers retain resolved API paths and browser
+use the downloaded site icon. Launchers retain resolved API paths and browser
 selection independently of the desktop environment. Browser profile and export paths must not overlap;
 linked export paths are rejected. Per-app locks serialize writes. A late I/O
 failure can leave metadata without its launcher; reinstall repairs it.
