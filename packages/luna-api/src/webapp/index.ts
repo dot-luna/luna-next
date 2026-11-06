@@ -1,9 +1,10 @@
-import { readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rename, rm, writeFile as writeBytes } from "node:fs/promises";
 import { join } from "pathe";
 import { ApiError, respond } from "../lib/response.ts";
 import { desktopArgument } from "../lib/desktop.ts";
 import { locked, metadata, parse, readOptional, writeFile } from "../lib/files.ts";
 import { validate } from "../lib/validation.ts";
+import { iconExtensions, websiteIcon } from "./icon.ts";
 import {
   requireProfile,
   validatePaths,
@@ -46,7 +47,7 @@ async function readApp(context: WebappContext, value: string, byId = false) {
   return app;
 }
 
-/** Install launch metadata and a desktop entry without opening a browser or changing its profile. */
+/** Download a site icon and install launch metadata without opening or changing the browser profile. */
 export async function installWebapp(context: WebappContext, name: string, url: string) {
   const recipe = validate(webappRecipeSchema, { name, url }, "Web app");
   const browser = await requireProfile(context);
@@ -62,9 +63,24 @@ export async function installWebapp(context: WebappContext, name: string, url: s
   await ordinary(directory);
   await ordinary(config);
   await ordinary(desktop);
+  const icons = iconExtensions.map((extension) => join(directory, `icon.${extension}`));
+  for (const path of icons) await ordinary(path);
   return locked({ configFile: config, env: context.env }, async () => {
     const source = await readOptional(config);
     const entry = await readOptional(desktop);
+    const icon = await websiteIcon(app.url);
+    const iconPath = icon && join(directory, `icon.${icon.extension}`);
+    if (icon && iconPath) {
+      await ordinary(iconPath);
+      const staging = await mkdtemp(join(directory, ".luna-icon-"));
+      try {
+        const staged = join(staging, "icon");
+        await writeBytes(staged, icon.bytes, { mode: 0o600 });
+        await rename(staged, iconPath);
+      } finally {
+        await rm(staging, { recursive: true, force: true });
+      }
+    }
     const title = app.name.replaceAll("\\", "\\\\");
     // A constant shell command forwards data arguments, including executable paths with % or =.
     // Desktop sessions need not inherit the install process's environment or API overrides.
@@ -93,7 +109,7 @@ export async function installWebapp(context: WebappContext, name: string, url: s
       "Type=Application",
       `Name=${title}`,
       `Exec=${launchArgs.map(desktopArgument).join(" ")}`,
-      "Icon=chromium",
+      `Icon=${iconPath ? iconPath.replaceAll("\\", "\\\\").replaceAll(" ", "\\s") : "applications-internet"}`,
       "Terminal=false",
       "Categories=Network;",
       `StartupWMClass=${app.id}`,
@@ -101,6 +117,7 @@ export async function installWebapp(context: WebappContext, name: string, url: s
     ].join("\n");
     await writeFile(config, JSON.stringify(app, null, 2) + "\n", source);
     await writeFile(desktop, body, entry);
+    for (const path of icons) if (path !== iconPath) await rm(path, { force: true });
     return { ...app, desktopFile: desktop };
   });
 }
@@ -134,9 +151,12 @@ export const webapp = {
       return locked({ configFile: config, env: c.env }, async () => {
         const desktop = join(c.applicationsDir, `${app.id}.desktop`);
         await ordinary(desktop);
+        const icons = iconExtensions.map((extension) => join(directory, `icon.${extension}`));
+        for (const path of icons) await ordinary(path);
         await rm(desktop, { force: true });
-        // Keep the persistent lock inode; remove only the declared app metadata, never profile data.
+        // Keep the persistent lock inode; remove only declared app files, never profile data.
         await rm(config);
+        for (const path of icons) await rm(path, { force: true });
         return app;
       });
     });
