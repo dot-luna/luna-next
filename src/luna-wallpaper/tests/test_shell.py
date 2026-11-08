@@ -23,7 +23,10 @@ INSPECTOR = '''
     IpcHandler {
         target: "test"
         property var knownImages: []
-        function state(): string {
+        property var surface: surfaces.instances[0]
+        function state(): string { return stateFor(0); }
+        function stateFor(index: int): string {
+            const surface = surfaces.instances[index];
             const images = [], videos = [], seen = [];
             function visit(item) {
                 if (!item || seen.indexOf(item) !== -1) return;
@@ -46,12 +49,22 @@ INSPECTOR = '''
             visit(surface);
             return JSON.stringify({settings: shell.wallpaperSettings, settingsStatus: shell.settingsStatus,
                 renderSettings: surface.settings, status: surface.mediaStatus, kind: surface.kind,
+                screen: surface.modelData.name,
                 images: images, videos: videos, visible: surface.visible,
                 fillModes: {fill: Image.PreserveAspectCrop, fit: Image.PreserveAspectFit,
                     stretch: Image.Stretch, center: Image.Pad, tile: Image.Tile},
                 fadeDuration: surface.fadeDuration,
                 color: String(surface.color), width: surface.width, height: surface.height,
                 dpr: surface.screen.devicePixelRatio});
+        }
+        function displays(): string {
+            return JSON.stringify(surfaces.instances.map((_, index) => JSON.parse(stateFor(index))));
+        }
+        function outputs(count: int): void {
+            surfaces.model = Quickshell.screens.slice(0, count);
+        }
+        function mediaStatus(index: int, value: string): void {
+            surfaces.instances[index].mediaStatus = value;
         }
         function outputActive(value: bool): void {
             surface.monitor = {lastIpcObject: {dpmsStatus: value}};
@@ -121,6 +134,121 @@ Item {
 ''')
         self.image = self.root / "wallpaper ' #?.png"
         self.png(self.image)
+
+    def two_displays(self):
+        # Real QScreen objects exercise Variants; FloatingWindow placement is not tested.
+        config = self.root / "offscreen.json"
+        config.write_text(json.dumps({"screens": [
+            {"name": "laptop", "x": 0, "y": 0, "width": 800, "height": 600},
+            {"name": "external", "x": 800, "y": 0, "width": 1280, "height": 720},
+        ]}))
+        self.env["QT_QPA_PLATFORM"] = "offscreen:configfile=" + str(config)
+
+    def displays(self):
+        return json.loads(self.ipc("displays").stdout)
+
+    def test_all_displays_share_settings_and_reload_without_recreating_images(self):
+        self.two_displays()
+        self.write_config()
+        self.start()
+        self.until(lambda: self.renderer_status() == "ready")
+        first = self.displays()
+        self.assertEqual({item["screen"] for item in first}, {"laptop", "external"})
+        self.assertTrue(all(len(item["images"]) == 1 for item in first))
+        self.assertEqual(first[0]["images"][0]["source"], first[1]["images"][0]["source"])
+        ids = [item["images"][0]["id"] for item in first]
+        self.assertNotEqual(*ids)
+        self.write_config(fit="center", transition={"duration_ms": 750})
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: self.renderer_status() == "ready")
+        latest = self.displays()
+        self.assertEqual([item["images"][0]["id"] for item in latest], ids)
+        for item in latest:
+            self.assertEqual(item["images"][0]["fillMode"], item["fillModes"]["center"])
+            self.assertEqual(item["fadeDuration"], 750)
+
+    def test_display_removal_and_reconnection_preserve_remaining_wallpaper(self):
+        self.two_displays()
+        self.write_config()
+        self.start()
+        self.until(lambda: self.renderer_status() == "ready")
+        original = self.displays()
+        self.assertEqual(len(original), 2)
+        image_id = original[0]["images"][0]["id"]
+        self.ipc("outputs", 1)
+        self.until(lambda: len(self.displays()) == 1)
+        self.assertEqual(self.state()["images"][0]["id"], image_id)
+        self.ipc("outputs", 2)
+        self.until(lambda: len(self.displays()) == 2 and self.renderer_status() == "ready")
+        reconnected = self.displays()
+        self.assertEqual(reconnected[0]["images"][0]["id"], image_id)
+        self.assertEqual(reconnected[0]["images"][0]["source"], reconnected[1]["images"][0]["source"])
+        self.ipc("outputs", 0)
+        self.until(lambda: len(self.displays()) == 0)
+        self.assertEqual(self.renderer_status(), "loading")
+        self.ipc("outputs", 2)
+        self.until(lambda: len(self.displays()) == 2 and self.renderer_status() == "ready")
+
+    def test_status_waits_for_every_display_and_reports_any_failure(self):
+        self.two_displays()
+        self.write_config()
+        self.start()
+        self.until(lambda: self.renderer_status() == "ready")
+        self.assertEqual(len(self.displays()), 2)
+        self.ipc("mediaStatus", 1, "loading")
+        self.assertEqual(self.renderer_status(), "loading")
+        self.ipc("mediaStatus", 0, "loading")
+        self.ipc("mediaStatus", 1, "error")
+        self.assertEqual(self.renderer_status(), "error")
+        self.ipc("mediaStatus", 1, "ready")
+        self.assertEqual(self.renderer_status(), "loading")
+        self.ipc("mediaStatus", 0, "ready")
+        self.assertEqual(self.renderer_status(), "ready")
+
+    def test_animation_pauses_independently_on_each_display(self):
+        self.two_displays()
+        media = self.root / "finite.gif"
+        self.gif(media)
+        self.write_config(source=media)
+        self.start()
+        self.until(lambda: self.renderer_status() == "ready")
+        self.assertEqual(len(self.displays()), 2)
+        self.ipc("outputActive", False)
+        self.until(lambda: self.displays()[0]["images"][0]["paused"])
+        self.assertFalse(self.displays()[1]["images"][0]["paused"])
+        self.ipc("outputActive", True)
+        self.until(lambda: not self.displays()[0]["images"][0]["paused"])
+
+    def test_video_reload_and_pause_apply_to_each_display(self):
+        self.two_displays()
+        tools = self.root / "bin"
+        tools.mkdir()
+        probe = tools / "ffprobe"
+        probe.write_text('#!/usr/bin/python3\nprint(\'{"streams":[{"codec_name":"h264"}],'
+                         '"format":{"format_name":"mov,mp4"}}\')\n')
+        probe.chmod(0o755)
+        self.env["PATH"] = str(tools) + ":" + self.env["PATH"]
+        self.write_config()
+        self.start()
+        self.until(lambda: self.renderer_status() == "ready")
+        self.assertEqual(len(self.displays()), 2)
+        for item in self.displays():
+            self.assertEqual(item["videos"], [{"source": str(self.image), "paused": False}])
+        self.ipc("outputActive", False)
+        self.until(lambda: self.displays()[0]["videos"][0]["paused"])
+        self.assertFalse(self.displays()[1]["videos"][0]["paused"])
+        replacement = self.root / "second.mp4"
+        self.write_config(source=replacement)
+        self.assertEqual(self.reload(), "ok")
+        self.until(lambda: self.renderer_status() == "ready")
+        for item in self.displays():
+            self.assertEqual(item["videos"][0]["source"], str(replacement))
+        self.ipc("outputs", 1)
+        self.until(lambda: len(self.displays()) == 1)
+        self.ipc("outputs", 2)
+        self.until(lambda: len(self.displays()) == 2 and self.renderer_status() == "ready")
+        for item in self.displays():
+            self.assertEqual(item["videos"][0]["source"], str(replacement))
 
     @staticmethod
     def png(path):

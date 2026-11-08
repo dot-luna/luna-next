@@ -1,6 +1,6 @@
 # Luna Wallpaper
 
-Quickshell wallpaper app for images, animations, and videos on the first monitor.
+Quickshell wallpaper app showing the same image, animation, or video on every monitor.
 
 With the [Luna CLI](../luna-cli/README.md) installed:
 
