@@ -103,16 +103,20 @@ use `--yes` in scripts or `--dry-run` to validate and print paths.
 
 ## Playback
 
-Uses the first available monitor. Qt renders still images and GIF/WebP animation;
-mpvpaper handles video and animated PNG. If `ffprobe` is missing or cannot identify
-the media, Qt image decoding is attempted.
+Shows the same wallpaper on every connected monitor, including newly connected
+displays. Each display applies the shared fit and playback settings independently;
+video playback is not frame-synchronized between displays. Qt renders still
+images and GIF/WebP animation; mpvpaper handles video and animated PNG. If
+`ffprobe` is missing or cannot identify the media, Qt image decoding is attempted.
 
 Video loops silently with automatic hardware decoding when available. Personal
 mpv settings and scripts are disabled. Exiting the app stops its player. Pausing
 on sleeping or disabled outputs is supported on Hyprland. Playback also pauses
 while a fullscreen window covers the wallpaper's monitor and visible workspace,
 and resumes when uncovered. Maximized windows and fullscreen windows on other
-monitors or hidden workspaces do not pause it.
+monitors or hidden workspaces do not pause it. Disconnecting a display stops its
+player. Status is ready only when every display is ready; an error on any display
+is reported as an error. With no displays, status is loading.
 
 Images remain visible while their replacement loads. Video changes reuse the
 player and surface; a brief decoding gap can still occur when switching files.

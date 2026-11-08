@@ -32,10 +32,15 @@ ShellRoot {
         loadSettings(Quickshell.env("LUNA_WALLPAPER_SETTINGS"));
     }
 
-    WallpaperSurface {
-        id: surface
-        screen: Quickshell.screens[0] || null
-        settings: shell.wallpaperSettings
+    Variants {
+        id: surfaces
+        model: Quickshell.screens
+
+        WallpaperSurface {
+            required property var modelData
+            screen: modelData
+            settings: shell.wallpaperSettings
+        }
     }
 
     IpcHandler {
@@ -54,7 +59,15 @@ ShellRoot {
         function status(): string {
             if (shell.settingsStatus !== "ready")
                 return shell.settingsStatus;
-            return surface.mediaStatus;
+            // A successful reload must be ready on every connected display.
+            let loading = surfaces.instances.length === 0;
+            for (const surface of surfaces.instances) {
+                if (surface.mediaStatus === "error")
+                    return "error";
+                if (surface.mediaStatus !== "ready")
+                    loading = true;
+            }
+            return loading ? "loading" : "ready";
         }
     }
 }
