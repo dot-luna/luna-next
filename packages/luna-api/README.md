@@ -1,6 +1,6 @@
 # Luna API
 
-Shared Luna operations for Bun: setup, themes, apps, default applications, and Chromium web apps.
+Shared Luna operations for Bun: setup, themes, apps, hardware, default applications, and Chromium web apps.
 From the workspace, call the API with an existing checkout:
 
 ```ts
@@ -10,4 +10,4 @@ const response = await Luna.info({ repository: process.cwd() });
 console.log(response);
 ```
 
-See [DOCS.md](DOCS.md) for self operations, errors, and checks.
+See [DOCS.md](DOCS.md) for APIs, hardware setup, errors, and checks.

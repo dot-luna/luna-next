@@ -11,6 +11,7 @@ import { wallpaper } from "./wallpaper/index.ts";
 import { lock } from "./lock/index.ts";
 import { screensaver } from "./screensaver/index.ts";
 import { screenshot } from "./screenshot/index.ts";
+import { hardware } from "./hardware/index.ts";
 
 export const Luna = {
   info,
@@ -25,7 +26,27 @@ export const Luna = {
   screensaver,
   lock,
   screenshot,
+  hardware,
 };
+
+export type {
+  PowerProfile,
+  PowerState,
+  HardwareWriteOptions,
+  FanTargets,
+  FanState,
+  ChargeLimitState,
+  KeyboardState,
+  ReadIssue,
+  BatteryStatus,
+  BatteryState,
+  CpuSample,
+  MetricsInput,
+  MetricsSample,
+  HardwareCapability,
+  HardwareFeature,
+  HardwareCapabilities,
+} from "./hardware/types.ts";
 
 export type { ScreenshotMode, ScreenshotOptions, ScreenshotResult } from "./screenshot/context.ts";
 

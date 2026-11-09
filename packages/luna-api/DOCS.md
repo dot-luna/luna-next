@@ -77,6 +77,97 @@ bun run --cwd packages/luna-api test
 bun run --cwd packages/luna-api build
 ```
 
+## Hardware API
+
+`Luna.hardware` reads live Linux state and controls the owner's Acer Nitro ANV15-51.
+It starts no background service, saves no presets, and restores nothing after reboot,
+resume, or process exit. Standard power changes go through power-profiles-daemon;
+other clients observe its normal D-Bus notifications.
+
+| Method                                    | Input                                                       | Result data                                                                      |
+| ----------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `inspect()`                               | None                                                        | Machine identity, individual capabilities, helper/Polkit readiness               |
+| `power.get()`                             | None                                                        | Active/available profiles, driver names, degradation, existing holds             |
+| `power.set(input)`                        | `{ profile: "power-saver" \| "balanced" \| "performance" }` | Observed power state after the request                                           |
+| `fans.get()`                              | None                                                        | `driverReportedTargets: { cpu, gpu }`                                            |
+| `fans.set(input, options?)`               | `{ cpu, gpu }`, both integers 0–100                         | Driver-reported target pair                                                      |
+| `battery.get()`                           | None                                                        | Presence, charge/health percentages, cycles, state, `onBattery`, limiter, issues |
+| `battery.setChargeLimit(input, options?)` | `{ enabled: boolean }`                                      | `{ enabled, limitPercent: 80 }`                                                  |
+| `keyboard.get()`                          | None                                                        | `{ enabled, timeoutSeconds: 30 }`                                                |
+| `keyboard.setTimeout(input, options?)`    | `{ enabled: boolean }`                                      | Verified timeout state                                                           |
+| `metrics.sample(input?)`                  | `{ previousCpu?: CpuSample \| null }`                       | CPU/GPU readings, actual fan RPM, issues, collection timestamp                   |
+
+Fan zero means automatic; 1–100 are requested percentages. `100,100` requests the
+driver's maximum mode. Readback is the driver's cached request, not measured duty
+or proof of fan motion. Power changes can reset fans, including on a failed
+profile request: discard earlier fan observations and reread. Nothing automatically
+reapplies a manual target. Keyboard timeout `false` disables its timer, not lighting.
+
+Reads never elevate. Acer setter options accept `{ allowAuthorization: true }`
+to permit the existing Polkit agent to ask for authorization. The default skips
+`pkexec` and returns `INPUT_REQUIRED` when other prerequisites are ready. Power
+changes use the service's existing policy without interactive escalation.
+Inputs reject unknown fields, coercion, null required values, and out-of-range values.
+
+`inspect()` distinguishes unavailable prerequisites from unsupported controls;
+available interfaces do not imply authorization or verified firmware behavior.
+Battery and metrics reads return partial results: unknown readings are null with
+field-specific `issues`; genuine zero values remain zero. Battery health is UPower's
+capacity estimate. A suspended NVIDIA GPU is not queried, and RPM is never estimated
+from percentages. Standard power/battery reads do not require the Acer driver.
+
+```ts
+import { Luna } from "@luna/api";
+
+const first = await Luna.hardware.metrics.sample();
+// On a later explicit refresh, pass the previous caller-owned CPU baseline.
+if (first.succes) {
+  const next = await Luna.hardware.metrics.sample({ previousCpu: first.data.cpu.sample });
+  console.log(next);
+}
+```
+
+The first CPU sample returns null utilization. Tokens preserve kernel counters as
+decimal strings; reboot, counter regression, or a zero-length interval resets the
+baseline. There is no hidden sampling timer or cache. `observedAt` marks collection
+completion; the readings are not atomic.
+
+Hardware prerequisites, installed separately:
+
+- `power-profiles-daemon`, `upower`, and systemd's `busctl` for standard service reads/writes.
+- [Div-Linuwu-Sense](https://github.com/PXDiv/Div-Linuwu-Sense) for Acer controls and fan sensors;
+  use the running kernel's build prerequisites and the driver's setup instructions.
+- Polkit, its session authentication agent, and the installed helper below for Acer writes.
+- NVIDIA driver tools providing `nvidia-smi` for active NVIDIA GPU telemetry.
+
+Build and provision the helper separately from normal API use:
+
+```sh
+bun run --cwd packages/luna-api build:hardware-helper
+sudo install -D -o root -g root -m 0755 packages/luna-api/dist/luna-hardware-helper /usr/lib/luna/luna-hardware-helper
+sudo install -D -o root -g root -m 0644 packages/luna-api/src/hardware/org.luna.hardware.policy /usr/share/polkit-1/actions/org.luna.hardware.policy
+```
+
+The helper and parent directories must be owned by root and not writable by other
+users. The policy authorizes that exact executable, never a generic Bun interpreter
+or source checkout. API calls do not install anything or load/unload kernel modules.
+Review upstream Acer changes at the [hardware entry point](src/hardware/index.ts)
+if a firmware/kernel update changes behavior.
+
+Failures use the normal API envelope: `INVALID_ARGUMENT` for invalid inputs,
+`INVALID_ENVIRONMENT` for missing prerequisites, `INPUT_REQUIRED` for Acer
+authorization opt-in, `COMMAND_FAILED` for rejection/cancellation/timeout,
+`CONFLICT` for mismatching readback, and `IO_ERROR` for unreadable/invalid results.
+After dispatch, errors can leave partial or unknown effects. A read cannot prove
+rollback; the API never retries or compensates automatically. Ordinary tool reads
+are bounded to 5 seconds, writes to 10 seconds, and authorization requests to
+120 seconds; elevated/uninterruptible work may outlive the caller's wait.
+
+Fixture tests exercise the API and helper without changing real hardware:
+`bun test packages/luna-api/tests/hardware-*.test.ts`. Successful firmware writes,
+PPD's Acer backend selection, and suspend/AC transitions still require validation
+on the actual laptop after driver/helper provisioning.
+
 ## Default applications
 
 `Luna.defaults.list(options?)`, `set(key, application, options?)`, and

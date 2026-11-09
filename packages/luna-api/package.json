@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && bun build ./src/index.ts --target bun --format esm --packages external --outdir dist --sourcemap=external",
+    "build:hardware-helper": "bun build ./src/hardware/helper-main.ts --compile --outfile ./dist/luna-hardware-helper",
     "check": "tsc --noEmit",
     "test": "bun test tests"
   },

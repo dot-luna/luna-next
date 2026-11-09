@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>Luna</vendor>
+  <vendor_url>https://github.com/dot-luna/luna-next</vendor_url>
+  <action id="org.luna.hardware.write">
+    <description>Change Acer hardware settings</description>
+    <message>Authentication is required to change fan targets, the battery charge limit, or the keyboard timeout.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/luna/luna-hardware-helper</annotate>
+  </action>
+</policyconfig>
