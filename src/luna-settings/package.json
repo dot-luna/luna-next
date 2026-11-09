@@ -1,0 +1,12 @@
+{
+  "name": "@luna/settings",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test tests"
+  },
+  "dependencies": {
+    "@luna/api": "workspace:*"
+  }
+}

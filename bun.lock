@@ -31,11 +31,20 @@
         "pino-pretty": "^13.2.0",
       },
     },
+    "src/luna-settings": {
+      "name": "@luna/settings",
+      "version": "0.0.1",
+      "dependencies": {
+        "@luna/api": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@luna/api": ["@luna/api@workspace:packages/luna-api"],
 
     "@luna/cli": ["@luna/cli@workspace:src/luna-cli"],
+
+    "@luna/settings": ["@luna/settings@workspace:src/luna-settings"],
 
     "@oxfmt/binding-android-arm-eabi": ["@oxfmt/binding-android-arm-eabi@0.75.0", "", { "os": "android", "cpu": "arm" }, "sha512-zHJ7LcTN46/5mtoLxsUu14pdF9ixFwDURtmxZ0CeNwqom5qB5NRVqU6o2GRZ7QPdNBW8G6j9UTJzQ+EDevMH0w=="],
 
