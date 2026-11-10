@@ -1,9 +1,9 @@
 import { join } from "pathe";
 import { parse } from "../../lib/files.ts";
 import { validate } from "../../lib/validation.ts";
-import { webappContext } from "../../webapp/context.ts";
-import { installWebapp } from "../../webapp/index.ts";
-import { webappCatalogSchema } from "../../webapp/schema.ts";
+import { webappContext } from "../../modules/webapp/context.ts";
+import { webapp } from "../../modules/webapp/index.ts";
+import { webappCatalogSchema } from "../../modules/webapp/schema.ts";
 import { attempt, quote, type InstallFailure } from "../../install/report.ts";
 import type { InstallContext } from "./command.ts";
 
@@ -20,13 +20,13 @@ export async function installWebApps(
 ) {
   const recipes = await readWebapps(context);
   if (!recipes.length) return [];
-  const c = webappContext({ env: context.env });
+  const appContext = webappContext.resolve({ env: context.env });
   const installed: string[] = [];
   for (const app of recipes) {
     const retry = `${quote(join(context.home, ".local/bin/luna"))} webapp install ${quote(app.name)} ${quote(app.url)}`;
     if (
       await attempt(context, `webapp:${app.name}`, retry, skipFailed, failed, () =>
-        installWebapp(c, app.name, app.url),
+        webapp.installWithContext(appContext, app),
       )
     )
       installed.push(app.name);

@@ -235,10 +235,20 @@ and Ctrl+Print captures all screens.
   selected apps; omit names for all. Match directory IDs or package names.
 - `luna configure [names...] [--install-dir PATH]`: configure without installing.
   `config` and `confi` are aliases. Apps always follow catalog order.
-- `luna webapp install [name] [url]`: prompt for missing values in a terminal.
-  JSON mode requires both values and never prompts.
-- `luna webapp list`, `luna webapp launch <name>`,
-  `luna webapp uninstall <name>`: manage apps by exact display name.
+- `luna webapp install [name] [url] [--icon <path-or-url>]`: prompt for a missing
+  name or URL in a terminal. JSON mode requires both and never prompts. An explicit
+  icon is copied from a local file or downloaded from an HTTP(S) image URL;
+  relative paths start at the current directory. Omit it for automatic site-icon
+  discovery. Invalid explicit icons fail installation instead of falling back.
+- `luna webapp launch <name>`: prefer an exact name, otherwise select the best
+  case-insensitive fuzzy match using fzf, without a picker. In Hyprland, focus an
+  existing app window or open it if none exists. Outside Hyprland, open it normally.
+  `--no-focus-existing` requests a new window; `--no-fuzzy` requires the exact name.
+  Both behaviors are enabled by default. Output says `Focused` or `Opened`;
+  JSON includes the app record, action, PID, and window address when focused.
+- `luna webapp list`: list installed apps by display name and URL.
+- `luna webapp uninstall <name>`: remove the exact named app's launcher, metadata,
+  and icons while retaining its Chromium browser data.
 
 App manifests can declare Zsh shortcuts such as `ff` for `fastfetch`. After changing
 them, reconfigure the app and Zsh (`luna configure fastfetch zsh`), then open a new terminal.
@@ -246,7 +256,11 @@ them, reconfigure the app and Zsh (`luna configure fastfetch zsh`), then open a 
 The `webapp` group accepts `--data-dir`, `--applications-dir`, `--launcher`,
 `--profile-root`, and `--chromium` for explicit paths/browser selection. Generated
 desktop entries retain their resolved paths and browser even if the desktop
-session has a different environment.
+session has a different environment. By default, entries are installed in
+`~/.local/share/applications/` and metadata/icons in
+`~/.local/share/luna/webapps/<id>/`; XDG and Luna data paths can override these.
+Luna Menu opens the desktop entry, whose command calls `luna webapp launch`, so
+menu launches also focus an existing window by default.
 
 Install/configure Chromium first with `luna install chromium`. Web apps open in
 its `Luna` profile using app mode, without tabs/address bar. Uninstall retains
@@ -254,6 +268,9 @@ browser data. Quote names or URLs containing spaces or shell punctuation:
 
 ```sh
 luna webapp install "YouTube" "https://www.youtube.com/"
+luna webapp install "YouTube" "https://www.youtube.com/" --icon "$HOME/Pictures/youtube.png"
+luna webapp launch ytb
+luna webapp launch "YouTube" --no-focus-existing --no-fuzzy
 ```
 
 See [app behavior](../../apps/DOCS.md) and [web-app options](../../packages/luna-api/DOCS.md#web-app-api).

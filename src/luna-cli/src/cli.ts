@@ -14,7 +14,7 @@ import { addScreensaverCommands } from "./screensaver/commands.ts";
 import { addLockCommands } from "./lock/commands.ts";
 import { addScreenshotCommands } from "./screenshot/commands.ts";
 
-import { addWebappCommands } from "./webapp/commands.ts";
+import { addWebappCommands } from "./modules/webapp/commands.ts";
 
 interface GlobalOptions {
   version?: boolean;

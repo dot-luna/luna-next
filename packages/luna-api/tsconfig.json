@@ -3,6 +3,9 @@
     "target": "ESNext",
     "module": "Preserve",
     "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "customConditions": ["bun"],
     "strict": true,
     "noUncheckedIndexedAccess": true,

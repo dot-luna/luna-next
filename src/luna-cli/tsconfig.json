@@ -1,4 +1,9 @@
 {
   "extends": "../../packages/luna-api/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*", "../../packages/luna-api/src/*"]
+    }
+  },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

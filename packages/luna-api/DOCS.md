@@ -288,34 +288,147 @@ or hook changes. Failed operations retain completed changes for a later retry.
 
 ## Web-app API
 
-`Luna.webapp.install(name, url, options?)`, `list(options?)`,
-`uninstall(name, options?)`, and `launch(name, options?)` manage desktop launchers.
-Names are exact, nonblank display names (at most 100 UTF-8 bytes); URLs must use
-HTTP(S), without credentials. Installing the same name updates its URL and icon.
+`Luna.webapp` manages Chromium web apps in the configured `Luna` profile.
+Install/configure Chromium first (`luna install chromium`); installing a web app
+also requires the Luna executable. Installation does not open the browser or
+modify its profile.
 
-Chromium and the configured `Luna` profile must exist before install/launch
-(`luna install chromium`). Launch uses `--app=URL --profile-directory=Luna`,
-without browser tabs/address bar; window decorations depend on the compositor.
-Installation does not open Chromium or change its profile. Uninstall removes
-only the launcher, metadata, and downloaded icon; browser data and unrelated apps remain.
+| Method | Behavior |
+| --- | --- |
+| `install(name, url, options?)` | Create or update the named app, its icon, and desktop entry. |
+| `list(options?)` | Return installed records sorted by display name. A missing library is empty. |
+| `launch(name, options?)` | Match the name, focus an open app window, or open the app. |
+| `uninstall(name, options?)` | Remove the exact named app's entry, metadata, and icon files. |
 
-Installation downloads the largest available icon from the site's manifest,
-touch icons, or favicons, preserving its original bytes and resolution. SVGs
-take priority because they scale without losing detail. Discovery uses HTTP(S)
-only, checking up to 24 icon URLs with a 15-second total deadline, five redirects
-per request, and an 8 MiB limit per icon. Unavailable icons use the generic web
-icon; installation still succeeds. Reinstall existing web apps to refresh their icons.
+Names are trimmed, case-sensitive display names of at most 100 UTF-8 bytes.
+URLs must use HTTP(S) without credentials. Results use the standard API response.
+App records contain `id`, `name`, and `url`; install also returns `desktopFile`.
+Reinstalling the same name updates its URL and icon. Uninstall retains Chromium
+profile data, unrelated files, and the app directory containing its lock file.
 
-Options accept `env`, `dataDir`, `applicationsDir`, `launcher`, `profileRoot`, and
-`chromium`. Defaults are `$LUNA_DATA_HOME_DIR/webapps` (otherwise
-`$XDG_DATA_HOME/luna/webapps`), `$XDG_DATA_HOME/applications`,
-`$HOME/.local/bin/luna`, and `$CHROME_USER_DATA_DIR` (otherwise
-`$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium`). XDG roots
-fall back under HOME. Desktop entries invoke the installed Luna executable and
-use the downloaded site icon. Launchers retain resolved API paths and browser
-selection independently of the desktop environment. Browser profile and export paths must not overlap;
-linked export paths are rejected. Per-app locks serialize writes. A late I/O
-failure can leave metadata without its launcher; reinstall repairs it.
+### Installed files and menu integration
+
+With the default environment, installation writes:
+
+| File | Default path |
+| --- | --- |
+| Desktop entry | `~/.local/share/applications/<id>.desktop` |
+| App metadata | `~/.local/share/luna/webapps/<id>/app.jsonc` |
+| Copied or downloaded icon | `~/.local/share/luna/webapps/<id>/icon.<format>` |
+| Persistent operation lock | `~/.local/share/luna/webapps/<id>/app.jsonc.lock` |
+
+`<id>` is `luna-webapp-` followed by the display name's UTF-8 bytes encoded as hex.
+Metadata stores the name, URL, and ID. The installed icon is independent of its
+original file or URL; its source is not needed to launch the app.
+
+Luna Menu discovers the desktop entry through the desktop application catalog.
+Selecting it executes the entry's `Exec` command, which invokes
+`luna webapp launch <saved-name>`. That calls this API, including its default
+focus behavior. The entry records the resolved metadata directory, applications
+directory, Luna executable, Chromium profile root, and browser executable as
+arguments, so it does not depend on inheriting the installer's environment.
+Its `Icon` field uses the installed image path, or `applications-internet` when
+no icon was found. A custom applications directory must be in the desktop's
+application search paths to appear in the menu.
+
+### Icons
+
+```ts
+await Luna.webapp.install("YouTube", "https://www.youtube.com/", {
+  icon: "/home/alex/Pictures/youtube.png",
+});
+```
+
+`options.icon` accepts a local file path or direct HTTP(S) image URL. Relative
+paths start at the caller's working directory. Installation copies or downloads
+the original bytes and detects the format from their content. Supported formats
+are PNG, SVG, ICO, JPEG, WebP, GIF, and BMP, with an 8 MiB input limit. Remote icons
+allow five redirects and five seconds. Invalid, missing, or unreachable explicit
+icons fail installation instead of silently selecting another image.
+
+Omitting `icon` discovers icons from the site's manifest, touch icons, and favicon.
+SVGs take priority; raster images are ranked by their shorter edge. Discovery
+checks up to 24 URLs, four at a time, within a shared 15-second network deadline.
+Each request allows five redirects and five seconds; icons are limited to 8 MiB.
+No usable icon means the generic web icon is used and installation still succeeds.
+Reinstall to refresh an icon; omitting `icon` on reinstall runs discovery again.
+
+### Launching and focusing
+
+```ts
+await Luna.webapp.launch("ytb"); // Fuzzy-match the name; focus or open it.
+await Luna.webapp.launch("YouTube", { focusExisting: false }); // Request a new window.
+await Luna.webapp.launch("YouTube", { fuzzy: false }); // Require an exact name.
+```
+
+Both `focusExisting` and `fuzzy` default to `true`. An exact name wins without
+running fzf. Otherwise, launch uses fzf in noninteractive filter mode to choose
+the best case-insensitive match; there is no picker. Matching treats query
+characters literally rather than as fzf operators. Equal scores prefer shorter
+names, then the order returned by `list`. No match returns `INVALID_ARGUMENT`.
+Fuzzy matching requires the `fzf` executable, included by full Luna setup.
+`uninstall` always requires the exact saved name.
+
+In Hyprland, launch reads mapped windows with `hyprctl` and matches their class
+or initial class against the generated app ID. If several match, it focuses the
+most recently focused one. It matches window classes, not page titles or URLs;
+separate custom libraries using the same app name therefore share the same
+window identity. Focus does not reopen the URL or reload the page.
+Outside Hyprland, launch opens the app without checking for existing windows.
+`focusExisting: false` skips window discovery and passes `--new-window` to Chromium.
+
+Opening uses Chromium's `Luna` profile in app mode, without browser tabs/address
+bar; decorations depend on the compositor. The process is detached and launch
+does not wait for its window to appear. Only currently mapped windows can be
+reused, so simultaneous launches during startup can still open separate windows.
+
+Launch returns the app record, `pid`, and `action`: `focused` or `opened`.
+Focused results also contain `windowAddress`; their PID belongs to the existing
+window. Opened results contain the spawned process PID, which may exit after
+handing off to Chromium's existing browser process. An already-open app can be
+focused without rechecking the browser executable or profile files.
+
+The CLI command and menu inherit these launch defaults through the API.
+CLI installation accepts `--icon <path-or-url>`; launch accepts
+`--no-focus-existing` and `--no-fuzzy` to disable the corresponding defaults.
+
+### Paths and environment
+
+All methods accept these overrides; nonempty explicit paths take priority:
+
+| Option | Default selection |
+| --- | --- |
+| `dataDir` | `$LUNA_DATA_HOME_DIR/webapps`, otherwise `$XDG_DATA_HOME/luna/webapps` |
+| `applicationsDir` | `$XDG_DATA_HOME/applications` |
+| `launcher` | `$HOME/.local/bin/luna` |
+| `profileRoot` | `$CHROME_USER_DATA_DIR`, then `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium` |
+| `chromium` | `chromium`, resolved through the selected environment's `PATH` |
+| `env` | A copy of the current process environment |
+
+Unset XDG roots default to `~/.local/share` and `~/.config`. Supplying `env`
+replaces the environment entirely; include `HOME`, `PATH`, and any desktop session
+variables needed by the operation. Destination paths must be absolute, non-root,
+and free of control characters. Relative paths are supported for icon sources,
+not destination overrides. Reads resolve current settings per call; there are
+no watchers or caches.
+
+### Errors and write behavior
+
+- `INVALID_ARGUMENT`: app not installed or no fuzzy match.
+- `INVALID_PATH`: unsafe export paths, overlap with browser profile data, or missing profile/launcher.
+- `INVALID_METADATA`: invalid names, URLs, settings, saved metadata, or icon content.
+- `INVALID_ENVIRONMENT`: a required browser, fzf, or Hyprctl executable is unavailable.
+- `COMMAND_FAILED`: matching or Hyprland window inspection/focusing failed.
+- `CONFLICT`: another operation holds the app lock, or a metadata/desktop-entry edit is detected.
+- `IO_ERROR`: other filesystem, download, or process errors.
+
+Linked export paths are rejected. Per-app locks exclude concurrent writers;
+metadata and desktop-entry writes also detect external edits. Files are written
+separately, so later failures can leave earlier writes in place; reinstall repairs
+partial installation. Removal also stops on errors without restoring earlier
+deletions. Invalid explicit icons fail before replacing existing metadata,
+desktop entries, or icons. A Hyprland inspection or focus failure returns an
+error instead of opening a possible duplicate; retry after resolving the error.
 
 ## Notification API
 

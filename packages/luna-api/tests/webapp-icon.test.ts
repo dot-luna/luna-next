@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { join, relative } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
 import { AppFixture } from "./fixtures/app-fixture.ts";
 
@@ -55,6 +55,89 @@ const appDirectory = (id: string) => join(f.home, ".local/share/luna/webapps", i
 function desktopIcon(path: string) {
   return `Icon=${path.replaceAll("\\", "\\\\")}\n`;
 }
+
+test("copies a relative local icon without discovery and retains it after the source is removed", async () => {
+  const bytes = await png(128);
+  const sourcePath = join(f.root, "custom icon.data");
+  await Bun.write(sourcePath, bytes);
+  const app = await install("/", { icon: relative(process.cwd(), sourcePath) });
+  const installedIcon = join(appDirectory(app.id), "icon.png");
+  rmSync(sourcePath);
+  expect(readFileSync(installedIcon)).toEqual(bytes);
+  expect(readFileSync(app.desktopFile, "utf8")).toContain(desktopIcon(installedIcon));
+  expect(requests).toEqual([]);
+  expect(data(await Luna.webapp.list({ env: f.env }))).toEqual([
+    { name: app.name, url: app.url, id: app.id },
+  ]);
+});
+
+test("downloads an explicit icon through redirects without visiting the app website", async () => {
+  const bytes = await png(256);
+  routes.set("/custom-icon", () => Response.redirect(new URL("/images/logo", server.url)));
+  serve("/images/logo", bytes);
+  const app = await install("/", { icon: new URL("/custom-icon", server.url).href });
+  expect(readFileSync(join(appDirectory(app.id), "icon.png"))).toEqual(bytes);
+  expect(requests).toEqual(["/custom-icon", "/images/logo"]);
+});
+
+test("invalid explicit icons preserve the installed metadata, launcher and icon", async () => {
+  const originalBytes = await png(64);
+  const sourcePath = join(f.root, "original.png");
+  await Bun.write(sourcePath, originalBytes);
+  const app = await install("/", { icon: sourcePath });
+  const directory = appDirectory(app.id);
+  const originalMetadata = readFileSync(join(directory, "app.jsonc"));
+  const originalDesktopEntry = readFileSync(app.desktopFile);
+  const invalidPath = join(f.root, "invalid.png");
+  await Bun.write(invalidPath, "<html>Not an image</html>");
+  serve("/invalid", "<html>Not an image</html>");
+  serve("/too-large", Buffer.alloc(8 * 1024 * 1024 + 1));
+  routes.set("/unsafe-redirect", () =>
+    new Response(null, { status: 302, headers: { location: "file:///etc/passwd" } }),
+  );
+  for (const icon of [
+    invalidPath,
+    join(f.root, "missing.png"),
+    f.root,
+    new URL("/invalid", server.url).href,
+    new URL("/missing", server.url).href,
+    new URL("/too-large", server.url).href,
+    new URL("/unsafe-redirect", server.url).href,
+    "file:///etc/passwd",
+    "https://user:password@example.test/icon.png",
+    "",
+  ]) {
+    const result = await Luna.webapp.install(app.name, new URL("/changed", server.url).href, {
+      env: f.env,
+      icon,
+    });
+    expect(result.succes).toBe(false);
+    expect(readFileSync(join(directory, "app.jsonc"))).toEqual(originalMetadata);
+    expect(readFileSync(app.desktopFile)).toEqual(originalDesktopEntry);
+    expect(readFileSync(join(directory, "icon.png"))).toEqual(originalBytes);
+  }
+  expect(requests).not.toContain("/changed");
+  expect(requests).not.toContain("/favicon.ico");
+});
+
+test("rejects oversized local icons and replaces old formats when a custom icon changes", async () => {
+  const sourcePath = join(f.root, "custom-icon");
+  await Bun.write(sourcePath, Buffer.alloc(8 * 1024 * 1024 + 1));
+  expect(await Luna.webapp.install("Website", server.url.href, { env: f.env, icon: sourcePath }))
+    .toMatchObject({ succes: false, err: "INVALID_METADATA" });
+
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"/>';
+  await Bun.write(sourcePath, svg);
+  const app = await install("/", { icon: sourcePath });
+  const directory = appDirectory(app.id);
+  expect(readFileSync(join(directory, "icon.svg"), "utf8")).toBe(svg);
+  const bytes = await png(128);
+  await Bun.write(sourcePath, bytes);
+  await install("/", { icon: sourcePath });
+  expect(existsSync(join(directory, "icon.svg"))).toBe(false);
+  expect(readFileSync(join(directory, "icon.png"))).toEqual(bytes);
+  expect(readFileSync(sourcePath)).toEqual(bytes);
+});
 
 test("uses the largest original image from redirected page and manifest URLs, including undeclared sizes", async () => {
   const small = await png(32);
