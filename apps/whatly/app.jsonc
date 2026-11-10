@@ -37,5 +37,6 @@
   "hooks": {
     "build": ["scripts/build.ts"],
     "after_build": ["scripts/install.ts"],
+    "after_configure": ["scripts/configure.ts"],
   },
 }

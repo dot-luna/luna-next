@@ -1,0 +1,22 @@
+:root,
+body,
+#app,
+#main {
+  --chat-bubble-border-radius: 0px !important;
+}
+
+/* Square interactive surfaces without changing avatars or progress indicators. */
+#app
+  :is(
+    button,
+    input,
+    textarea,
+    select,
+    [role="button"],
+    [role="textbox"],
+    [role="dialog"],
+    [role="menu"],
+    [role="tab"]
+  ) {
+  border-radius: 0 !important;
+}

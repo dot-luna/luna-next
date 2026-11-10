@@ -1,7 +1,8 @@
 # Whatly
 
 Build and install [dot-luna/whatly](https://github.com/dot-luna/whatly), a native
-Qt WhatsApp Web client. Luna installs its build and runtime dependencies.
+Qt WhatsApp Web client. Luna installs its dependencies and applies its theme and
+user-agent defaults to WhatsApp Web.
 
 ```sh
 luna install whatly

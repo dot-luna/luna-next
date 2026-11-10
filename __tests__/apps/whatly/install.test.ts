@@ -213,7 +213,7 @@ test("Whatly refuses linked desktop destinations before publishing any native up
   }
 });
 
-test("Whatly's indexed manifest declares a build without configuration exports", async () => {
+test("Whatly's indexed manifest declares native build and configuration hooks", async () => {
   const root = mkdtempSync(join(tmpdir(), "luna-whatly-catalog-"));
   try {
     const context = await appContext({ repository, env: { HOME: root } });
@@ -223,6 +223,7 @@ test("Whatly's indexed manifest declares a build without configuration exports",
     expect(manifest.processes).toEqual(["whatly"]);
     expect(manifest.exports).toBeUndefined();
     expect(manifest.hooks?.before_configure).toBeUndefined();
+    expect(manifest.hooks?.after_configure).toEqual(["scripts/configure.ts"]);
     expect(manifest.deps?.map((dependency) => dependency.name)).toEqual(
       expect.arrayContaining([
         "gcc",

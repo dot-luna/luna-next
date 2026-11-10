@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-function absolute(value: string, name: string): string {
+export function absolute(value: string, name: string): string {
   if (
     !path.isAbsolute(value) ||
     value === "/" ||
