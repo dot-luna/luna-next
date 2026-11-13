@@ -309,12 +309,12 @@ Install/configure Chromium first (`luna install chromium`); installing a web app
 also requires the Luna executable. Installation does not open the browser or
 modify its profile.
 
-| Method                         | Behavior                                                                     |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| `install(name, url, options?)` | Create or update the named app, its icon, and desktop entry.                 |
-| `list(options?)`               | Return installed records sorted by display name. A missing library is empty. |
-| `launch(name, options?)`       | Match the name, focus an open app window, or open the app.                   |
-| `uninstall(name, options?)`    | Remove the exact named app's entry, metadata, and icon files.                |
+| Method | Behavior |
+| --- | --- |
+| `install(name, url, options?)` | Create or update the named app, its icon, and desktop entry. |
+| `list(options?)` | Return installed records sorted by display name. A missing library is empty. |
+| `launch(name, options?)` | Match the name, focus an open app window, or open the app. |
+| `uninstall(name, options?)` | Remove the exact named app's entry, metadata, and icon files. |
 
 Names are trimmed, case-sensitive display names of at most 100 UTF-8 bytes.
 URLs must use HTTP(S) without credentials. Results use the standard API response.
@@ -326,11 +326,11 @@ profile data, unrelated files, and the app directory containing its lock file.
 
 With the default environment, installation writes:
 
-| File                      | Default path                                      |
-| ------------------------- | ------------------------------------------------- |
-| Desktop entry             | `~/.local/share/applications/<id>.desktop`        |
-| App metadata              | `~/.local/share/luna/webapps/<id>/app.jsonc`      |
-| Copied or downloaded icon | `~/.local/share/luna/webapps/<id>/icon.<format>`  |
+| File | Default path |
+| --- | --- |
+| Desktop entry | `~/.local/share/applications/<id>.desktop` |
+| App metadata | `~/.local/share/luna/webapps/<id>/app.jsonc` |
+| Copied or downloaded icon | `~/.local/share/luna/webapps/<id>/icon.<format>` |
 | Persistent operation lock | `~/.local/share/luna/webapps/<id>/app.jsonc.lock` |
 
 `<id>` is `luna-webapp-` followed by the display name's UTF-8 bytes encoded as hex.
@@ -412,14 +412,14 @@ CLI installation accepts `--icon <path-or-url>`; launch accepts
 
 All methods accept these overrides; nonempty explicit paths take priority:
 
-| Option            | Default selection                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------- |
-| `dataDir`         | `$LUNA_DATA_HOME_DIR/webapps`, otherwise `$XDG_DATA_HOME/luna/webapps`                         |
-| `applicationsDir` | `$XDG_DATA_HOME/applications`                                                                  |
-| `launcher`        | `$HOME/.local/bin/luna`                                                                        |
-| `profileRoot`     | `$CHROME_USER_DATA_DIR`, then `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium` |
-| `chromium`        | `chromium`, resolved through the selected environment's `PATH`                                 |
-| `env`             | A copy of the current process environment                                                      |
+| Option | Default selection |
+| --- | --- |
+| `dataDir` | `$LUNA_DATA_HOME_DIR/webapps`, otherwise `$XDG_DATA_HOME/luna/webapps` |
+| `applicationsDir` | `$XDG_DATA_HOME/applications` |
+| `launcher` | `$HOME/.local/bin/luna` |
+| `profileRoot` | `$CHROME_USER_DATA_DIR`, then `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium` |
+| `chromium` | `chromium`, resolved through the selected environment's `PATH` |
+| `env` | A copy of the current process environment |
 
 Unset XDG roots default to `~/.local/share` and `~/.config`. Supplying `env`
 replaces the environment entirely; include `HOME`, `PATH`, and any desktop session
