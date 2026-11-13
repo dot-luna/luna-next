@@ -18,6 +18,10 @@ Luna.screenshot.capture = async (mode, options) => {
   appendFileSync(process.env.LUNA_SCREENSHOT_TEST_LOG, JSON.stringify({mode, options}) + "\\n");
   return JSON.parse(process.env.LUNA_SCREENSHOT_TEST_RESPONSE);
 };
+Luna.screenshot.extractText = async (options) => {
+  appendFileSync(process.env.LUNA_SCREENSHOT_TEST_LOG, JSON.stringify({mode: "text", options}) + "\\n");
+  return JSON.parse(process.env.LUNA_SCREENSHOT_TEST_RESPONSE);
+};
 process.exitCode = await runCli(JSON.parse(process.env.LUNA_SCREENSHOT_TEST_ARGUMENTS));
 `;
   const child = Bun.spawn([process.execPath, "--eval", script], {
@@ -39,7 +43,7 @@ process.exitCode = await runCli(JSON.parse(process.env.LUNA_SCREENSHOT_TEST_ARGU
   return { stdout, stderr, exitCode };
 }
 
-function calls(): { mode: string; options: { directory?: string } }[] {
+function calls(): { mode: string; options: { directory?: string; configFile?: string } }[] {
   try {
     return readFileSync(log, "utf8")
       .trim()
@@ -102,4 +106,49 @@ test("screenshot reports capture failures and rejects invalid arguments before c
     expect(JSON.parse(result.stdout)).toMatchObject({ succes: false, err: "INVALID_ARGUMENT" });
   }
   expect(calls()).toHaveLength(count);
+});
+
+test("text extraction forwards settings and prints text or the unchanged JSON response", async () => {
+  const response = { succes: true, data: { cancelled: false, text: "Website text\nSecond line" } };
+  expect(await cli(["text"], response)).toEqual({
+    stdout: "Website text\nSecond line\n",
+    stderr: "",
+    exitCode: 0,
+  });
+  expect(calls().at(-1)).toEqual({ mode: "text", options: {} });
+  const configFile = join(root, "settings.jsonc");
+  expect(await cli(["text", "--config", configFile, "--json"], response)).toEqual({
+    stdout: JSON.stringify(response) + "\n",
+    stderr: "",
+    exitCode: 0,
+  });
+  expect(calls().at(-1)).toEqual({ mode: "text", options: { configFile } });
+  for (const data of [
+    { cancelled: true, text: null },
+    { cancelled: false, text: "" },
+  ]) {
+    expect(await cli(["text"], { succes: true, data })).toEqual({
+      stdout: "",
+      stderr: "",
+      exitCode: 0,
+    });
+    expect(JSON.parse((await cli(["text", "--json"], { succes: true, data })).stdout)).toEqual({
+      succes: true,
+      data,
+    });
+  }
+});
+
+test("text extraction reports failures and rejects incompatible capture options", async () => {
+  const response = { succes: false, err: "COMMAND_FAILED", errMessage: "OCR failed" };
+  const result = await cli(["text"], response);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("OCR failed");
+  for (const args of [
+    ["text", "--directory", root],
+    ["region", "--config", root],
+  ]) {
+    expect((await cli(args, response)).exitCode).toBe(2);
+  }
+  expect(calls()).toHaveLength(1);
 });

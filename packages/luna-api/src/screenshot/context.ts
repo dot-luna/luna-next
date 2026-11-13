@@ -16,10 +16,30 @@ export interface ScreenshotResult {
   path: string | null;
 }
 
-export function screenshotContext(options: ScreenshotOptions) {
+export interface ScreenshotTextOptions extends Omit<ScreenshotOptions, "directory"> {
+  /** Explicit JSONC path; relative paths use the caller's working directory. */
+  configFile?: string;
+}
+export interface ScreenshotTextResult {
+  cancelled: boolean;
+  /** null on cancellation, empty when no text was recognized; otherwise the copied text. */
+  text: string | null;
+}
+
+export function screenshotRuntime(options: Pick<ScreenshotOptions, "env">) {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(options.env ?? Bun.env))
     if (value !== undefined) env[key] = value;
+  const runtime = env.XDG_RUNTIME_DIR || join(tmpdir(), `luna-${process.getuid?.() ?? "user"}`);
+  if (!isAbsolute(runtime) || runtime === "/")
+    throw new ApiError("INVALID_PATH", "XDG_RUNTIME_DIR must be an absolute non-root path");
+  return { env, runtime: join(runtime, "luna-screenshot") };
+}
+export type ScreenshotContext = ReturnType<typeof screenshotRuntime>;
+
+export function screenshotContext(options: ScreenshotOptions) {
+  const context = screenshotRuntime(options);
+  const { env } = context;
   let directory = options.directory ?? env.LUNA_SCREENSHOT_DIR;
   if (directory === undefined) {
     if (!env.HOME || !isAbsolute(env.HOME))
@@ -31,15 +51,11 @@ export function screenshotContext(options: ScreenshotOptions) {
       throw new ApiError("INVALID_PATH", "Set HOME to expand the screenshot directory");
     directory = env.HOME + directory.slice(1);
   }
-  const runtime = env.XDG_RUNTIME_DIR || join(tmpdir(), `luna-${process.getuid?.() ?? "user"}`);
   // oxlint-disable-next-line no-control-regex
   if (!directory || /[\x00-\x1f\x7f]/u.test(directory) || resolve(directory) === "/")
     throw new ApiError("INVALID_PATH", "Use a nonempty screenshot directory other than root");
-  if (!isAbsolute(runtime) || runtime === "/")
-    throw new ApiError("INVALID_PATH", "XDG_RUNTIME_DIR must be an absolute non-root path");
-  return { env, directory: resolve(directory), runtime: join(runtime, "luna-screenshot") };
+  return { ...context, directory: resolve(directory) };
 }
-export type ScreenshotContext = ReturnType<typeof screenshotContext>;
 
 /** Capture tool diagnostics without a shell; zero timeout allows interactive selection. */
 export async function command(context: ScreenshotContext, args: string[], timeout = 10_000) {

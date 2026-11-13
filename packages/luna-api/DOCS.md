@@ -263,7 +263,7 @@ need Hyprland. Options accept `env`, `directory`, and `repository` for the menu
 to dismiss. Directory selection is explicit `directory`, then `LUNA_SCREENSHOT_DIR`,
 then `~/Pictures/Screenshots`; relative paths use the working directory and `~/`
 expands through HOME. Files use local timestamps and unique suffixes, with exclusive
-creation. No settings file is needed.
+creation. Image capture needs no settings file.
 
 Only one capture runs per runtime directory. The menu closes before capture;
 selection cancellation saves nothing and keeps the clipboard. Tool/capture failures
@@ -271,6 +271,22 @@ return `COMMAND_FAILED` and remove partial files. Clipboard failures retain the
 completed image and include its path in the error. Busy captures return `CONFLICT`;
 invalid modes/paths return `INVALID_ARGUMENT`/`INVALID_PATH`. Notifications are best
 effort and do not affect success.
+
+`Luna.screenshot.extractText(options?)` selects a region, recognizes English text,
+and copies it as UTF-8 plain text without retaining an image. Returns
+`{cancelled: false, text}` on recognition, `{cancelled: true, text: null}` on
+Escape, or `{cancelled: false, text: ""}` when no text is found. Cancellation and
+empty recognition keep the clipboard. It shares the image capture lock and menu
+dismissal; temporary files are removed after success or failure.
+
+Options accept `env`, `repository`, and `configFile`. The JSONC path is explicit
+`configFile` (relative to the working directory), then `screenshot.jsonc` under
+`LUNA_CONFIG_HOME_DIR`, `XDG_CONFIG_HOME/luna`, or `~/.config/luna`.
+Settings are read once per call, validated with `INVALID_METADATA` on invalid
+values, and defaulted only in memory. Missing files are created as `{}`.
+See [text settings](../../apps/luna-screenshot/DOCS.md#settings).
+Missing tools/English data, capture, OCR, and clipboard failures return
+`COMMAND_FAILED`; unavailable notification delivery does not change success.
 
 ## App API
 

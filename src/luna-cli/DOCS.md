@@ -227,7 +227,15 @@ clipboard. The default is `region`; cancelling selection succeeds without output
 
 Install with `luna install luna-screenshot`. In Hyprland, Print selects a region,
 Shift+Print captures the current screen, Alt+Print captures the active window,
-and Ctrl+Print captures all screens.
+and Ctrl+Print captures all screens. Win+X extracts English text from a region.
+
+`luna screenshot text` selects a region, copies recognized English text, and prints
+it. It saves no image. Cancellation and empty recognition succeed silently and keep
+the clipboard. JSON returns `{cancelled, text}` with `null` for cancellation and
+`""` when nothing was recognized. OCR failures exit with 1.
+
+`--config PATH` selects text-extraction JSONC settings; `--directory` applies only
+to image modes. See [text settings](../../apps/luna-screenshot/DOCS.md#settings).
 
 ## Apps and web apps
 

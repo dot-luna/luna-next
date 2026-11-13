@@ -1,0 +1,7 @@
+{
+  "text": {
+    // English OCR: block for website paragraphs, line for one line, sparse for scattered labels.
+    "layout": "block",
+    "preserve_spaces": false,
+  },
+}

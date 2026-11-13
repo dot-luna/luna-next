@@ -1,10 +1,10 @@
 # Screenshots
 
-Luna saves screenshots and copies them to the Wayland clipboard. Install the
-capture tools with `luna install luna-screenshot`, then select a region:
+Luna captures screenshots and extracts English text from screen regions.
+Install with `luna install luna-screenshot`, then press **Win+X** or run:
 
 ```sh
-luna screenshot
+luna screenshot text
 ```
 
-See [capture modes and shortcuts](../../src/luna-cli/DOCS.md#screenshots).
+Select a region to copy its text. See [settings and shortcuts](DOCS.md).
