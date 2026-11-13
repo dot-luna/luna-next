@@ -2,9 +2,14 @@
   "name": "gtk4",
   "source": "pacman",
 
+  "hooks": {
+    // Resolve the theme's blur before exporting the stylesheet.
+    "before_configure": ["scripts/configure.ts"],
+  },
+
   "exports": [
     {
-      "source": "config/gtk.css",
+      "source": "generated/gtk.css",
       "target": "gtk-4.0/gtk.css",
 
       "user_config": {

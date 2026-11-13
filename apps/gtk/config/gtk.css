@@ -1,5 +1,0 @@
-/* GTK 4.24+ owns compositor blur through ext-background-effect-v1 and requests none by
-   default, so Hyprland skips blurring translucent GTK windows without this region. */
-window {
-  backdrop-filter: blur(10px);
-}
