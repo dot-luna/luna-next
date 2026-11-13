@@ -78,13 +78,13 @@ exit 99`,
       }
       expect(child.exitCode).toBeNull();
       expect(terminal.localFlags & 8).toBe(0);
-      expect(output).toBe("FASTFETCH_OUTPUT\r\n");
+      expect(output).toBe("\x1b[?25lFASTFETCH_OUTPUT");
       const args = readFileSync(join(root, "terminal-args"), "utf8");
       expect(args).toContain("--app-id=luna-next-fastfetch\n--title=Fastfetch\n");
       expect(args).not.toContain("--hold");
       terminal.write("x");
       expect(await child.exited).toBe(status);
-      expect(output).toBe("FASTFETCH_OUTPUT\r\n");
+      expect(output).toBe("\x1b[?25lFASTFETCH_OUTPUT");
     } finally {
       child.kill();
       await child.exited;

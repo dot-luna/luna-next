@@ -10,7 +10,7 @@
       "1": "{{colors.accent}}",
       "2": "{{colors.secondary_accent}}"
     },
-    "padding": { "top": 1, "right": 10 }
+    "padding": { "top": 1, "left": 3, "right": 10 }
   },
 
   "display": {
