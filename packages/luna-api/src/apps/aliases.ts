@@ -19,14 +19,16 @@ export async function configureAliases(context: InstallContext, app: CatalogApp)
   const aliases = app.manifest.alias ?? [];
   if (!aliases.length && previous === null) return;
 
-  const command = (app.manifest.alias_command ?? [app.manifest.name]).map(quote).join(" ");
   const contents = aliases
-    .map(
-      (name) =>
+    .map((alias) => {
+      const [name, argv] = typeof alias === "string" ? [alias, [app.manifest.name]] : alias;
+      const command = argv.map(quote).join(" ");
+      return (
         `if (( ! $+aliases[${name}] && ! $+functions[${name}] )); then\n` +
         `    alias -- ${quote(`${name}=${command}`)}\n` +
-        "fi\n",
-    )
+        "fi\n"
+      );
+    })
     .join("");
   await writeFile(file, contents, previous);
 }

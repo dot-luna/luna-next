@@ -48,8 +48,9 @@ retry from another terminal. `--no-close-apps` disables this behavior.
 
 `alias` declares Zsh shortcuts, such as `ff` for Fastfetch. Configuring an app with
 aliases writes `$LUNA_CONFIG_HOME_DIR/aliases/<id>.zsh`; Luna's Zsh startup loads
-these files. The command defaults to the package `name`. Optional `alias_command`
-sets the complete command as argv, such as `["luna", "menu"]` for Luna Menu.
+these files. A name such as `"ff"` runs the package `name`; `[name, argv]` runs a
+fixed command, such as `["menu", ["luna", "menu"]]` for Luna Menu. Arguments typed
+after an alias are appended to its command.
 
 Existing personal aliases/functions are kept, and settings later in the user's
 `.zshrc` can override Luna's aliases. After changing aliases, reconfigure the app

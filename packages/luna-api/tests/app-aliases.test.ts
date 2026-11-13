@@ -64,8 +64,7 @@ test("configured app aliases run in Zsh, forward arguments and retain the comman
   f.app("luna-menu", {
     name: "luna-menu",
     source: "local",
-    alias: ["menu"],
-    alias_command: ["luna", "menu"],
+    alias: [["menu", ["luna", "menu"]]],
   });
   shell();
   executable("fastfetch");
@@ -117,8 +116,7 @@ test("alias regeneration replaces removed names, quotes fixed arguments and pres
     JSON.stringify({
       name: "fastfetch",
       source: "local",
-      alias: ["ff", "newff"],
-      alias_command: ["fastfetch", fixed],
+      alias: ["ff", ["newff", ["fastfetch", fixed]]],
     }),
   );
   data(await Luna.apps.configure(["fastfetch", "zsh"], { env: f.env }));

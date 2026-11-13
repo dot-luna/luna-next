@@ -1,8 +1,7 @@
 {
   "name": "luna-lock",
   "source": "local",
-  "alias": ["lock"],
-  "alias_command": ["luna", "lock"],
+  "alias": [["lock", ["luna", "lock"]]],
   "deps": [
     {
       "name": "quickshell",

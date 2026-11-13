@@ -1,8 +1,7 @@
 {
   "name": "luna-wallpaper",
   "source": "local",
-  "alias": ["wallpaper"],
-  "alias_command": ["luna", "wallpaper"],
+  "alias": [["wallpaper", ["luna", "wallpaper"]]],
   "deps": [
     { "name": "quickshell", "source": "pacman", "purpose": "Render Luna's wallpaper surfaces" },
     { "name": "ffmpeg", "source": "pacman", "purpose": "Detect wallpaper media by content" },

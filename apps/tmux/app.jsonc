@@ -1,4 +1,24 @@
 {
   "name": "tmux",
   "source": "pacman",
+  // `t` attaches to the "main" session, creating it if needed. Use tmux for other commands.
+  "alias": [["t", ["tmux", "new-session", "-A", "-s", "main"]]],
+
+  "exports": [
+    {
+      "source": "config/luna.tmux",
+      "target": "tmux/luna.tmux",
+
+      "user_config": {
+        // tmux prefers ~/.tmux.conf when it exists, then its XDG config.
+        "dest": [
+          "!test -e ~/.tmux.conf && echo ~/.tmux.conf",
+          "$XDG_CONFIG_HOME/tmux/tmux.conf",
+          "~/.config/tmux/tmux.conf",
+        ],
+        // Luna's block sources these defaults first, so personal settings win.
+        "dest_mode": "include",
+      },
+    },
+  ],
 }

@@ -53,7 +53,8 @@ export async function readCatalog(context: InstallContext) {
         throw new ApiError("INVALID_METADATA", `Ambiguous app selector: ${selector}`);
       selectors.set(selector, id);
     }
-    for (const alias of manifest.alias ?? []) {
+    for (const entry of manifest.alias ?? []) {
+      const alias = typeof entry === "string" ? entry : entry[0];
       if (aliases.has(alias))
         throw new ApiError("INVALID_METADATA", `Duplicate shell alias: ${alias}`);
       aliases.add(alias);

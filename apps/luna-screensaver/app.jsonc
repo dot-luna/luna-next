@@ -1,8 +1,7 @@
 {
   "name": "luna-screensaver",
   "source": "local",
-  "alias": ["screensaver"],
-  "alias_command": ["luna", "screensaver"],
+  "alias": [["screensaver", ["luna", "screensaver"]]],
   "deps": [
     {
       "name": "quickshell",

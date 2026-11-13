@@ -1,8 +1,7 @@
 {
   "name": "luna-notify",
   "source": "local",
-  "alias": ["notify"],
-  "alias_command": ["luna", "notify"],
+  "alias": [["notify", ["luna", "notify"]]],
   "deps": [
     { "name": "quickshell", "source": "pacman", "purpose": "Show Luna notification toasts" },
     {
