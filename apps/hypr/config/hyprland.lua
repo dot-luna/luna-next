@@ -22,5 +22,5 @@ for _, name in ipairs({ "animations", "autostart" }) do
 end
 dofile(config_dir .. "/bindings.lua")(config_dir, appearance)
 
--- Apps register their Lua fragments here through their own manifest exports.
-dofile(os.getenv("LUNA_CONFIG_HOME_DIR") .. "/hypr/include.lua")
+-- Apps export their Lua fragments into hypr.d/, outside the folder this app replaces.
+dofile(config_dir .. "/fragments.lua")(os.getenv("LUNA_CONFIG_HOME_DIR") .. "/hypr.d")

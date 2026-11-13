@@ -27,9 +27,9 @@ Lua files can read these with `os.getenv`, and launched apps inherit them.
 `QML_IMPORT_PATH` includes `~/.local/lib/qt6/qml`, preserving existing import paths
 without adding duplicates on configuration reload.
 
-App integrations such as Bitwarden, btop, and Fastfetch register their fragments
-in `$LUNA_CONFIG_HOME_DIR/hypr/include.lua`, which starts empty and loads after
-the core defaults. Apply app integrations after exporting Hyprland's directory.
+App integrations such as Bitwarden, btop, and Fastfetch export their fragments to
+`$LUNA_CONFIG_HOME_DIR/hypr.d/<app>.lua`. Every `*.lua` there loads in name order after
+the core defaults, so apps and Hyprland can be configured in any order.
 
 After configuring, reload the desktop to apply changes:
 
