@@ -7,6 +7,7 @@
     // Export Hyprland's empty include collector before apps register their fragments.
     "hypr/app.jsonc",
     "kitty/app.jsonc",
+    "gtk/app.jsonc",
     "starship/app.jsonc",
 
     "bat/app.jsonc",

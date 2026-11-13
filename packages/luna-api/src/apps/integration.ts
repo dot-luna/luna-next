@@ -62,10 +62,12 @@ export async function userDestination(context: InstallContext, candidates: strin
 function includeSource(target: string, source: string, existing: string) {
   const extension = extname(source);
   const lua = extension === ".lua";
-  const prefix = lua ? "--" : "#";
+  const css = extension === ".css";
+  const prefix = lua ? "--" : css ? "/*" : "#";
+  const suffix = css ? " */" : "";
   const id = createHash("sha256").update(source).digest("hex");
-  const start = `${prefix} BEGIN LUNA ${id}`;
-  const end = `${prefix} END LUNA ${id}`;
+  const start = `${prefix} BEGIN LUNA ${id}${suffix}`;
+  const end = `${prefix} END LUNA ${id}${suffix}`;
   let body = existing;
   const first = body.indexOf(start);
   if (first !== -1) {
@@ -74,11 +76,14 @@ function includeSource(target: string, source: string, existing: string) {
       throw new ApiError("INVALID_METADATA", `Incomplete Luna include block: ${target}`);
     body = body.slice(0, first) + body.slice(last + end.length).replace(/^\r?\n/u, "");
   }
+  // CSS imports must precede rules, so the prepended block also keeps user rules overriding.
   const line = lua
     ? `dofile(${JSON.stringify(source)})`
-    : extension === ".conf"
-      ? `include ${source}`
-      : `source ${shellQuote(source)}`;
+    : css
+      ? `@import url(${JSON.stringify(Bun.pathToFileURL(source).href)});`
+      : extension === ".conf"
+        ? `include ${source}`
+        : `source ${shellQuote(source)}`;
   return `${start}\n${line}\n${end}\n${body}`;
 }
 

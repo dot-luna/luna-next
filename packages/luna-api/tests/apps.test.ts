@@ -209,6 +209,30 @@ test("configuration replaces declared exports, preserves exclusions and supports
   expect(f.commands().some((c) => c.name === "pacman")).toBe(false);
 });
 
+test("CSS includes import Luna styles before personal rules and stay single on reconfigure", async () => {
+  f.app("style", {
+    name: "style",
+    source: "local",
+    exports: [
+      {
+        source: "style.css",
+        target: "style/style.css",
+        user_config: { dest: ["$HOME/style.css"], dest_mode: "include" },
+      },
+    ],
+  });
+  f.write(f.repository, "apps/style/style.css", "window {}");
+  f.write(f.home, "style.css", "label { color: red; }\n");
+  data(await Luna.apps.configure([], options()));
+  data(await Luna.apps.configure([], options()));
+  const text = readFileSync(join(f.home, "style.css"), "utf8");
+  const exported = Bun.pathToFileURL(join(f.home, ".config/luna/style/style.css")).href;
+  expect(text).toMatch(/^\/\* BEGIN LUNA [0-9a-f]{64} \*\/\n/u);
+  expect(text.match(/@import/gu)).toHaveLength(1);
+  expect(text).toContain(`@import url(${JSON.stringify(exported)});`);
+  expect(text.endsWith("label { color: red; }\n")).toBe(true);
+});
+
 test.each(["jsonc", "toml", "yaml"])(
   "native %s defaults merge without replacing user values",
   async (ext) => {

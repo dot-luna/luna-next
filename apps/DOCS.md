@@ -62,7 +62,7 @@ without backups; exclusions omit source entries. Unrelated paths remain. Native
 `user_config` destinations use the first available candidate (`$VAR`, `${VAR}`,
 `~/`, or trusted `!command`). Missing variables skip a candidate.
 
-`include` prepends a distinct managed block per source to shell, Lua or Kitty
+`include` prepends a distinct managed block per source to shell, Lua, Kitty or CSS
 configuration, retaining personal overrides. `merge` adds missing defaults to
 JSON/JSONC, TOML, YAML, btop assignments and bat flags; existing user values win,
 including nulls and arrays. Structured merges normalize formatting/comments.

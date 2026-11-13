@@ -1,0 +1,17 @@
+{
+  "name": "gtk4",
+  "source": "pacman",
+
+  "exports": [
+    {
+      "source": "config/gtk.css",
+      "target": "gtk-4.0/gtk.css",
+
+      "user_config": {
+        "dest": ["$XDG_CONFIG_HOME/gtk-4.0/gtk.css", "~/.config/gtk-4.0/gtk.css"],
+        // Import Luna's styles before personal rules so user overrides win.
+        "dest_mode": "include",
+      },
+    },
+  ],
+}
