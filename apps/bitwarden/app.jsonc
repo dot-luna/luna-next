@@ -2,7 +2,24 @@
   "name": "bitwarden",
   "source": "pacman",
 
+  "hooks": {
+    // Per-account settings exist only after login, so they stay manual.
+    "after_configure": ["scripts/remind.ts"],
+  },
+
   "exports": [
+    {
+      // Global app defaults only. Closing to the tray keeps the session, so locked vaults
+      // offer system authentication.
+      "source": "config/data.json",
+      "target": "bitwarden/data.json",
+
+      "user_config": {
+        "dest": ["$XDG_CONFIG_HOME/Bitwarden/data.json", "~/.config/Bitwarden/data.json"],
+        // Choices already made in Bitwarden's settings win over these defaults.
+        "dest_mode": "merge",
+      },
+    },
     {
       // Hyprland loads every fragment in hypr.d/.
       "source": "config/hyprland.lua",
