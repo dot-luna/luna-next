@@ -1,0 +1,21 @@
+{
+  "name": "claude",
+  "source": "mise",
+
+  "exports": [
+    {
+      "source": "config/settings.json",
+      "target": "claude/settings.json",
+
+      "user_config": {
+        "dest": [
+          "$CLAUDE_CONFIG_DIR/settings.json",
+          "$HOME/.claude/settings.json",
+          "~/.claude/settings.json",
+        ],
+        // Merge Luna's defaults; existing user settings take precedence.
+        "dest_mode": "merge",
+      },
+    },
+  ],
+}

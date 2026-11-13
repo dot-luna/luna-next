@@ -23,6 +23,7 @@
     "chromium/app.jsonc",
     "zen/app.jsonc",
     "codex/app.jsonc",
+    "claude/app.jsonc",
     "t3code/app.jsonc",
 
     "luna-menu/app.jsonc",
