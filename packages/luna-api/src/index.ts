@@ -27,7 +27,13 @@ export const Luna = {
   screenshot,
 };
 
-export type { ScreenshotMode, ScreenshotOptions, ScreenshotResult } from "@/screenshot/context.ts";
+export type {
+  ScreenshotMode,
+  ScreenshotOptions,
+  ScreenshotResult,
+  ScreenshotTextOptions,
+  ScreenshotTextResult,
+} from "@/screenshot/context.ts";
 
 export type { LockOptions, LockState } from "@/lock/context.ts";
 export type { LockSettings } from "@/lock/schema.ts";

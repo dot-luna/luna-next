@@ -14,6 +14,9 @@ test("screenshot installs its capture tools through the catalog without changing
     const app = join(fixture.repository, "apps/luna-screenshot");
     mkdirSync(app, { recursive: true });
     cpSync(source, join(app, "app.jsonc"));
+    cpSync(new URL("../../../apps/luna-screenshot/config/", import.meta.url), join(app, "config"), {
+      recursive: true,
+    });
     fixture.write(
       fixture.repository,
       "apps/apps.jsonc",
@@ -25,13 +28,28 @@ test("screenshot installs its capture tools through the catalog without changing
       succes: true,
       data: { installed: ["luna-screenshot"], completed: true },
     });
-    for (const tool of ["grim", "slurp", "wl-clipboard", "libnotify"])
+    for (const tool of [
+      "grim",
+      "slurp",
+      "wl-clipboard",
+      "libnotify",
+      "tesseract",
+      "tesseract-data-eng",
+    ])
       expect(
         fixture.commands().some(({ name, args }) => name === "sudo" && args.includes(tool)),
       ).toBe(true);
+    const config = join(fixture.home, ".config/luna/screenshot.jsonc");
+    expect(Bun.JSONC.parse(readFileSync(config, "utf8"))).toEqual({
+      text: { layout: "block", preserve_spaces: false },
+    });
+    fixture.write(fixture.home, ".config/luna/screenshot.jsonc", '{"text":{"layout":"line"}}');
     expect(await Luna.apps.configure(["luna-screenshot"], options)).toMatchObject({
       succes: true,
       data: ["luna-screenshot"],
+    });
+    expect(Bun.JSONC.parse(readFileSync(config, "utf8"))).toEqual({
+      text: { layout: "block", preserve_spaces: false },
     });
     expect(readFileSync(join(fixture.home, ".config/luna/personal.jsonc"), "utf8")).toBe(
       '{"keep":true}\n',

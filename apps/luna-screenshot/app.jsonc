@@ -6,5 +6,8 @@
     { "name": "slurp", "source": "pacman", "purpose": "Select a screenshot region" },
     { "name": "wl-clipboard", "source": "pacman", "purpose": "Copy screenshots to the clipboard" },
     { "name": "libnotify", "source": "pacman", "purpose": "Show screenshot notifications" },
+    { "name": "tesseract", "source": "pacman", "purpose": "Extract text from screen regions" },
+    { "name": "tesseract-data-eng", "source": "pacman", "purpose": "Recognize English text" },
   ],
+  "exports": [{ "source": "config/screenshot.jsonc", "target": "screenshot.jsonc" }],
 }

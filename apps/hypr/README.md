@@ -7,6 +7,7 @@ Super+L locks the session.
 
 Print selects a screenshot region, Shift+Print captures the current screen,
 Alt+Print captures the active window, and Ctrl+Print captures all screens.
+Super+X selects a region and copies its English text.
 Install the screenshot dependencies with `luna install luna-screenshot`.
 
 The [app manifest](app.jsonc) exports `config/` to `$LUNA_CONFIG_HOME_DIR/hypr/`

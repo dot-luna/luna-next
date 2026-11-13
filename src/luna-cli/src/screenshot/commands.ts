@@ -1,5 +1,5 @@
 import { Luna, type ScreenshotMode } from "@luna/api";
-import { Argument, type Command } from "commander";
+import { Argument, InvalidArgumentError, type Command } from "commander";
 import type { createOutput } from "../lib/output.ts";
 
 export function addScreenshotCommands(
@@ -10,16 +10,33 @@ export function addScreenshotCommands(
 ) {
   const command = program
     .command("screenshot")
-    .description("Save a screenshot and copy it to the clipboard")
+    .description("Copy a screenshot or extract English text from a region")
     .addArgument(
       new Argument("[mode]", "Capture target")
-        .choices(["region", "screen", "window", "all"])
+        .choices(["region", "screen", "window", "all", "text"])
         .default("region"),
     )
     .option("--directory <path>", "Directory for saved screenshots")
-    .action(async (mode: ScreenshotMode) => {
+    .option("--config <path>", "Screenshot JSONC settings for text extraction")
+    .action(async (mode: ScreenshotMode | "text") => {
+      const options = command.opts<{ directory?: string; config?: string }>();
+      if (mode === "text") {
+        if (options.directory !== undefined)
+          throw new InvalidArgumentError(
+            "Text extraction does not save screenshots; omit --directory",
+          );
+        const response = await Luna.screenshot.extractText({ configFile: options.config });
+        if (response.succes && !response.data.text && !json) {
+          setExitCode(0);
+          return;
+        }
+        setExitCode(output.response(response, (result) => result.text ?? ""));
+        return;
+      }
+      if (options.config !== undefined)
+        throw new InvalidArgumentError("--config applies to text extraction only");
       const response = await Luna.screenshot.capture(mode, {
-        directory: command.opts<{ directory?: string }>().directory,
+        directory: options.directory,
       });
       // Cancelling the selector is successful and must stay silent outside JSON mode.
       if (response.succes && response.data.cancelled && !json) {

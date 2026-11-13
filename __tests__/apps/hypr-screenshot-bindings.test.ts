@@ -19,5 +19,6 @@ end)
     'SHIFT + Print\t"$HOME/.local/bin/luna" screenshot screen\tfalse',
     'ALT + Print\t"$HOME/.local/bin/luna" screenshot window\tfalse',
     'CTRL + Print\t"$HOME/.local/bin/luna" screenshot all\tfalse',
+    'SUPER + X\t"$HOME/.local/bin/luna" screenshot text\tfalse',
   ]);
 });
