@@ -209,6 +209,31 @@ test("configuration replaces declared exports, preserves exclusions and supports
   expect(f.commands().some((c) => c.name === "pacman")).toBe(false);
 });
 
+test("line merges add hyphenated assignments and key bindings without replacing user lines", async () => {
+  f.app("player", {
+    name: "player",
+    source: "local",
+    exports: [
+      {
+        source: "player.conf",
+        target: "player/player.conf",
+        user_config: { dest: ["$HOME/player.conf"], dest_mode: "merge" },
+      },
+    ],
+  });
+  f.write(
+    f.repository,
+    "apps/player/player.conf",
+    "# comment\nsave-on-quit=yes\nspeed=2\nUP add volume 5\n[ add speed -0.25\n",
+  );
+  f.write(f.home, "player.conf", "speed=1\nUP add volume 1\n");
+  data(await Luna.apps.configure([], options()));
+  data(await Luna.apps.configure([], options()));
+  expect(readFileSync(join(f.home, "player.conf"), "utf8")).toBe(
+    "speed=1\nUP add volume 1\nsave-on-quit=yes\n[ add speed -0.25\n",
+  );
+});
+
 test("CSS includes import Luna styles before personal rules and stay single on reconfigure", async () => {
   f.app("style", {
     name: "style",

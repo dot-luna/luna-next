@@ -1,4 +1,31 @@
 {
   "name": "mpv",
   "source": "pacman",
+
+  // mpv applies included options after the current profile, which would override
+  // personal settings, and input.conf has no include. Merge missing lines instead.
+  "exports": [
+    {
+      "source": "config/mpv.conf",
+      "target": "mpv/mpv.conf",
+
+      "user_config": {
+        "dest": ["$MPV_HOME/mpv.conf", "$XDG_CONFIG_HOME/mpv/mpv.conf", "~/.config/mpv/mpv.conf"],
+        "dest_mode": "merge",
+      },
+    },
+    {
+      "source": "config/input.conf",
+      "target": "mpv/input.conf",
+
+      "user_config": {
+        "dest": [
+          "$MPV_HOME/input.conf",
+          "$XDG_CONFIG_HOME/mpv/input.conf",
+          "~/.config/mpv/input.conf",
+        ],
+        "dest_mode": "merge",
+      },
+    },
+  ],
 }

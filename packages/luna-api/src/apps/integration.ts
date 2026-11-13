@@ -108,17 +108,19 @@ function mergeSource(target: string, source: string, defaults: string, user: str
         ? Bun.YAML.stringify(value, null, 2)
         : JSON.stringify(value, null, 2) + "\n";
   }
-  // btop-style assignments and bat-style long flags keep existing lines and values intact.
+  // btop/mpv-style assignments, bat-style long flags and mpv-style "KEY command" bindings
+  // keep existing lines and values intact.
   const key = (line: string) =>
-    line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=/u)?.[1] ??
-    line.match(/^\s*(--[a-zA-Z0-9_-]+)(?=[=\s]|$)/u)?.[1];
+    line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_-]*)\s*=/u)?.[1] ??
+    line.match(/^\s*(--[a-zA-Z0-9_-]+)(?=[=\s]|$)/u)?.[1] ??
+    line.match(/^\s*([^\s#=]+)\s+\S/u)?.[1];
   const existing = new Set(user.split(/\r?\n/u).map(key).filter(Boolean));
   const missing = defaults.split(/\r?\n/u).filter((line) => {
     const name = key(line);
     return name && !existing.has(name);
   });
   if (!missing.length) return user;
-  return user.replace(/\n?$/u, "\n") + missing.join("\n") + "\n";
+  return (user ? user.replace(/\n?$/u, "\n") : "") + missing.join("\n") + "\n";
 }
 
 export async function integrate(
