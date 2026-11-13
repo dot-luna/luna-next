@@ -12,7 +12,7 @@
     },
     "packages/luna-api": {
       "name": "@luna/api",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "dependencies": {
         "pathe": "^2.0.3",
         "zod": "^4.6.7",
@@ -20,7 +20,7 @@
     },
     "src/luna-cli": {
       "name": "@luna/cli",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "bin": {
         "luna": "./src/index.ts",
       },
@@ -33,7 +33,7 @@
     },
     "src/luna-settings": {
       "name": "@luna/settings",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "dependencies": {
         "@luna/api": "workspace:*",
       },

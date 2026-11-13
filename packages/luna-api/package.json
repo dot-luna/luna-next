@@ -1,6 +1,6 @@
 {
   "name": "@luna/api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Shared Luna APIs for the Bun runtime.",
   "homepage": "https://github.com/dot-luna/luna-next#readme",
