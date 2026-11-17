@@ -2,6 +2,20 @@ import { expect, test } from "bun:test";
 import { chmod, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { migrationPlan } from "../src/self/migrations/plan.ts";
+
+test("v0.0.5 preserves the pending browser migration before its no-op step", async () => {
+  const plan = await migrationPlan({
+    repository: new URL("../../../", import.meta.url).pathname,
+    from: "0.0.3",
+    to: "0.0.5",
+  });
+  expect(plan.map(({ from, to }) => [from, to])).toEqual([
+    ["0.0.3", "0.0.4"],
+    ["0.0.4", "0.0.5"],
+  ]);
+  expect(Bun.spawnSync([plan[1]!.path]).exitCode).toBe(0);
+});
 
 test("v0.0.4 migration stops on failure and retries Notify before Chromium", async () => {
   const root = await mkdtemp(join(tmpdir(), "luna-browser-migration-"));

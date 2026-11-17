@@ -14,6 +14,8 @@
  * This is a standalone Bun script; it needs Git and ordinary Linux filesystem commands.
  */
 
+import { requireIdle } from "../src/profile-lock.ts";
+
 export function run(args: string[]): string {
   const result = Bun.spawnSync(args, {
     stdin: "ignore",
@@ -74,11 +76,7 @@ export async function createProfile() {
   run(["mkdir", "-m", "700", "--", lock]);
   try {
     if (test("-f", preferences)) return { created: false, directory };
-    for (const marker of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
-      const path = `${root}/${marker}`;
-      if (test("-e", path) || test("-L", path))
-        throw new Error("Close Chromium before creating Luna's profile.");
-    }
+    await requireIdle(root);
     if (test("-e", directory))
       throw new Error(`Refusing to replace an incomplete profile: ${directory}`);
     const name = run(["git", "config", "--global", "--includes", "--get", "user.name"]);

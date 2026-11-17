@@ -54,10 +54,12 @@ userTests("versioned migrations", () => {
       '[ -f "$HOME/allow" ] || exit 9\nprintf "second\\n" >> "$HOME/migrated"',
     );
     version("1.0.2");
-    expect(await Luna.self.update({ env: f.env })).toMatchObject({
-      succes: false,
-      errMessage: expect.stringContaining("Retry:"),
-    });
+    const failure = await Luna.self.update({ env: f.env });
+    expect(failure.succes).toBe(false);
+    if (failure.succes) throw new Error("Expected migration failure");
+    expect(failure.errMessage).toContain("Retry:");
+    expect(failure.errMessage).toStartWith("Luna update incomplete.");
+    expect(failure.errMessage).toContain("Completed migration steps are saved");
     expect(await readState(context())).toMatchObject({ version: "1.0.1" });
     expect(readFileSync(f.executable, "utf8")).toBe("previous CLI");
     f.write(f.home, "allow", "");
@@ -67,9 +69,30 @@ userTests("versioned migrations", () => {
   test("a build failure keeps the original baseline for the next update", async () => {
     script("1.0.0", "1.0.1", 'printf done > "$HOME/migrated"');
     version("1.0.1");
-    expect(await Luna.self.update({ env: { ...f.env, SELF_FAIL: "bun:run" } })).toMatchObject({
+    const failure = await Luna.self.update({
+      env: { ...f.env, SELF_FAIL: "bun:run" },
+      ref: "master",
+    });
+    expect(failure).toMatchObject({
       succes: false,
     });
+    if (failure.succes) throw new Error("Expected build failure");
+    const command = failure.errMessage.split("\n")[1]!;
+    const parsed = Bun.spawnSync([
+      Bun.which("bash")!,
+      "-c",
+      `set -- ${command}; printf '%s\\n' "$@"`,
+    ]);
+    expect(parsed.exitCode).toBe(0);
+    expect(parsed.stdout.toString().trim().split("\n")).toEqual([
+      f.executable,
+      "self",
+      "update",
+      "--install-dir",
+      f.repository,
+      "--ref",
+      "master",
+    ]);
     expect(await readState(context())).toMatchObject({ version: "1.0.0" });
     expect(await Luna.self.update({ env: f.env })).toMatchObject({ succes: true });
     expect(readFileSync(join(f.home, "migrated"), "utf8")).toBe("done");

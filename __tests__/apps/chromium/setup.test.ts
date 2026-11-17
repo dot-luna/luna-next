@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { lstat, readlink } from "node:fs/promises";
 import {
   appearance,
   currentTheme,
@@ -76,7 +77,7 @@ test("creation uses Git's display name and an existing profile is a byte-preserv
   expect(await Bun.file(`${value.data}/Default/Preferences`).text()).toContain('"homepage":"keep"');
 });
 
-test("creation rejects a missing Git identity and stale Chromium locks", async () => {
+test("creation rejects a missing Git identity and unverifiable Chromium locks", async () => {
   const value = await fixture();
   const missing = Bun.spawnSync([Bun.which("bun")!, createScript], {
     env: { ...value.env, GIT_CONFIG_GLOBAL: "/dev/null" },
@@ -242,7 +243,7 @@ test("system unzip extraction keeps the signed identity and rejects archive link
   );
 });
 
-test("real Chromium setup persists extensions after restart and preserves other profiles", async () => {
+test("real Chromium setup recovers after SIGTERM, persists extensions and preserves other profiles", async () => {
   const value = await fixture();
   run([Bun.which("bun")!, createScript], { env: value.env });
   Object.assign(Bun.env, value.env);
@@ -259,6 +260,24 @@ test("real Chromium setup persists extensions after restart and preserves other 
   const prepare = async (_ids: string[], _version: string, stage: string) => [
     await unpack(extension.bytes, extension.id, `${stage}/${extension.id}`),
   ];
+  // App configuration sends SIGTERM; Chromium can exit without removing its singleton links.
+  const browser = Bun.spawn([Bun.which("chromium")!, "--headless=new", "--no-sandbox",
+    "--disable-gpu", "--disable-background-networking", "--no-first-run",
+    `--user-data-dir=${value.data}`, "--profile-directory=Luna", "about:blank"],
+    { env: value.env, stdout: "ignore", stderr: "ignore" });
+  try {
+    const deadline = Date.now() + 10_000;
+    while (!(await lstat(`${value.data}/SingletonLock`).catch(() => null))) {
+      if (Date.now() > deadline || browser.exitCode !== null) throw new Error("Fixture Chromium did not start");
+      await Bun.sleep(25);
+    }
+    browser.kill("SIGTERM");
+    await browser.exited;
+    expect(await readlink(`${value.data}/SingletonLock`)).toEndWith(`-${browser.pid}`);
+  } finally {
+    if (browser.exitCode === null) browser.kill("SIGKILL");
+    await browser.exited;
+  }
   const first = await setupProfile(config, theme, prepare);
   expect(first.extensions).toContain(extension.id);
   expect(first.extensions.length).toBe(5);
