@@ -162,8 +162,10 @@ See the [menu docs](../../src/luna-menu/DOCS.md).
 with `luna install luna-menu`. `start(options?)` starts one session capture pair;
 Hyprland runs it at login. Closing the picker leaves capture running.
 
-- `list(options?)`: newest-first `{id, name}[]`; IDs are numeric strings.
-- `preview(id, options?)`: `{id, mime, text, image}` with full text or an image data URL.
+- `list(options?)`: newest-first `{id, name, attachment?}[]`; IDs are numeric strings.
+  Attachment names show type/size instead of cliphist binary markers; file URIs show filenames.
+- `preview(id, options?)`: `{id, mime, name, text, image}` with full text, an image data URL,
+  or a type/size label for other formats. Raw attachments do not retain original filenames.
 - `copy(id, options?)`: restore exact bytes and promote the entry; returns `{id}`.
 - `paste(id, options?)`: copy, wait for menu dismissal, and send the paste shortcut;
   returns `{id, target}`. Pass `target` captured before opening the picker; omitted

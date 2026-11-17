@@ -43,11 +43,11 @@ if sys.argv[1:2] == ["clipboard"]:
         output.write(json.dumps(sys.argv[1:]) + "\\n")
     action = sys.argv[2]
     if action == "list":
-        data = [{"id": "1", "name": "Alpha text"}, {"id": "2", "name": "Image"}]
+        data = [{"id": "1", "name": "Alpha text"}, {"id": "2", "name": "[PNG] Image", "attachment": True}]
     elif action == "preview":
         entry_id = sys.argv[3]
         if entry_id == "1": time.sleep(0.08)
-        data = {"id": entry_id, "text": "Alpha\\nfull text" if entry_id == "1" else "", "mime": "text/plain" if entry_id == "1" else "image/png",
+        data = {"id": entry_id, "name": "[PNG] 70 bytes" if entry_id == "2" else "Alpha text", "text": "Alpha\\nfull text" if entry_id == "1" else "", "mime": "text/plain" if entry_id == "1" else "image/png",
                 "image": "" if entry_id == "1" else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="}
     else: data = {"id": sys.argv[3]}
     print(json.dumps({"succes": True, "data": data}))

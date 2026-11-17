@@ -18,10 +18,13 @@ export const clipboardLayersSchema = z.record(
 export interface ClipboardEntry {
   id: string;
   name: string;
+  /** Decode visible attachments for a thumbnail or more specific type label. */
+  attachment?: boolean;
 }
 export interface ClipboardPreview {
   id: string;
   mime: string;
+  name: string;
   text: string;
   /** A data URL for images; empty for text and unsupported binary formats. */
   image: string;

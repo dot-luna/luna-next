@@ -262,6 +262,7 @@ Rectangle {
                     textScale: card.textScale
                     selected: outgoingResults.currentIndex === index
                     appsView: outgoingResults.showingApps
+                    loadAttachments: false
                     width: outgoingResults.width
                 }
             }

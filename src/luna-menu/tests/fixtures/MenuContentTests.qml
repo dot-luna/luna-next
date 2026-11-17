@@ -109,6 +109,10 @@ TestCase {
         const preview = findChild(card, "clipboardPreview");
         tryVerify(() => preview.entry.id === "1");
         check(preview.entry.text, "Alpha\nfull text");
+        const textList = findChild(card, "applicationList");
+        textList.forceLayout();
+        verify(!findChild(textList.currentItem, "entryIcon").visible);
+        check(findChild(textList.currentItem, "entryLabel").text, "Alpha text");
         input.text = "https://private.example";
         check(card.entries.length, 0, "Private history searches never offer browser or shell actions");
         input.text = "alpha";
@@ -132,10 +136,30 @@ TestCase {
         tryCompare(findChild(preview, "clipboardImage"), "status", Image.Ready);
         const list = findChild(card, "applicationList");
         list.forceLayout();
+        tryVerify(() => findChild(list.currentItem, "clipboardThumbnail") !== null);
+        tryCompare(findChild(list.currentItem, "clipboardThumbnail"), "status", Image.Ready);
+        verify(!findChild(list.currentItem, "entryIcon").visible);
+        check(findChild(list.currentItem, "entryLabel").text, "[PNG] 70 bytes");
         mouseClick(list.currentItem, 30, list.currentItem.height / 2);
         check(clipboardId, "2");
         keyClick(Qt.Key_Escape);
         check(dismissed, 1, "Direct clipboard opening has no invented parent");
+    }
+
+    Component {
+        id: clipboardPreviewComponent
+        Menu.ClipboardPreview { width: 200; height: 160 }
+    }
+
+    function test_clipboard_unsupported_image_shows_type_label() {
+        const preview = createTemporaryObject(clipboardPreviewComponent, tests, {
+            theme: theme, uiFont: "sans-serif", textSize: 12,
+            entry: {id: "image", name: "[TIFF] 42 bytes", text: "", image: "data:image/tiff;base64,AAAA"}
+        });
+        tryCompare(findChild(preview, "clipboardImage"), "status", Image.Error);
+        const label = findChild(preview, "clipboardText");
+        verify(label.visible);
+        check(label.text, "[TIFF] 42 bytes");
     }
 
     function test_clipboard_window_hides_before_pasting_and_keeps_original_target() {

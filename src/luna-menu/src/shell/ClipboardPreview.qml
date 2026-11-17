@@ -13,6 +13,7 @@ Item {
     property string error: ""
 
     Image {
+        id: image
         objectName: "clipboardImage"
         anchors.fill: parent
         source: preview.entry.image || ""
@@ -22,10 +23,11 @@ Item {
     }
     ScrollView {
         anchors.fill: parent
-        visible: !preview.entry.image && Boolean(preview.entry.text)
+        visible: image.status === Image.Error || (!preview.entry.image && Boolean(preview.entry.text))
         contentWidth: availableWidth
         TextArea {
-            text: preview.entry.text || ""
+            objectName: "clipboardText"
+            text: image.status === Image.Error ? preview.entry.name || "[Image] Preview unavailable" : preview.entry.text || ""
             textFormat: TextEdit.PlainText
             readOnly: true
             selectByMouse: true

@@ -288,3 +288,91 @@ test("invalid emoji selections and targets cannot change the clipboard", async (
   });
   expect(calls()).toHaveLength(0);
 });
+
+test("history labels hide binary markers and visible previews identify attachments", async () => {
+  const current = state();
+  current.entries.push({
+    id: "3",
+    name: "[[ binary data 12 B ]]",
+    data: Buffer.from("%PDF-fixture").toString("base64"),
+    mime: "application/pdf",
+  });
+  current.entries.push({
+    id: "4",
+    name: "file:///home/example/Quarterly%20report.pdf",
+    data: Buffer.from("file:///home/example/Quarterly%20report.pdf").toString("base64"),
+    mime: "text/uri-list",
+  });
+  save(current);
+  const entries = data(await Luna.clipboard.list({ env }));
+  expect(entries[0]).toMatchObject({ id: "2", name: "[PNG] 10 B png 1x1", attachment: true });
+  expect(entries[2]).toMatchObject({ id: "3", name: "[File] 12 B", attachment: true });
+  expect(entries[3]?.name).toBe("[PDF] Quarterly report.pdf");
+  expect(calls().filter((call) => call.args[0] === "decode")).toHaveLength(0);
+  expect(data(await Luna.clipboard.preview("3", { env })).text).toBe("[PDF] 12 bytes");
+  expect(data(await Luna.clipboard.preview("4", { env })).text).toBe("[PDF] Quarterly report.pdf");
+  expect(calls().some((call) => call.name === "wl-copy")).toBe(false);
+});
+
+test("valid UTF-8 source previews remain readable for nonstandard text MIME types", async () => {
+  save({
+    ...state(),
+    entries: [
+      {
+        id: "1",
+        name: "select 1;",
+        data: Buffer.from("select 1;").toString("base64"),
+        mime: "application/sql",
+      },
+    ],
+  });
+  expect(data(await Luna.clipboard.preview("1", { env })).text).toBe("select 1;");
+});
+
+const realCliphist = Bun.which("cliphist");
+test.skipIf(!realCliphist)(
+  "real cliphist flattened and truncated file lists resolve full filenames",
+  async () => {
+    const paths = [
+      "copy\nfile:///tmp/first%20long%20filename.png\nfile:///tmp/second.pdf",
+      "file:///tmp/photo.png\nfile:///tmp/archive.zip",
+    ];
+    for (const [index, value] of paths.entries()) {
+      const args = [
+        realCliphist!,
+        "-db-path",
+        join(root, `real-${index}.db`),
+        "-preview-width",
+        "30",
+      ];
+      const isolated = { HOME: root, XDG_CONFIG_HOME: root, XDG_CACHE_HOME: root };
+      const stored = Bun.spawnSync([...args, "store"], {
+        env: isolated,
+        stdin: Buffer.from(value),
+      });
+      expect(stored.exitCode, stored.stderr.toString()).toBe(0);
+      const listed = Bun.spawnSync([...args, "list"], { env: isolated });
+      expect(listed.exitCode, listed.stderr.toString()).toBe(0);
+      const summary = listed.stdout.toString().trim().split("\t").slice(1).join("\t");
+      expect(summary).not.toContain("\n");
+      expect(summary.length).toBeLessThan(value.length);
+      save({
+        ...state(),
+        entries: [
+          {
+            id: "1",
+            name: summary,
+            data: Buffer.from(value).toString("base64"),
+            mime: "text/plain",
+          },
+        ],
+      });
+      expect(data(await Luna.clipboard.list({ env }))[0]?.attachment).toBe(true);
+      expect(data(await Luna.clipboard.preview("1", { env })).name).toBe(
+        index === 0
+          ? "[PNG] first long filename.png · [PDF] second.pdf"
+          : "[PNG] photo.png · [ZIP] archive.zip",
+      );
+    }
+  },
+);
