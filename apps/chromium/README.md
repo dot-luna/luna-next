@@ -19,3 +19,5 @@ Configuration also builds and installs [Better WhatsApp Web](../../packages/bett
 and [Luna Browser Links](../../packages/luna-browser-links/DOCS.md) locally in the Luna
 profile. External links open in your default browser; installed web apps stay here.
 Run `luna configure chromium` after changing extension sources or sign-in origins.
+Configuration recovers verified stale profile locks left after Chromium exits.
+Active or unverifiable locks still require Chromium to be closed first.

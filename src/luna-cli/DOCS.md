@@ -1,6 +1,9 @@
 # CLI usage
 
-`luna` shows project information; `-v` prints the version. `--json` returns the
+`luna` shows the CLI version and project information, labeling the checkout version
+separately when it differs. `-v` prints the executable's build version, even if the
+checkout is missing or a later update failed. `-v --json` returns
+`{"succes":true,"data":{"version":"0.0.5"}}`. Other `--json` output returns the
 API response unchanged and suppresses progress and identity prompts. Success
 exits with 0, operation failures (including partial install reports) with 1, and argument errors with 2.
 
@@ -27,6 +30,9 @@ commits. They never reset or autostash changes.
   migrations, then publish the CLI. Requires mise from setup. Migrations can install,
   remove, rebuild, or reconfigure apps. Successful steps are saved; rerun the same
   command after a failure to resume. Downgrades and incomplete migration chains fail.
+  Failures show a retry command with the selected checkout and ref, followed by
+  the cause and log paths. Fix that cause and rerun; successful migration steps
+  are not repeated. Reverting Git alone cannot undo already-applied system changes.
   Fresh installs skip historical migrations. See [migration scripts](../../migrations/README.md).
 
 Git identity values, including global include/includeIf files, are kept unless

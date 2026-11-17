@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { $ } from "bun";
 import { Luna } from "@luna/api";
+import { version as cliVersion } from "../package.json";
 
 const roots: string[] = [];
 const entry = Bun.fileURLToPath(new URL("../src/index.ts", import.meta.url));
@@ -54,11 +55,11 @@ test("default output shows the banner and options while JSON returns the unchang
   const expected = await Luna.info({ repository: value.repository });
   if (!expected.succes) throw new Error(expected.errMessage);
   const version = await cli(["--version"], value.env);
-  expect(version).toEqual({ stdout: metadata.version + "\n", stderr: "", exitCode: 0 });
+  expect(version).toEqual({ stdout: cliVersion + "\n", stderr: "", exitCode: 0 });
   const shortVersion = await cli(["-v"], value.env);
   expect(shortVersion).toEqual(version);
   const jsonVersion = await cli(["--json", "-v"], value.env);
-  expect(JSON.parse(jsonVersion.stdout)).toEqual(expected);
+  expect(JSON.parse(jsonVersion.stdout)).toEqual({ succes: true, data: { version: cliVersion } });
   const info = await cli(["--json"], value.env);
   expect(info.exitCode).toBe(0);
   expect(JSON.parse(info.stdout)).toEqual(expected);
@@ -67,7 +68,8 @@ test("default output shows the banner and options while JSON returns the unchang
   const human = await cli([], value.env);
   expect(human.exitCode).toBe(0);
   expect(human.stderr).toBe("");
-  expect(human.stdout).toContain(`Luna ${metadata.version}`);
+  expect(human.stdout).toContain(`Luna CLI ${cliVersion}`);
+  expect(human.stdout).toContain(`Checkout ${metadata.version}`);
   expect(human.stdout).toContain(metadata.description);
   expect(human.stdout).toContain(expected.data.ascii.trimEnd());
   expect(human.stdout).toContain("Options:");
@@ -85,9 +87,9 @@ test("LUNA_ROOT selects the checkout before the managed path under HOME", async 
     [{ HOME: home, ...value.env }, metadata.version],
     [{ HOME: home }, "2.0.0"],
   ] as const) {
-    const response = await cli(["-v"], env);
+    const response = await cli(["--json"], env);
     expect(response.exitCode).toBe(0);
-    expect(response.stdout).toBe(expectedVersion + "\n");
+    expect(JSON.parse(response.stdout).data.version).toBe(expectedVersion);
   }
 });
 
@@ -107,7 +109,7 @@ test("missing or invalid metadata and unsupported commands return standard error
   expect(humanFailure.stderr).toContain("ERROR");
   for (const contents of ["{invalid", JSON.stringify({ ...metadata, version: "" })]) {
     await Bun.write(`${value.repository}/package.json`, contents);
-    const invalid = await cli(["--version", "--json"], value.env);
+    const invalid = await cli(["--json"], value.env);
     expect(invalid.exitCode).toBe(1);
     expect(invalid.stderr).toBe("");
     expect(JSON.parse(invalid.stdout)).toEqual(await Luna.info({ repository: value.repository }));
@@ -155,7 +157,7 @@ test("diagnostic colors respect the environment and never decorate JSON output",
   expect(JSON.parse(json.stdout)).toMatchObject({ succes: false, err: "IO_ERROR" });
 });
 
-test("compiled CLI reads changed package metadata without rebuilding", async () => {
+test("compiled CLI version stays fixed while checkout metadata changes or becomes unavailable", async () => {
   const value = await fixture();
   const executable = `${value.root}/luna`;
   const build = Bun.spawn([Bun.argv[0]!, "build", "--compile", entry, "--outfile", executable], {
@@ -168,9 +170,18 @@ test("compiled CLI reads changed package metadata without rebuilding", async () 
     build.exited,
   ]);
   expect(status, output + errors).toBe(0);
-  expect((await cli(["--version"], value.env, executable)).stdout).toBe(metadata.version + "\n");
+  expect((await cli(["--version"], value.env, executable)).stdout).toBe(cliVersion + "\n");
   const updated = { ...metadata, version: "3.0.0", description: "Updated desktop" };
   await Bun.write(`${value.repository}/package.json`, JSON.stringify(updated));
+  expect((await cli(["--version"], value.env, executable)).stdout).toBe(cliVersion + "\n");
+  const banner = await cli([], value.env, executable);
+  expect(banner.stdout).toContain(`Luna CLI ${cliVersion}`);
+  expect(banner.stdout).toContain("Checkout 3.0.0");
+  expect(await cli(["--version"], {}, executable)).toEqual({
+    stdout: cliVersion + "\n",
+    stderr: "",
+    exitCode: 0,
+  });
   const info = await cli(["--json"], value.env, executable);
   expect(info.exitCode).toBe(0);
   expect(JSON.parse(info.stdout)).toEqual(await Luna.info({ repository: value.repository }));
