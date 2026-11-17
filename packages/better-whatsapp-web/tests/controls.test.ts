@@ -142,6 +142,47 @@ test("navigation scans virtualized rows and wraps to the first unread", async ()
   expect(clicks).toEqual(["5", "1"]);
 });
 
+for (const direction of [1, -1] as const) {
+  test(`unread direction ${direction} preserves the active boundary across overlapping pages`, async () => {
+    for (const laterUnread of [true, false]) {
+      const { pane } = fixture();
+      let top = direction === 1 ? 0 : 20;
+      Object.defineProperties(pane, {
+        clientHeight: { value: 200 },
+        scrollHeight: { value: 220 },
+        scrollTop: {
+          get: () => top,
+          set: (value) => {
+            top = Math.max(0, Math.min(20, value));
+          },
+        },
+      });
+      const active = direction === 1 ? 8 : 4;
+      const behind = direction === 1 ? 7 : 5;
+      const ahead = direction === 1 ? 11 : 1;
+      const paint = async () =>
+        rows(
+          pane,
+          Array.from({ length: 10 }, (_, index) => {
+            const id = index + (top === 0 ? 1 : 2);
+            return {
+              id,
+              active: id === active,
+              unread: id === behind || (laterUnread && id === ahead),
+            };
+          }),
+        );
+      await paint();
+      const clicks = select(pane);
+      expect(
+        await navigateUnread({ pane, action: { direction }, signal: signal(), settle: paint }),
+      ).toBe(true);
+      // The earlier unread is eligible only after reaching the edge and wrapping.
+      expect(clicks).toEqual([String(laterUnread ? ahead : behind)]);
+    }
+  });
+}
+
 test("missing target restores scroll and cancellation never opens a chat", async () => {
   const { pane } = fixture();
   rows(pane, [{ id: 1 }, { id: 2 }]);

@@ -54,6 +54,11 @@ export async function navigateUnread({
   const activeKey = active >= 0 ? rowKey(initialRows[active]!) : null;
   let remaining = "number" in action ? action.number : 1;
   const seen = new Set<string>();
+  // Virtual pages overlap: keep rows behind the active chat excluded until wrapping.
+  if (!("number" in action) && active >= 0) {
+    const skipped = direction === 1 ? initialRows.slice(0, active + 1) : initialRows.slice(active);
+    for (const row of skipped) seen.add(rowKey(row));
+  }
   let wrapped = false;
   let first = true;
   if ("number" in action) {
@@ -98,6 +103,7 @@ export async function navigateUnread({
     if (pane.scrollTop === before) {
       if (wrapped || "number" in action) break;
       wrapped = true;
+      seen.clear();
       pane.scrollTop = direction === 1 ? 0 : pane.scrollHeight;
       await settle();
     }
