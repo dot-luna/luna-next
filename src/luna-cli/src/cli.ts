@@ -1,4 +1,5 @@
 import { Luna } from "@luna/api";
+import { version as cliVersion } from "../package.json";
 import { Command, CommanderError } from "commander";
 import { formatInfo } from "./info/format.ts";
 import { createOutput } from "./lib/output.ts";
@@ -28,7 +29,7 @@ export async function runCli(argv: string[]): Promise<number> {
   let exitCode = 0;
   const program = new Command()
     .name("luna")
-    .option("-v, --version", "Show the repository version")
+    .option("-v, --version", "Show this CLI executable's version")
     .option("--json", "Return the API response unchanged as JSON")
     .exitOverride()
     .configureOutput({
@@ -76,9 +77,17 @@ export async function runCli(argv: string[]): Promise<number> {
 
   program.action(async () => {
     const versionOnly = program.opts<GlobalOptions>().version;
+    if (versionOnly) {
+      // Bundled at build time, so a fetched checkout cannot relabel an older installed CLI.
+      exitCode = output.response(
+        { succes: true, data: { version: cliVersion } },
+        (data) => data.version,
+      );
+      return;
+    }
     const response = await Luna.info();
-    exitCode = output.response(response, versionOnly ? (data) => data.version : formatInfo);
-    if (response.succes && !versionOnly && !wantsJson) {
+    exitCode = output.response(response, formatInfo);
+    if (response.succes && !wantsJson) {
       output.writeOut("\n");
       program.outputHelp();
     }

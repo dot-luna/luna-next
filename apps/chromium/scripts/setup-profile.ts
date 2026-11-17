@@ -26,6 +26,7 @@
  */
 
 import { prepareLocalExtensions } from "./local-extensions.ts";
+import { requireIdle } from "../src/profile-lock.ts";
 import { browserLinkExtraOriginsSchema } from "../../../packages/luna-api/src/modules/webapp/browser-links.ts";
 
 type Json = { [key: string]: any };
@@ -65,13 +66,6 @@ function checkPath(path: string): void {
     if (test("-L", current) || (test("-e", current) && !test("-d", current) && !test("-f", current))) {
       throw new Error(`Expected a regular file or directory: ${current}`);
     }
-  }
-}
-
-function requireIdle(paths: Paths): void {
-  for (const marker of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
-    const path = `${paths.root}/${marker}`;
-    if (test("-e", path) || test("-L", path)) throw new Error(`Close Chromium first (${marker} exists).`);
   }
 }
 
@@ -361,7 +355,7 @@ async function installExtensions(binary: string, paths: Paths, extensions: Exten
       if (installed.id !== item.id) throw new Error(`Installed the wrong extension: ${item.id}`);
     }
   } finally { await browser.close(); }
-  requireIdle(paths);
+  await requireIdle(paths.root);
   const original = await Bun.file(paths.preferences).text();
   const preferences = await readObject(paths.preferences);
   for (const item of extensions) {
@@ -394,12 +388,12 @@ export async function setupProfile(config?: Settings, theme?: Theme, prepare = d
   const original = await Bun.file(paths.preferences).text();
   const preferences = JSON.parse(original);
   if (!object(preferences)) throw new Error(`Expected a JSON object: ${paths.preferences}`);
-  requireIdle(paths);
+  await requireIdle(paths.root);
   const lock = `${paths.root}/.luna-setup.lock`;
   run(["mkdir", "-m", "700", "--", lock]);
   let stage: string | undefined;
   try {
-    requireIdle(paths);
+    await requireIdle(paths.root);
     const parsed = config ?? Bun.JSONC.parse(await Bun.file(new URL("../config/settings.jsonc", import.meta.url)).text());
     if (!object(parsed) || !Array.isArray(parsed.extensions) || !object(parsed.preferences ?? {})) {
       throw new Error("Invalid Chromium settings.jsonc.");
@@ -420,7 +414,7 @@ export async function setupProfile(config?: Settings, theme?: Theme, prepare = d
     stage = run(["mktemp", "-d", "--", `${paths.root}/.luna-chromium-XXXXXX`]);
     const downloaded = await prepare(settings.extensions, version, stage);
     const local = await prepareLocalExtensions({ stage, profileRoot: paths.root, extraOrigins });
-    requireIdle(paths);
+    await requireIdle(paths.root);
     if (await Bun.file(paths.preferences).text() !== original) throw new Error("Luna's profile changed during preparation.");
     checkPath(paths.assets);
     run(["mkdir", "-p", "-m", "700", "--", `${paths.assets}/extensions`, `${paths.assets}/appearance`]);
@@ -453,7 +447,7 @@ export async function setupProfile(config?: Settings, theme?: Theme, prepare = d
     }
     // An extension explicitly disabled by the user stays disabled on subsequent configuration runs.
     const selected = install.filter(item => !preferences.extensions?.settings?.[item.id]?.disable_reasons?.length);
-    requireIdle(paths);
+    await requireIdle(paths.root);
     await saveObject(paths.preferences, values, original);
     await installExtensions(binary, paths, selected);
     return { directory: paths.directory, name: preferences.profile?.name, extensions: selected.map(item => item.id) };

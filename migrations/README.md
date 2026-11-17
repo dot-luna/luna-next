@@ -56,3 +56,13 @@ reconfigures Chromium to build and install Better WhatsApp Web and Luna Browser 
 in the Luna profile. Chromium closes during configuration; save drafts before updating.
 Profiles, sessions and extension preferences remain. A running Luna notification
 provider restarts; a stopped provider stays stopped. Repeating the migration is safe.
+
+## v0.0.5
+
+Fixes Chromium configuration after shutdown leaves stale singleton links. Only
+same-host, current-user links with an exited owner and no listening socket are
+removed. Active or ambiguous profiles still block configuration. No installed
+files need changing for users who completed v0.0.4. A failed v0.0.4 migration runs
+again with the corrected hook before this no-op version step.
+The CLI now reports its build version independently of the fetched checkout.
+Update failures print the full retry command and retain completed migration steps.
