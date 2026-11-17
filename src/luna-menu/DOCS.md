@@ -3,7 +3,7 @@
 `luna menu` opens the menu. `show`, `system`, `clipboard`, `emoji`, and `toggle` start it when needed; `start`
 prepares a hidden instance. `hide`, `stop`, and `status` control that menu only.
 Super+Space toggles it; Super+Esc opens System directly (`luna menu system`).
-Super+V opens Clipboard directly (`luna clipboard`). Super+. opens Emoji (`luna emoji`).
+Super+V opens Clipboard directly (`luna clipboard`). Super+E opens Emoji (`luna emoji`).
 
 The default renderer is `$LUNA_CONFIG_HOME_DIR/menu` (otherwise
 `$XDG_CONFIG_HOME/luna/menu`, then `~/.config/luna/menu`). For source testing, use
@@ -22,6 +22,10 @@ focused before the menu opened. The menu closes before pasting. Changed focus
 cancels insertion and reports a notification; the copied entry stays available
 for manual paste. Apps must support Ctrl+V (Ctrl+Shift+V in recognized terminals).
 Clipboard searches stay within history and offer no browser or command actions.
+Clipboard rows show text directly and load image thumbnails for visible attachments.
+Other attachments show their type and size; copied file URIs show filenames.
+Raw clipboard images do not retain their original filenames.
+
 
 Insert → Emoji is an offline, searchable grid. A leading `:` in any menu search
 switches to Emoji, keeping the remaining text as its query (for example, `:heart`).

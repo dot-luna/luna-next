@@ -13,6 +13,7 @@ Button {
     required property real textScale
     required property bool selected
     required property bool appsView
+    property bool loadAttachments: true
     property string applicationIcon: ""
     readonly property bool applicationEntry: typeof entry.execute === "function"
 
@@ -21,7 +22,7 @@ Button {
     Accessible.checkable: typeof entry.checked === "boolean"
     Accessible.checked: entry.checked === true
     focusPolicy: Qt.NoFocus
-    height: 48 * textScale
+    height: (attachment.content && attachment.content.ready ? 80 : 48) * textScale
     leftPadding: 12
     rightPadding: 12
     topPadding: 8
@@ -31,6 +32,8 @@ Button {
     contentItem: RowLayout {
         spacing: 14
         Item {
+            objectName: "entryIcon"
+            visible: !row.entry.clipboard
             Layout.preferredWidth: 20
             Layout.preferredHeight: 20
             Image {
@@ -44,18 +47,28 @@ Button {
             Icon {
                 anchors.fill: parent
                 visible: !row.applicationEntry || appIcon.status !== Image.Ready
-                name: row.applicationEntry ? "grid-view" : row.entry.icon
+                name: row.applicationEntry ? "grid-view" : row.entry.icon || "clipboard"
                 ink: row.selected ? row.theme.colors.selection_foreground : row.theme.colors.foreground
             }
         }
+        Loader {
+            id: attachment
+            readonly property ClipboardAttachment content: item as ClipboardAttachment
+            active: row.loadAttachments && Boolean(row.entry.clipboard && row.entry.attachment)
+            visible: content ? content.ready : false
+            Layout.preferredWidth: visible ? 96 * row.textScale : 0
+            Layout.preferredHeight: 64 * row.textScale
+            sourceComponent: ClipboardAttachment { entryId: row.entry.id }
+        }
         Label {
+            objectName: "entryLabel"
             Layout.fillWidth: true
             color: row.selected ? row.theme.colors.selection_foreground : row.theme.colors.bright_foreground
             font.family: row.uiFont
             font.pointSize: row.textSize + 1
             font.weight: row.selected ? Font.Medium : Font.Normal
             elide: Text.ElideRight
-            text: row.entry.name
+            text: attachment.content && attachment.content.label ? attachment.content.label : row.entry.name
             textFormat: Text.PlainText
         }
         Label {

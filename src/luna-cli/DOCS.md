@@ -3,7 +3,7 @@
 `luna` shows the CLI version and project information, labeling the checkout version
 separately when it differs. `-v` prints the executable's build version, even if the
 checkout is missing or a later update failed. `-v --json` returns
-`{"succes":true,"data":{"version":"0.0.6"}}`. Other `--json` output returns the
+`{"succes":true,"data":{"version":"0.0.7"}}`. Other `--json` output returns the
 API response unchanged and suppresses progress and identity prompts. Success
 exits with 0, operation failures (including partial app-operation reports) with 1, and argument errors with 2.
 
@@ -158,7 +158,7 @@ exit with 1; focus changes leave the entry copied for manual paste. See
 
 ## Emoji
 
-`luna emoji` opens Insert → Emoji, also available through **Super+.** or
+`luna emoji` opens Insert → Emoji, also available through **Super+E** or
 `luna menu emoji`. Starting a menu search with `:` opens emoji search; for example,
 `:heart`. Arrow keys navigate the grid. Tab or click adds one copy; Shift+Tab or
 Shift+click removes one. Enter or Insert pastes the selection into the previously
