@@ -320,8 +320,8 @@ class NotificationTests(unittest.TestCase):
         self.wait_for(lambda: ("NotificationClosed", (older, 1)) in self.events)
         self.assertEqual(self.state()["entries"], [])
 
-    def test_whatly_image_data_stays_a_small_avatar_and_open_is_the_whole_toast(self):
-        identifier = self.notify(title="Aarav", body="Are you free later?", app="Whatly",
+    def test_sender_image_data_stays_a_small_avatar_and_open_is_the_whole_toast(self):
+        identifier = self.notify(title="Aarav", body="Are you free later?", app="Messenger",
             actions=["open", "Open"], hints={"image-data": GLib.Variant("(iiibiiay)",
                 (128, 64, 512, True, 8, 4, [80, 160, 130, 255] * 128 * 64))})
         self.wait_for(lambda: len(self.state()["cards"]) == 1 and self.state()["cards"][0]["avatar"]["ready"])
