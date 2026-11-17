@@ -37,3 +37,14 @@ The v0.0.2 updater hands off through the fetched CLI build before publication, s
 its first update also runs migrations. Ordinary CLI builds do not run migrations.
 
 Checks: `bun test packages/luna-api/tests/migrations.test.ts`.
+
+## v0.0.3
+
+Installs the WhatsApp web app and removes Whatly's managed installation, source and
+build files, desktop assets, startup entry, settings, profiles, sessions, and caches.
+Named profiles and configured storage directories are included. Dependencies are
+removed only when retained Luna install logs and pacman history show they were newly
+installed for Whatly and no remaining Luna recipe or installed package requires or
+optionally uses them. Pre-existing packages and packages with unknown ownership stay
+installed. Unrelated files and existing Chromium data stay in place. WhatsApp Web needs its own
+sign-in. Run `luna webapp launch WhatsApp` after updating.

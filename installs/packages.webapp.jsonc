@@ -2,6 +2,10 @@
 // The CLI must install web apps last, after all packages and Chromium setup are complete.
 [
   {
+    "name": "WhatsApp",
+    "url": "https://web.whatsapp.com/",
+  },
+  {
     "name": "YouTube",
     "url": "https://www.youtube.com/",
   },
