@@ -4,6 +4,7 @@ import {
   currentTheme,
   extensionId,
   setupProfile,
+  startBrowser,
   unpack,
   verifiedArchive,
   withDefaults,
@@ -35,6 +36,10 @@ async function fixture() {
   await Bun.write(`${root}/gitconfig`, '[user]\n  name = "Test Name / नमस्ते"\n');
   const env = {
     ...environment,
+    HOME: root,
+    XDG_DATA_HOME: `${root}/data`,
+    LUNA_DATA_HOME_DIR: `${root}/data/luna`,
+    XDG_CONFIG_HOME: `${root}/config`,
     CHROME_USER_DATA_DIR: data,
     GIT_CONFIG_GLOBAL: `${root}/gitconfig`,
     GIT_CONFIG_NOSYSTEM: "1",
@@ -256,7 +261,7 @@ test("real Chromium setup persists extensions after restart and preserves other 
   ];
   const first = await setupProfile(config, theme, prepare);
   expect(first.extensions).toContain(extension.id);
-  expect(first.extensions.length).toBe(3);
+  expect(first.extensions.length).toBe(5);
   const preferences = await Bun.file(value.preferences).json();
   expect(preferences.profile.name).toBe("Test Name / नमस्ते");
   expect(preferences.profile.default_content_setting_values.cookies).toBe(1);
@@ -315,3 +320,43 @@ printf '%s\\n' ungoogled-chromium-bin > "$FIXTURE_ROOT/state"
   run(["bash", replaceScript], { env });
   expect(await Bun.file(`${root}/arguments`).exists()).toBe(false);
 });
+
+test("profile routes external GETs through the native host and keeps registered apps inside", async () => {
+  const value = await fixture();
+  const internal = Bun.serve({ port: 0, fetch: () => new Response("<title>Luna fixture</title><p>Internal app</p>", { headers: { "Content-Type": "text/html" } }) });
+  let externalRequests = 0;
+  const external = Bun.serve({ port: 0, fetch: () => { externalRequests++; return new Response("external"); } });
+  const internalUrl = `http://127.0.0.1:${internal.port}/`;
+  const externalUrl = `http://127.0.0.1:${external.port}/article?query=test#section`;
+  run(["mkdir", "-p", `${value.root}/bin`]);
+  await Bun.write(`${value.root}/bin/xdg-mime`, '#!/bin/sh\nprintf "zen.desktop\\n"\n');
+  await Bun.write(`${value.root}/bin/gio`, '#!/usr/bin/env bun\nawait Bun.write(Bun.env.LUNA_TEST_OPEN_LOG!, JSON.stringify(Bun.argv.slice(2)));\n');
+  run(["chmod", "+x", `${value.root}/bin/xdg-mime`, `${value.root}/bin/gio`]);
+  Object.assign(Bun.env, value.env, { PATH: `${value.root}/bin:${environment.PATH}`, LUNA_TEST_OPEN_LOG: `${value.root}/opened.json` });
+  const appId = `luna-webapp-${Buffer.from("Fixture").toString("hex")}`;
+  await Bun.write(`${value.root}/data/luna/webapps/${appId}/app.jsonc`, JSON.stringify({ id: appId, name: "Fixture", url: internalUrl }));
+  run([Bun.which("bun")!, createScript], { env: { ...Bun.env } });
+  let browser: ReturnType<typeof startBrowser> | undefined;
+  async function waitFor(check: () => Promise<boolean>) {
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) { if (await check()) return; await Bun.sleep(40); }
+    throw new Error("Browser routing timed out: " + JSON.stringify(await browser?.call("Target.getTargets")));
+  }
+  try {
+    await setupProfile({ extensions: [], preferences: { extensions: { ui: { developer_mode: true } } } }, theme, async () => []);
+    browser = startBrowser(Bun.which("chromium")!, { root: value.data, directory: `${value.data}/Luna`, preferences: value.preferences, assets: `${value.data}/Luna/Luna Next` });
+    const { targetId } = await browser.call("Target.createTarget", { url: internalUrl });
+    const { sessionId } = await browser.call("Target.attachToTarget", { targetId, flatten: true });
+    await waitFor(async () => (await browser!.call("Runtime.evaluate", { expression: "document.title", returnByValue: true }, sessionId)).result.value === "Luna fixture");
+    expect(await Bun.file(`${value.root}/opened.json`).exists()).toBe(false);
+    await browser.call("Target.createTarget", { url: externalUrl });
+    await waitFor(() => Bun.file(`${value.root}/opened.json`).exists());
+    expect(await Bun.file(`${value.root}/opened.json`).json()).toEqual(["open", externalUrl]);
+    expect(externalRequests).toBe(0);
+    await browser.call("Page.navigate", { url: externalUrl }, sessionId);
+    await waitFor(async () => (await browser!.call("Runtime.evaluate", { expression: "location.href", returnByValue: true }, sessionId)).result.value === internalUrl);
+    expect(externalRequests).toBe(0);
+  } finally {
+    await browser?.close(); internal.stop(true); external.stop(true);
+  }
+}, 30_000);

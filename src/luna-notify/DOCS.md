@@ -44,6 +44,10 @@ Cards have a theme-colored border, a subtle surface highlight, and a soft shadow
 Critical titles and a 4 px left strip use the theme error color. There are no large
 image previews. Inline replies, markup, sounds, and Do Not Disturb are not included.
 
+Chromium origins are accepted as separate metadata and omitted from the toast,
+leaving the body for the message. After upgrading Luna Notify, restart Chromium
+to refresh its notification capabilities. URLs and newlines in message text stay intact.
+
 ## Configuration
 
 Settings are read once from `--config PATH`, then nonempty `LUNA_NOTIFY_CONFIG`,

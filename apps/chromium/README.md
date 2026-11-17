@@ -14,3 +14,8 @@ PWA workflow I need on Linux.
 Firefox's [built-in web apps are Windows-only](https://support.mozilla.org/en-US/kb/web-apps-firefox-windows).
 [Native PWA support in Zen](https://github.com/zen-browser/desktop/discussions/14454)
 remains a feature request.
+
+Configuration also builds and installs [Better WhatsApp Web](../../packages/better-whatsapp-web/DOCS.md)
+and [Luna Browser Links](../../packages/luna-browser-links/DOCS.md) locally in the Luna
+profile. External links open in your default browser; installed web apps stay here.
+Run `luna configure chromium` after changing extension sources or sign-in origins.

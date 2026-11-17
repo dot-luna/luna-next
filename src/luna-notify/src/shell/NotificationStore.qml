@@ -36,6 +36,8 @@ QtObject {
         keepOnReload: false
         persistenceSupported: false
         bodySupported: true
+        // Chromium then sends the origin as metadata instead of prepending it to the message.
+        extraHints: ["x-kde-origin-name"]
         bodyMarkupSupported: false
         bodyHyperlinksSupported: false
         bodyImagesSupported: false

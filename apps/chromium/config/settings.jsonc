@@ -15,6 +15,11 @@
     "cmedhionkhpnakcndndgjdbohmhepckk",
   ],
 
+  // Additional origins needed for sign-in; installed web-app origins are allowed automatically.
+  "browserLinks": {
+    "extraOrigins": ["https://accounts.google.com"],
+  },
+
   // Chromium-native defaults. Existing values in the user's Luna profile win.
   // Browser colors and website fonts come from `luna theme get --json`.
   // Website corners are forced square only when that resolved theme has appearance.rounding = 0.
