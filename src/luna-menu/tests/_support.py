@@ -49,6 +49,8 @@ if sys.argv[1:2] == ["clipboard"]:
         if entry_id == "1": time.sleep(0.08)
         data = {"id": entry_id, "name": "[PNG] 70 bytes" if entry_id == "2" else "Alpha text", "text": "Alpha\\nfull text" if entry_id == "1" else "", "mime": "text/plain" if entry_id == "1" else "image/png",
                 "image": "" if entry_id == "1" else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="}
+        if entry_id == "broken-image":
+            data = {"id": entry_id, "name": "[TIFF] 42 bytes", "text": "", "mime": "image/tiff", "image": "data:image/tiff;base64,AAAA"}
     else: data = {"id": sys.argv[3]}
     print(json.dumps({"succes": True, "data": data}))
     sys.exit(0)

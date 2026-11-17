@@ -23,6 +23,7 @@ cancels insertion and reports a notification; the copied entry stays available
 for manual paste. Apps must support Ctrl+V (Ctrl+Shift+V in recognized terminals).
 Clipboard searches stay within history and offer no browser or command actions.
 Clipboard rows show text directly and load image thumbnails for visible attachments.
+Rendered thumbnails stand alone, without an icon, filename, size, or other label.
 Other attachments show their type and size; copied file URIs show filenames.
 Raw clipboard images do not retain their original filenames.
 

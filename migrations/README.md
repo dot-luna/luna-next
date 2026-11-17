@@ -28,6 +28,12 @@ finished but its completion could not be saved. Limit deletion to explicitly own
 paths and validate them before changing files. Never edit published scripts to add
 new work; add another version step.
 
+When a migration changes an app's configuration or runtime files, also apply the
+change to its running instance. Use its configure hook or reload/restart API and
+propagate failures. Keep stopped apps stopped unless the release requires starting
+them. Reload Hyprland with `hyprctl reload` when changing its files inside a
+Hyprland session. Explain each refresh beside the command; refresh only affected apps.
+
 Fresh installs record their version after complete setup and skip historical scripts.
 State is stored in `$LUNA_STATE_HOME_DIR/migrations.jsonc`, otherwise
 `${XDG_STATE_HOME:-$HOME/.local/state}/luna/migrations.jsonc`. Do not edit it to skip
@@ -80,3 +86,10 @@ and Hyprland gives Calculator the same centered floating behavior as Bitwarden.
 Refreshes menu clipboard rows and changes the emoji shortcut to Super+E.
 Reconfigures only Luna Menu and Hyprland; clipboard history is retained.
 Reload Hyprland or log in again to load the changed shortcut.
+
+## v0.0.8
+
+Shows only the thumbnail for clipboard images that render successfully. Refreshes
+Luna Menu and Hyprland, restarts a running menu, and reloads the current Hyprland
+session automatically. App hooks use a UTF-8 locale so Qt warnings cannot hide a
+running menu from the refresh hook. Clipboard history is retained.
