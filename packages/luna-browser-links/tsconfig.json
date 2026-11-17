@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["bun", "chrome"],
+    "lib": ["ESNext", "DOM"],
+    "paths": { "@/*": ["../luna-api/src/*"] }
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}

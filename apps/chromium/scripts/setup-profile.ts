@@ -21,14 +21,17 @@
  * controls, protected pages, or closed shadow roots. CDP record handling is specific to Linux
  * Chromium; failure is reported instead of silently switching installation methods.
  *
- * Dependencies: system Bun, Ungoogled Chromium, Luna CLI, unzip, and Linux coreutils.
- * No Node.js runtime or npm runtime dependencies are needed; root Bun types are editor-only.
+ * Dependencies: system Bun with the checkout's dependencies installed, Ungoogled Chromium,
+ * Luna CLI, unzip, and Linux coreutils. Local extensions are built before publication.
  */
+
+import { prepareLocalExtensions } from "./local-extensions.ts";
+import { browserLinkExtraOriginsSchema } from "../../../packages/luna-api/src/modules/webapp/browser-links.ts";
 
 type Json = { [key: string]: any };
 type Paths = { root: string; directory: string; preferences: string; assets: string };
 type Extension = { id: string; directory: string };
-type Settings = { extensions: string[]; preferences?: Json };
+type Settings = { extensions: string[]; preferences?: Json; browserLinks?: { extraOrigins: string[] } };
 type Theme = { colors: Record<string, string>; fonts: { ui: string; mono: string }; appearance: { rounding: number } };
 
 function run(args: string[]): string {
@@ -282,7 +285,7 @@ export function startBrowser(binary: string, paths: Paths) {
   const child = Bun.spawn([binary, `--user-data-dir=${paths.root}`, "--profile-directory=Luna",
     "--headless=new", "--no-first-run", "--no-default-browser-check", "--disable-background-networking",
     "--remote-debugging-pipe", "--enable-unsafe-extension-debugging", "about:blank"],
-  { stdio: ["ignore", "ignore", "pipe", "pipe", "pipe"] });
+  { env: { ...Bun.env }, stdio: ["ignore", "ignore", "pipe", "pipe", "pipe"] });
   const input = Bun.file(child.stdio[3] as number).writer();
   const pending = new Map<number, { resolve: (value: any) => void; reject: (error: Error) => void }>();
   let nextId = 0;
@@ -402,6 +405,7 @@ export async function setupProfile(config?: Settings, theme?: Theme, prepare = d
       throw new Error("Invalid Chromium settings.jsonc.");
     }
     const settings = parsed as Settings;
+    const extraOrigins = browserLinkExtraOriginsSchema.parse(settings.browserLinks?.extraOrigins ?? []);
     const selectedTheme = theme ?? currentTheme();
     const generated = appearance(selectedTheme);
     const fonts = Object.fromEntries(["standard", "sansserif", "serif", "fixed"].map(family => [
@@ -415,11 +419,21 @@ export async function setupProfile(config?: Settings, theme?: Theme, prepare = d
     if (!version) throw new Error("Cannot read the installed Chromium version.");
     stage = run(["mktemp", "-d", "--", `${paths.root}/.luna-chromium-XXXXXX`]);
     const downloaded = await prepare(settings.extensions, version, stage);
+    const local = await prepareLocalExtensions({ stage, profileRoot: paths.root, extraOrigins });
     requireIdle(paths);
     if (await Bun.file(paths.preferences).text() !== original) throw new Error("Luna's profile changed during preparation.");
     checkPath(paths.assets);
     run(["mkdir", "-p", "-m", "700", "--", `${paths.assets}/extensions`, `${paths.assets}/appearance`]);
     const install: Extension[] = [];
+    for (const item of local.items) {
+      checkPath(item.directory);
+      run(["mkdir", "-p", "-m", "700", "--", `${paths.directory}/Luna/extensions`]);
+      replaceTree(item.source, item.directory);
+      install.push({ id: item.id, directory: item.directory });
+    }
+    checkPath(local.host.path);
+    run(["mkdir", "-p", "-m", "700", "--", `${paths.root}/NativeMessagingHosts`]);
+    await saveObject(local.host.path, local.host.manifest);
     for (const item of downloaded) {
       const directory = `${paths.assets}/extensions/${item.id}`;
       replaceTree(item.directory, directory);

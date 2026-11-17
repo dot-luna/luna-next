@@ -1,6 +1,6 @@
 {
   "name": "@luna/cli",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "bin": {
     "luna": "./src/index.ts"
