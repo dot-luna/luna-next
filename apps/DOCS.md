@@ -44,6 +44,49 @@ SIGTERM/SIGKILL escalation. The installer never terminates its own hosting app;
 retry from another terminal. `--no-close-apps` disables this behavior.
 `--skip-failed` retains individual app errors/logs and attempts the remaining apps.
 
+## Update and uninstall
+
+`luna update [names...]` updates and configures installed catalog apps. Omit names
+for all installed apps; explicit names must be installed. Git/local apps use Luna's
+saved installation state; other sources query their package manager. Git rebuilds
+only on changed revisions or `--force`; local builds always rerun. Pacman/AUR use
+the current package databases without refreshing them or doing a system upgrade.
+An AUR update requires Yay to be available.
+
+`luna uninstall <names...>` removes packages, aliases and managed Git/local
+install folders. It keeps personal settings/data, dependencies and source
+clones/build workspaces. Mise removes the global tool selection and prunes
+versions unused by other tracked configs. Local Luna renderer apps remove their
+QML copies; commands built into the shared Luna CLI remain available.
+
+`--purge` also deletes exports, their native `user_config` destinations, and
+declared data/cache paths. These are whole files/folders, including personal
+overrides. It works after uninstall too, provided the app remains in the catalog.
+Only paths resolved from the current manifest/environment are removed; there is
+no search for old locations or undeclared data.
+
+Declare additional owned paths in `cleanup`. Each inner array is a list of
+fallback candidates, resolved like `user_config.dest`:
+
+```jsonc
+"cleanup": {
+  "uninstall": [["$HOME/.local/bin/example"]],
+  "purge": [["$EXAMPLE_HOME", "$XDG_DATA_HOME/example"]]
+}
+```
+
+All cleanup paths are resolved and checked before removal begins. Shared roots,
+checkout paths, other apps' exports and symlink parents are rejected; a leaf
+symlink is unlinked without deleting its target.
+
+Uninstall runs `before_uninstall → package removal → uninstall → file cleanup →
+after_uninstall`, under the app lock. Use `uninstall` hooks for artifacts owned by
+custom installers, such as a Git build that installs a package. Hooks must work
+when the package/files are already absent. Stop hooks should honor
+`LUNA_CLOSE_APPS=0` for `--no-close-apps`. Successful steps are not rolled back
+after failure; state is removed only after the app's full operation succeeds.
+`--skip-failed` continues with other apps and reports retry commands.
+
 ## Shell aliases
 
 `alias` declares Zsh shortcuts, such as `ff` for Fastfetch. Configuring an app with

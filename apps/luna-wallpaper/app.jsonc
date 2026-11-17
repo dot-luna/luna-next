@@ -16,6 +16,7 @@
     },
   ],
   "hooks": {
+    "before_uninstall": ["scripts/stop.ts"],
     // Refresh source QML on each configuration run; it needs no compilation.
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
@@ -24,4 +25,11 @@
     { "source": "generated/shell/", "target": "wallpaper/" },
     { "source": "config/wallpaper.jsonc", "target": "wallpaper.jsonc" },
   ],
+  "cleanup": {
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/wallpaper"]],
+    "purge": [
+      ["$LUNA_WALLPAPER_CONFIG", "$LUNA_CONFIG_HOME_DIR/wallpaper.jsonc"],
+      ["$LUNA_DATA_HOME_DIR/wallpapers"],
+    ],
+  },
 }

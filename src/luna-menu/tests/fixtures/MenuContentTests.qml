@@ -18,6 +18,8 @@ TestCase {
     property var action
     property var queryAction
     property var requestedActions: []
+    property string clipboardId: ""
+    property var insertedEmoji: []
     property var activated
     property int dismissed: 0
     property var failedTests: []
@@ -32,6 +34,8 @@ TestCase {
             height: implicitHeight
             onQueryActivated: entry => tests.queryAction = entry
             onActionActivated: action => tests.action = action
+            onClipboardActivated: entryId => tests.clipboardId = entryId
+            onEmojiActivated: values => tests.insertedEmoji = values
             onApplicationActivated: entry => tests.activated = entry
             onDismissed: tests.dismissed++
         }
@@ -54,6 +58,8 @@ TestCase {
 
     function init() {
         activated = null;
+        clipboardId = "";
+        insertedEmoji = [];
         action = null;
         queryAction = null;
         requestedActions = [];
@@ -94,6 +100,138 @@ TestCase {
         check(activated, null);
     }
 
+    function test_clipboard_navigation_search_preview_and_keyboard_activation() {
+        card.activate(card.entries.findIndex(entry => entry.route === "insert"));
+        check(card.section, "insert");
+        keyClick(Qt.Key_Return);
+        check(card.section, "clipboard");
+        tryVerify(() => card.entries.length === 2);
+        const preview = findChild(card, "clipboardPreview");
+        tryVerify(() => preview.entry.id === "1");
+        check(preview.entry.text, "Alpha\nfull text");
+        input.text = "https://private.example";
+        check(card.entries.length, 0, "Private history searches never offer browser or shell actions");
+        input.text = "alpha";
+        check(card.entries.length, 1);
+        keyClick(Qt.Key_Return);
+        check(clipboardId, "1");
+        input.text = "";
+        keyClick(Qt.Key_Escape);
+        check(card.section, "insert");
+        keyClick(Qt.Key_Escape);
+        check(card.section, "root");
+    }
+
+    function test_clipboard_rapid_selection_uses_the_latest_image_preview() {
+        card.reset("clipboard");
+        tryVerify(() => card.entries.length === 2);
+        keyClick(Qt.Key_Down);
+        const preview = findChild(card, "clipboardPreview");
+        tryVerify(() => preview.entry.id === "2");
+        verify(preview.entry.image.startsWith("data:image/png;base64,"));
+        tryCompare(findChild(preview, "clipboardImage"), "status", Image.Ready);
+        const list = findChild(card, "applicationList");
+        list.forceLayout();
+        mouseClick(list.currentItem, 30, list.currentItem.height / 2);
+        check(clipboardId, "2");
+        keyClick(Qt.Key_Escape);
+        check(dismissed, 1, "Direct clipboard opening has no invented parent");
+    }
+
+    function test_clipboard_window_hides_before_pasting_and_keeps_original_target() {
+        const window = sessionWindow();
+        window.pasteTarget = "0xabc";
+        window.show("clipboard");
+        check(window.pasteTarget, "0xabc");
+        tryVerify(() => window.content.entries.length === 2);
+        window.content.activate(0);
+        check(window.opened, false);
+        const process = findChild(window, "insertCommand");
+        tryCompare(process, "finished", true);
+        check(process.command.slice(-4).join("|"), "1|--target|0xabc|--json");
+    }
+
+    function test_colon_opens_emoji_search_and_keeps_it_private() {
+        keyClick(Qt.Key_Colon);
+        check(card.section, "emoji");
+        check(input.text, "");
+        tryVerify(() => card.entries.length === 12);
+        input.text = "heart";
+        tryCompare(card, "selectedIndex", 0);
+        check(card.entries.length, 1);
+        keyClick(Qt.Key_Return);
+        check(insertedEmoji.join(""), "❤️");
+        input.text = "https://private.example";
+        check(card.entries.length, 0);
+        keyClick(Qt.Key_Escape);
+        check(card.section, "root");
+        input.text = "https://example.com";
+        check(card.section, "root", "A later colon in a URL does not trigger emoji search");
+    }
+
+    function test_emoji_grid_selection_retains_order_and_duplicates_across_search() {
+        card.activate(card.entries.findIndex(entry => entry.route === "insert"));
+        card.activate(card.entries.findIndex(entry => entry.route === "emoji"));
+        const picker = findChild(card, "emojiPicker");
+        const grid = findChild(card, "emojiGrid");
+        tryVerify(() => card.entries.length === 12);
+        keyClick(Qt.Key_Down);
+        check(grid.currentIndex, grid.columns);
+        keyClick(Qt.Key_Home);
+        keyClick(Qt.Key_Tab);
+        keyClick(Qt.Key_Tab);
+        check(picker.selection.join(""), "😀😀");
+        check(grid.currentIndex, 0);
+        input.text = "heart";
+        keyClick(Qt.Key_Tab);
+        check(picker.selection.join(""), "😀😀❤️");
+        keyClick(Qt.Key_Backtab);
+        check(picker.selection.join(""), "😀😀");
+        keyClick(Qt.Key_Tab);
+        keyClick(Qt.Key_Return);
+        check(insertedEmoji.join(""), "😀😀❤️");
+        input.text = "";
+        keyClick(Qt.Key_Backspace);
+        check(picker.selection.join(""), "😀😀");
+        keyClick(Qt.Key_Escape);
+        check(card.section, "insert");
+        check(picker.selection.length, 0);
+    }
+
+    function test_emoji_mouse_selection_and_insert() {
+        card.reset("emoji");
+        const picker = findChild(card, "emojiPicker");
+        const grid = findChild(card, "emojiGrid");
+        tryVerify(() => grid.count === 12);
+        grid.forceLayout();
+        mouseClick(grid.currentItem, 30, 30);
+        mouseClick(grid.currentItem, 30, 30);
+        check(picker.selection.join(""), "😀😀");
+        mouseClick(grid.currentItem, 30, 30, Qt.LeftButton, Qt.ShiftModifier);
+        check(picker.selection.join(""), "😀", "Shift click removes one copy");
+        const insert = findChild(picker, "insertEmoji");
+        waitForRendering(insert);
+        verify(insert.width > 0 && insert.height > 0);
+        mouseClick(insert, insert.width / 2, insert.height / 2);
+        check(insertedEmoji.join(""), "😀", "Insert button sends the selection");
+        card.reset("emoji");
+        check(picker.selection.length, 0);
+        keyClick(Qt.Key_Escape);
+        check(dismissed, 1);
+    }
+
+    function test_emoji_hides_before_pasting_into_the_saved_window() {
+        const window = sessionWindow();
+        window.pasteTarget = "0xabc";
+        window.show("emoji");
+        tryVerify(() => window.content.entries.length === 12);
+        findChild(window.content, "emojiPicker").insert();
+        check(window.opened, false);
+        const process = findChild(window, "insertCommand");
+        tryCompare(process, "finished", true);
+        check(process.command.slice(1).join("|"), "emoji|paste|😀|--target|0xabc|--json");
+    }
+
     function test_typing_at_root_searches_metadata_and_keeps_queries_literal() {
         input.text = " WRITING text ";
         check(card.entries.length, 2);
@@ -131,6 +269,7 @@ TestCase {
         keyClick(Qt.Key_Enter);
         check(activated.id, "editor");
         activated = null;
+        clipboardId = "";
         const row = findChild(card, "applicationRow0");
         verify(row !== null);
         verify(waitForRendering(row));
@@ -217,6 +356,7 @@ TestCase {
         const destination = list.currentItem.y;
         check(list.highlightItem.y !== destination, true, "Selection highlight animates toward the new row");
         activated = null;
+        clipboardId = "";
         keyClick(Qt.Key_Return);
         check(activated.id, "editor");
         tryCompare(list.highlightItem, "y", destination);

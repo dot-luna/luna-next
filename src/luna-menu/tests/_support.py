@@ -27,7 +27,31 @@ def isolated_environment(root):
     # Never let UI tests reach the host's session or power commands.
     recorder = root / "bin/systemctl"
     recorder.write_text('''#!/usr/bin/python3
-import json, os, pathlib, sys
+import json, os, pathlib, sys, time
+if sys.argv[1:2] == ["emoji"]:
+    with pathlib.Path(os.environ["MENU_CLIPBOARD_LOG"]).open("a") as output:
+        output.write(json.dumps(sys.argv[1:]) + "\\n")
+    if sys.argv[2] == "list":
+        data = [{"name": "grinning face", "emoji": "😀", "keywords": "smile happy"},
+                {"name": "red heart", "emoji": "❤️", "keywords": "love"}]
+        data += [{"name": "face " + str(i), "emoji": "😎", "keywords": "face"} for i in range(10)]
+    else: data = {"text": "".join(sys.argv[3:sys.argv.index("--target")])}
+    print(json.dumps({"succes": True, "data": data}))
+    sys.exit(0)
+if sys.argv[1:2] == ["clipboard"]:
+    with pathlib.Path(os.environ["MENU_CLIPBOARD_LOG"]).open("a") as output:
+        output.write(json.dumps(sys.argv[1:]) + "\\n")
+    action = sys.argv[2]
+    if action == "list":
+        data = [{"id": "1", "name": "Alpha text"}, {"id": "2", "name": "Image"}]
+    elif action == "preview":
+        entry_id = sys.argv[3]
+        if entry_id == "1": time.sleep(0.08)
+        data = {"id": entry_id, "text": "Alpha\\nfull text" if entry_id == "1" else "", "mime": "text/plain" if entry_id == "1" else "image/png",
+                "image": "" if entry_id == "1" else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="}
+    else: data = {"id": sys.argv[3]}
+    print(json.dumps({"succes": True, "data": data}))
+    sys.exit(0)
 with pathlib.Path(os.environ["MENU_SESSION_LOG"]).open("a") as output:
     output.write(json.dumps({"command": pathlib.Path(sys.argv[0]).name, "args": sys.argv[1:]}) + "\\n")
 if os.environ.get("MENU_SESSION_FAIL") == "1":
@@ -41,8 +65,8 @@ if os.environ.get("MENU_SESSION_FAIL") == "1":
     launcher.parent.mkdir(parents=True)
     shutil.copyfile(recorder, launcher)
     launcher.chmod(0o755)
-    environment = dict(os.environ, MENU_SESSION_LOG=str(root / "session.jsonl"), HOME=str(root / "home"),
-                       QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
+    environment = dict(os.environ, MENU_SESSION_LOG=str(root / "session.jsonl"), MENU_CLIPBOARD_LOG=str(root / "clipboard.jsonl"), HOME=str(root / "home"),
+                       QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software", GIO_USE_VFS="local",
                        XDG_RUNTIME_DIR=str(root / "runtime"), XDG_CONFIG_HOME=str(root / "config"),
                        XDG_DATA_HOME=str(root / "data"), XDG_DATA_DIRS=str(root / "system-data"),
                        XDG_CACHE_HOME=str(root / "cache"), XDG_STATE_HOME=str(root / "state"),

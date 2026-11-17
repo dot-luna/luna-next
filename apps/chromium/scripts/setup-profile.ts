@@ -27,7 +27,7 @@
 
 import { prepareLocalExtensions } from "./local-extensions.ts";
 import { requireIdle } from "../src/profile-lock.ts";
-import { browserLinkExtraOriginsSchema } from "../../../packages/luna-api/src/modules/webapp/browser-links.ts";
+import { browserLinkExtraOriginsSchema } from "../../../packages/luna-api/src/modules/webapp/schema.ts";
 
 type Json = { [key: string]: any };
 type Paths = { root: string; directory: string; preferences: string; assets: string };

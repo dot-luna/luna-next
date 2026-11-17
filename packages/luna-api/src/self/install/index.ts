@@ -7,9 +7,9 @@ import { buildCli } from "./build.ts";
 import { updateCheckout } from "./checkout.ts";
 import { configureGit } from "./git.ts";
 import { installPackages, readPackages } from "./packages.ts";
-import { installApps } from "../../apps/index.ts";
-import { appContext } from "../../apps/context.ts";
-import { readCatalog } from "../../apps/catalog.ts";
+import { appInstaller } from "../../modules/apps/install.ts";
+import { appContext } from "../../modules/apps/context.ts";
+import { appCatalog } from "../../modules/apps/catalog.ts";
 import { installLaterPackages } from "./later.ts";
 import { installWebApps, readWebapps } from "./webapps.ts";
 import { installThemes } from "./themes.ts";
@@ -33,7 +33,9 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
         const { repository, home } = context;
         const ref = options.ref ?? "latest";
         await readPackages(context);
-        await readCatalog(await appContext({ repository, env: context.env }, context.log));
+        await appCatalog.read(
+          await appContext.resolve({ repository, env: context.env, log: context.log }),
+        );
         await readWebapps(context);
         await readDefaults(context);
         if (!options.fromBootstrap) {
@@ -42,7 +44,9 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
         }
         // Re-read recipes after pulling so setup uses the selected checkout's package lists.
         const packages = await readPackages(context);
-        await readCatalog(await appContext({ repository, env: context.env }, context.log));
+        await appCatalog.read(
+          await appContext.resolve({ repository, env: context.env, log: context.log }),
+        );
         await readWebapps(context);
         await readDefaults(context);
         await context.execute(["sudo", "-v"]);
@@ -64,22 +68,18 @@ export function install(options: InstallOptions = {}): Promise<InstallResponse> 
         await installPackages(context, [...packages.after_cli, ...packages.mise]);
         context.progress("Installing bundled themes...");
         await installThemes(context);
-        const appsContext = await appContext(
-          {
-            repository,
-            env: context.env,
-            onProgress: context.onProgress,
-          },
-          context.log,
-        );
+        const appsContext = await appContext.resolve({
+          repository,
+          env: context.env,
+          onProgress: context.onProgress,
+          log: context.log,
+        });
         context.progress("Installing and configuring apps...");
-        const appResult = await installApps(
-          appsContext,
-          [],
-          false,
-          options.skipFailed,
-          options.closeApps !== false,
-        );
+        const appResult = await appInstaller.install({
+          context: appsContext,
+          skipFailed: options.skipFailed,
+          closeApps: options.closeApps !== false,
+        });
         const failed = appResult.failed;
         context.progress("Installing later packages...");
         await installLaterPackages(appsContext, packages.later);

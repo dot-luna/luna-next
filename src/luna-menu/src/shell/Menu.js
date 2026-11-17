@@ -3,7 +3,10 @@
 function entries(stayAwake) {
     return [
         {name: "Apps", icon: "grid-view", route: "apps"},
-        {name: "Insert", icon: "smile"},
+        {name: "Insert", icon: "smile", route: "insert", children: [
+            {name: "Clipboard", icon: "clipboard", route: "clipboard"},
+            {name: "Emoji", icon: "smile", route: "emoji"}
+        ]},
         {name: "Learn", icon: "book-open-01"},
         {name: "Trigger", icon: "flash", route: "trigger", children: [
             {name: "Toggles", icon: "toggle-on", route: "toggles", children: [

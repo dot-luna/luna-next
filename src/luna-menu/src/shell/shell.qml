@@ -74,6 +74,8 @@ ShellRoot {
         }
         function show(): void { shell.show(); }
         function system(): void { shell.show("system"); }
+        function clipboard(): void { shell.show("clipboard"); }
+        function emoji(): void { shell.show("emoji"); }
         function hide(): void { if (shell.menuWindow) shell.menuWindow.hide(); }
         function toggle(): void {
             if (shell.menuWindow && shell.menuWindow.opened)

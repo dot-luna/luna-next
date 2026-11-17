@@ -2,7 +2,7 @@ import { info } from "@/info/index.ts";
 import { install } from "@/self/install/index.ts";
 import { update } from "@/self/update.ts";
 import { theme } from "@/theme/index.ts";
-import { apps } from "@/apps/index.ts";
+import { apps } from "@/modules/apps/index.ts";
 import { webapp } from "@/modules/webapp/index.ts";
 import { notify } from "@/notify/index.ts";
 import { menu } from "@/menu/index.ts";
@@ -11,6 +11,10 @@ import { wallpaper } from "@/wallpaper/index.ts";
 import { lock } from "@/lock/index.ts";
 import { screensaver } from "@/screensaver/index.ts";
 import { screenshot } from "@/screenshot/index.ts";
+import { clipboard } from "@/modules/clipboard/index.ts";
+
+import { emoji } from "@/modules/emoji/index.ts";
+export type { EmojiEntry } from "@/modules/emoji/schema.ts";
 
 export const Luna = {
   info,
@@ -25,7 +29,12 @@ export const Luna = {
   screensaver,
   lock,
   screenshot,
+  clipboard,
+  emoji,
 };
+
+export type { ClipboardOptions, ClipboardPasteOptions } from "@/modules/clipboard/context.ts";
+export type { ClipboardEntry, ClipboardPreview } from "@/modules/clipboard/schema.ts";
 
 export type {
   ScreenshotMode,
@@ -70,7 +79,7 @@ export type {
   ThemeEntry,
   ResolvedTheme,
 } from "@/theme/types.ts";
-export type { AppOptions } from "@/apps/context.ts";
+export type { AppOptions, AppUninstallOptions } from "@/modules/apps/context.ts";
 export type { WebappOptions } from "@/modules/webapp/context.ts";
 export type { WebappInstallOptions } from "@/modules/webapp/index.ts";
 export type { WebappLaunchOptions } from "@/modules/webapp/launch.ts";

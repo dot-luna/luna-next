@@ -1,7 +1,7 @@
 import { readdir, rm } from "node:fs/promises";
 import { join } from "pathe";
-import { appContext, type AppOptions } from "../../../apps/context.ts";
-import { closeApp } from "../../../apps/processes.ts";
+import { appContext, type AppOptions } from "../../../modules/apps/context.ts";
+import { appProcesses } from "../../../modules/apps/processes.ts";
 import { webapp } from "../../../modules/webapp/index.ts";
 import { locked, metadata, readOptional, writeFile } from "../../../lib/files.ts";
 import { ordinaryParents } from "../../../lib/paths.ts";
@@ -27,7 +27,7 @@ function withoutWhatly(source: string) {
 
 /** Install WhatsApp before retiring Whatly. Cleanup is destructive and safe to repeat after failure. */
 export async function replaceWhatly(options: AppOptions = {}) {
-  const context = await appContext(options);
+  const context = await appContext.resolve(options);
   const appState = join(context.env.LUNA_STATE_HOME_DIR!, "apps/whatly.jsonc");
   await ordinaryParents(appState);
   const lock = await metadata(appState + ".lock");
@@ -40,14 +40,17 @@ export async function replaceWhatly(options: AppOptions = {}) {
       env: context.env,
     });
     if (!installed.succes) throw new ApiError(installed.err, installed.errMessage);
-    await closeApp(context, {
-      id: "whatly",
-      directory: context.repository,
-      manifest: {
-        name: "whatly",
-        source: "git",
-        url: "https://github.com/dot-luna/whatly.git",
-        processes: ["whatly"],
+    await appProcesses.close({
+      context,
+      app: {
+        id: "whatly",
+        directory: context.repository,
+        manifest: {
+          name: "whatly",
+          source: "git",
+          url: "https://github.com/dot-luna/whatly.git",
+          processes: ["whatly"],
+        },
       },
     });
     // Closing Whatly may save settings. Re-read them before enumerating custom storage.

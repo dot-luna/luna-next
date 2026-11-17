@@ -2,7 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { routeBrowserLink, browserLinkConfigSchema } from "../src/modules/webapp/browser-links.ts";
+import { webappBrowserLinks } from "../src/modules/webapp/browser-links.ts";
+import { browserLinkConfigSchema } from "../src/modules/webapp/schema.ts";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -40,7 +41,7 @@ async function fixture() {
 test("registered and login origins stay in Luna without opening another browser", async () => {
   const f = await fixture();
   for (const url of ["https://web.whatsapp.com/chat", "https://accounts.google.com/login"]) {
-    const result = await routeBrowserLink({
+    const result = await webappBrowserLinks.route({
       ...f,
       request: { type: "open", url },
       run: async () => {
@@ -56,10 +57,10 @@ test("external URL remains a literal argument and profile overrides do not escap
   const f = await fixture();
   const calls: string[][] = [];
   const url = "https://example.com/?value=$(touch%20/tmp/no)&q=`id`#section";
-  const result = await routeBrowserLink({
+  const result = await webappBrowserLinks.route({
     ...f,
     request: { type: "open", url },
-    run: async (args, env) => {
+    run: async ({ args, env }) => {
       calls.push(args);
       expect(env).not.toHaveProperty("BROWSER");
       expect(env).not.toHaveProperty("CHROME_USER_DATA_DIR");
@@ -81,19 +82,21 @@ test("unsafe schemes, credentials, loops and helper failures are reported", asyn
     "https://user:password@example.com/",
     "--help",
   ])
-    await expect(routeBrowserLink({ ...f, request: { type: "open", url } })).rejects.toThrow();
+    await expect(
+      webappBrowserLinks.route({ ...f, request: { type: "open", url } }),
+    ).rejects.toThrow();
   await expect(
-    routeBrowserLink({
+    webappBrowserLinks.route({
       ...f,
       request: { type: "open", url: "https://example.com/" },
       run: async () => "chromium.desktop",
     }),
   ).rejects.toThrow("default browser");
   await expect(
-    routeBrowserLink({
+    webappBrowserLinks.route({
       ...f,
       request: { type: "open", url: "https://example.com/" },
-      run: async (args) => {
+      run: async ({ args }) => {
         if (args[0] === "xdg-mime") return "zen.desktop";
         throw new Error("Cannot open default browser");
       },

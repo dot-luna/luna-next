@@ -1,7 +1,5 @@
-import {
-  browserLinkConfigSchema,
-  routeBrowserLink,
-} from "../../luna-api/src/modules/webapp/browser-links.ts";
+import { webappBrowserLinks } from "../../luna-api/src/modules/webapp/browser-links.ts";
+import { browserLinkConfigSchema } from "../../luna-api/src/modules/webapp/schema.ts";
 import { readMessage, encodeMessage } from "./protocol.ts";
 
 /** stdout belongs exclusively to Chromium's framed protocol. Diagnostics are returned as data. */
@@ -11,7 +9,7 @@ async function main() {
   );
   if (Bun.argv[2] !== `chrome-extension://${config.extensionId}/`)
     throw new Error("Unrecognized extension origin");
-  return routeBrowserLink({
+  return webappBrowserLinks.route({
     config,
     request: await readMessage(Bun.stdin.stream()),
     env: { ...Bun.env } as Record<string, string>,
