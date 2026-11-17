@@ -35,7 +35,8 @@ Scope {
     Process {
         id: lookup
         property string input
-        command: ["python3", decodeURIComponent(Qt.resolvedUrl("application_icons.py").toString().slice(7))]
+        // GTK bindings are installed for system Python, not Mise or virtualenv interpreters.
+        command: ["/usr/bin/python3", decodeURIComponent(Qt.resolvedUrl("application_icons.py").toString().slice(7))]
         onStarted: {
             write(input);
             stdinEnabled = false;

@@ -32,7 +32,7 @@ class ApplicationIconTests(unittest.TestCase):
         (self.icons.parent.parent / "index.theme").write_text(
             "[Icon Theme]\nName=Hicolor\nDirectories=scalable/apps\n"
             "[scalable/apps]\nSize=32\nType=Scalable\nMinSize=1\nMaxSize=512\nContext=Applications\n")
-        (self.root / "menu").symlink_to(SHELL, target_is_directory=True)
+        shutil.copytree(SHELL, self.root / "menu")
         (self.root / "shell.qml").write_text('''import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -156,19 +156,23 @@ ShellRoot {
         self.wait_state(lambda state: state["icons"] and state["icons"][0]["ready"]
                         and "fixture-parent" in state["icons"][0]["source"])
 
-    def test_failed_lookup_recovers_on_next_open(self):
+    def test_icon_lookup_uses_system_python_when_path_python_has_no_gtk(self):
         interpreter = self.root / "bin/python3"
-        interpreter.write_text('#!/bin/sh\n'
-                               'if [ -f "$XDG_STATE_HOME/fail-icons" ]; then exit 7; fi\n'
-                               'exec /usr/bin/python3 "$@"\n')
+        interpreter.write_text('#!/bin/sh\necho "No module named gi" >&2\nexit 1\n')
         interpreter.chmod(0o755)
-        failure = self.root / "state/fail-icons"
-        failure.touch()
+        (self.icons / "system-python.svg").write_text(SVG)
+        self.entry("system-python")
+        self.wait_state(lambda state: state["icons"] and state["icons"][0]["ready"])
+
+    def test_failed_lookup_recovers_on_next_open(self):
+        helper = self.root / "menu/application_icons.py"
+        original = helper.read_text()
+        helper.write_text('raise RuntimeError("fixture lookup failure")\n')
         (self.icons / "recover.svg").write_text(SVG)
         self.entry("recover")
         self.wait_state(lambda state: state["icons"] and not state["icons"][0]["ready"]
                         and "Luna menu icon lookup failed" in self.log_path.read_text())
-        failure.unlink()
+        helper.write_text(original)
         self.assertEqual(self.call("reopen").returncode, 0)
         self.wait_state(lambda state: state["icons"] and state["icons"][0]["ready"])
 
