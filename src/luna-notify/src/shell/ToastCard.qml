@@ -16,7 +16,7 @@ Item {
     property bool exposed: true
     signal reveal(var item)
     signal opened()
-    // Whatly uses "open"; other senders use the standard default action.
+    // Prefer the standard default action; also support senders with an explicit "open" action.
     readonly property var openAction: notification.actions.find(action => action.identifier === "default")
         || notification.actions.find(action => action.identifier === "open") || null
     // Explicit sender timeouts win; only unspecified durations use Luna's priority defaults.
