@@ -36,6 +36,8 @@ test("menu installs through the local app catalog, replaces only its QML export 
       `#!${process.execPath}
 import {appendFileSync, existsSync, writeFileSync, rmSync} from 'node:fs';
 const args=Bun.argv.slice(2);
+// Qt writes its non-UTF-8 locale warning to stdout before IPC replies.
+if(Bun.env.LC_ALL==='C')console.log('WARN: Detected locale "C", switching to "C.UTF-8".');
 appendFileSync(${JSON.stringify(qsLog)}, JSON.stringify(args)+'\\n');
 const running=${JSON.stringify(running)};
 if(args[0]==='ipc') {

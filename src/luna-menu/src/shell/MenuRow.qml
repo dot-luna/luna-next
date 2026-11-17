@@ -62,6 +62,8 @@ Button {
         }
         Label {
             objectName: "entryLabel"
+            // Keep a useful fallback until the image has actually rendered.
+            visible: !attachment.visible
             Layout.fillWidth: true
             color: row.selected ? row.theme.colors.selection_foreground : row.theme.colors.bright_foreground
             font.family: row.uiFont
@@ -70,6 +72,10 @@ Button {
             elide: Text.ElideRight
             text: attachment.content && attachment.content.label ? attachment.content.label : row.entry.name
             textFormat: Text.PlainText
+        }
+        Item {
+            visible: attachment.visible
+            Layout.fillWidth: true
         }
         Label {
             objectName: "toggleState"
