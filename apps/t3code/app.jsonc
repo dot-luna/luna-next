@@ -14,4 +14,11 @@
     "after_build": ["scripts/install.ts"],
     "after_configure": ["scripts/configure.ts"],
   },
+  "cleanup": {
+    "uninstall": [
+      ["$HOME/.local/bin/t3code"],
+      ["$XDG_DATA_HOME/applications/com.t3tools.T3Code.desktop"],
+    ],
+    "purge": [["$T3CODE_HOME", "$HOME/.t3"]],
+  },
 }

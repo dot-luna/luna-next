@@ -1,5 +1,5 @@
 import { join, resolve } from "pathe";
-import { appContext } from "../apps/context.ts";
+import { appContext } from "../modules/apps/context.ts";
 import { locked, parse, readOptional, writeFile } from "../lib/files.ts";
 import { ApiError, respond } from "../lib/response.ts";
 import { validate } from "../lib/validation.ts";
@@ -116,7 +116,7 @@ async function operation<T>(
   run: (context: InstallContext) => Promise<T>,
 ) {
   return respond(async () => {
-    const context = await appContext(options);
+    const context = await appContext.resolve(options);
     try {
       const result = await run(context);
       context.log.finish({ completed: true });

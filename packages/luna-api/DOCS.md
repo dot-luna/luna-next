@@ -143,8 +143,8 @@ edits, existing copies, or wallpaper filename conflicts.
 
 ## Menu API
 
-`Luna.menu` provides `start`, `show`, `system`, `hide`, `toggle`, `stop`, and `status`.
-Show/system/toggle start it when needed; start stays hidden. System opens the session
+`Luna.menu` provides `start`, `show`, `system`, `clipboard`, `emoji`, `hide`, `toggle`, `stop`, and `status`.
+Show/system/clipboard/emoji/toggle start it when needed; start stays hidden. System opens the session
 action list without executing an action. Options: `repository` selects
 source QML; `env` replaces the environment. Otherwise QML comes from Luna's installed
 menu config directory. Responses contain `{running, shellDirectory}`. Startup
@@ -155,6 +155,49 @@ missing Quickshell or failed IPC returns `COMMAND_FAILED`.
 On/toggle start a hidden menu when needed. Status/off leave a stopped menu stopped.
 Inhibition survives hiding the menu and resets when its process stops.
 See the [menu docs](../../src/luna-menu/DOCS.md).
+
+## Clipboard API
+
+`Luna.clipboard` manages text/image history through cliphist. Install its dependencies
+with `luna install luna-menu`. `start(options?)` starts one session capture pair;
+Hyprland runs it at login. Closing the picker leaves capture running.
+
+- `list(options?)`: newest-first `{id, name}[]`; IDs are numeric strings.
+- `preview(id, options?)`: `{id, mime, text, image}` with full text or an image data URL.
+- `copy(id, options?)`: restore exact bytes and promote the entry; returns `{id}`.
+- `paste(id, options?)`: copy, wait for menu dismissal, and send the paste shortcut;
+  returns `{id, target}`. Pass `target` captured before opening the picker; omitted
+  targets use the current window. Requires Hyprland's Lua dispatcher API.
+- `target(options?)`: focused Hyprland window `{address}`, empty when none is focused.
+- `delete(id, options?)` and `clear(options?)`: remove saved history only, returning
+  `{id}` and `{cleared: true}`. The current clipboard remains available.
+
+Options accept `env` to replace the environment, including cliphist's own database
+settings. History stays in cliphist's database. No decoded preview files are saved.
+Capture logs are in `$XDG_RUNTIME_DIR/luna-clipboard/watch.log`, falling back to
+`/tmp/luna-<uid>/luna-clipboard/watch.log`.
+
+Paste uses Ctrl+V, or Ctrl+Shift+V for recognized terminals. The original window must
+still be focused. An open menu or changed focus returns `CONFLICT` and leaves the
+entry copied for manual paste. Invalid IDs/targets return `INVALID_ARGUMENT`;
+unavailable tools and failed commands return `COMMAND_FAILED`. Apps must accept
+the shortcut and content type; rich text and multiple MIME representations are
+not preserved. `Luna.menu.clipboard(options?)` opens the picker.
+
+## Emoji API
+
+`Luna.emoji.list(query?)` searches the bundled Unicode Emoji 17.0 catalog offline.
+It returns `{name, emoji, keywords}[]`; all query words match names, categories or
+Unicode sequences, ignoring case. The catalog includes skin tones, flags and joined
+sequences. Its [Unicode license](src/modules/emoji/data/LICENSE) is retained.
+
+`copy(values, options?)` and `paste(values, options?)` accept 1–256 catalog emoji,
+keeping duplicates and selection order. They copy the joined Unicode text and store
+it in clipboard history. Copy returns `{text}`; paste returns `{text, target}`.
+Options accept `env`; paste also accepts `target` and shares the clipboard's menu
+and focus checks. Invalid selections return `INVALID_ARGUMENT` before copying.
+`Luna.menu.emoji(options?)` opens the picker. Rendering uses the menu's single
+`noto-fonts-emoji` dependency; no emoji image pack or additional daemon is needed.
 
 ## Wallpaper API
 
@@ -298,13 +341,28 @@ Missing tools/English data, capture, OCR, and clipboard failures return
 
 ## App API
 
-`Luna.apps.install(names?, options?)` installs missing apps and configures them.
-`Luna.apps.configure(names?, options?)` runs configuration only. Omit names to
-select all; names match directory IDs or package names. Installation returns `{ installed, failed, completed, logDirectory }`; configuration
-returns selected IDs. Both preserve `apps/apps.jsonc` order, irrespective of argument order.
-Options: `repository`, `env`, `onProgress`, and install-only `force` to rerun
-installation/build hooks even for installed apps. Install also accepts `skipFailed`;
-both operations accept `closeApps`. Run installation as a normal user.
+| Method                                  | Behavior                                                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `Luna.apps.install(names?, options?)`   | Install and configure; omitted names select all catalog apps.                                                          |
+| `Luna.apps.configure(names?, options?)` | Configure without installing; omitted names select all.                                                                |
+| `Luna.apps.update(names?, options?)`    | Update and configure installed apps; omitted names select all installed catalog apps. Explicit uninstalled names fail. |
+| `Luna.apps.uninstall(names, options?)`  | Remove named apps, keeping settings/data by default. Requires at least one name.                                       |
+
+Names match directory IDs or package names; all operations follow catalog order.
+Install/update/uninstall return `{ installed | updated | uninstalled, failed, completed, logDirectory }`
+with the corresponding result key. Configure returns selected IDs.
+Shared options: `repository`, `env`, `onProgress`, `closeApps` (default true).
+Install/update accept `force`; install/update/uninstall accept `skipFailed`.
+Uninstall accepts `purge: true` to remove declared settings/data, including on a
+later call after uninstall. It needs the app's manifest in the selected checkout.
+Run package operations as a normal user.
+
+Update uses the current package databases without refreshing them or upgrading
+the whole system. Git builds rerun only for changed revisions or `force: true`;
+local builds rerun. Uninstall retains dependencies and Git clones/build workspaces;
+mise retains versions needed by other tracked configurations. Purge removes whole
+declared files/folders, including personal overrides, but does not search for
+undeclared data. See the manifest for each app's removal scope.
 
 See [app manifests and lifecycle](../../apps/DOCS.md) for hooks, Zsh aliases, exports, settings,
 Git refs, build cleanup, and retry behavior. Invalid catalogs fail before package

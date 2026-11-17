@@ -5,6 +5,7 @@ import Quickshell
 // Registers structured ProcessContext conversion for execDetached(context).
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "Applications.js" as Applications
 import "System.js" as System
 import "Query.js" as Query
@@ -14,6 +15,7 @@ PanelWindow {
 
     required property var theme
     property bool opened: false
+    property string pasteTarget: ""
     readonly property alias content: menuContent
     property bool stayAwake: false
     signal dismissed()
@@ -36,6 +38,11 @@ PanelWindow {
 
     function show(section) {
         if (!powerScreen.cancel()) return;
+        // Capture before taking layer keyboard focus; navigating inside the menu keeps this target.
+        if (!opened) {
+            const window = Hyprland.activeToplevel;
+            pasteTarget = window ? "0x" + window.address.replace(/^0x/, "") : "";
+        }
         menuContent.reset(section);
         opened = true;
         focusDelay.restart();
@@ -76,6 +83,19 @@ PanelWindow {
         visible: !powerScreen.active
         applications: DesktopEntries.applications.values
         stayAwake: panel.stayAwake
+        opened: panel.opened
+        onClipboardActivated: entryId => {
+            if (insertCommand.running) return;
+            const target = panel.pasteTarget;
+            panel.hide();
+            Qt.callLater(() => insertCommand.run("clipboard", [entryId], target));
+        }
+        onEmojiActivated: values => {
+            if (insertCommand.running) return;
+            const target = panel.pasteTarget;
+            panel.hide();
+            Qt.callLater(() => insertCommand.run("emoji", values, target));
+        }
         onDismissed: panel.dismissed()
         onApplicationActivated: entry => {
             if (Applications.launch(entry, context => Quickshell.execDetached(context)))
@@ -106,6 +126,37 @@ PanelWindow {
                 powerScreen.begin(action);
             }
         }
+    }
+
+    Process {
+        id: insertCommand
+        objectName: "insertCommand"
+        property bool finished: false
+        function run(group, values, target) {
+            finished = false;
+            exec([Quickshell.env("HOME") + "/.local/bin/luna", group, "paste"].concat(values, ["--target", target, "--json"]));
+        }
+        function fail(message) {
+            console.warn("Luna insert: " + message);
+            Quickshell.execDetached(["notify-send", "--app-name=Luna", "Couldn’t paste", message]);
+        }
+        stdout: StdioCollector { id: insertOutput }
+        onExited: (code, status) => {
+            finished = true;
+            try {
+                const response = JSON.parse(insertOutput.text);
+                if (code !== 0 || status !== 0 || !response.succes)
+                    fail(response.errMessage || "Paste manually in the intended application");
+            } catch (error) {
+                fail("Insert command failed");
+            }
+        }
+        onRunningChanged: if (!running) Qt.callLater(() => {
+            if (!insertCommand.running && !insertCommand.finished) {
+                insertCommand.finished = true;
+                insertCommand.fail("Insert command could not start");
+            }
+        })
     }
 
     PowerScreen {

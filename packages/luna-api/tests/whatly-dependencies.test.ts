@@ -1,7 +1,7 @@
 import { afterEach, expect, test, spyOn } from "bun:test";
 import { join } from "node:path";
 import { SelfFixture } from "./fixtures/self-fixture.ts";
-import { appContext } from "../src/apps/context.ts";
+import { appContext } from "../src/modules/apps/context.ts";
 import {
   removeWhatlyDependencies,
   removablePackages,
@@ -98,7 +98,7 @@ afterEach(() => {
 });
 test("dependency cleanup uses retained installer evidence and only removes the closed unused package set", async () => {
   const f = (fixture = new SelfFixture());
-  const context = await appContext({ env: f.env });
+  const context = await appContext.resolve({ env: f.env });
   f.write(
     f.home,
     ".local/state/luna/install-logs/previous/events.jsonl",
@@ -151,7 +151,7 @@ test("dependency cleanup uses retained installer evidence and only removes the c
 
 test("missing installer ownership evidence performs no package query or removal", async () => {
   const f = (fixture = new SelfFixture());
-  const context = await appContext({ env: f.env });
+  const context = await appContext.resolve({ env: f.env });
   const command = spyOn(context, "execute").mockRejectedValue(new Error("Must not run pacman"));
   try {
     await removeWhatlyDependencies(context);

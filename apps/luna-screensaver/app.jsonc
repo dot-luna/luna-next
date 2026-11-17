@@ -10,6 +10,7 @@
     },
   ],
   "hooks": {
+    "before_uninstall": ["scripts/stop.ts"],
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
   },
@@ -17,4 +18,8 @@
     { "source": "generated/shell/", "target": "screensaver/" },
     { "source": "config/screensaver.jsonc", "target": "screensaver.jsonc" },
   ],
+  "cleanup": {
+    "purge": [["$LUNA_SCREENSAVER_CONFIG", "$LUNA_CONFIG_HOME_DIR/screensaver.jsonc"]],
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/screensaver"]],
+  },
 }

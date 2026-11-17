@@ -1,6 +1,6 @@
 import { isAbsolute } from "pathe";
 import { z } from "zod";
-import { packageRecipeSchema } from "../self/install/packages.ts";
+import { packageRecipeSchema } from "@/self/install/packages.ts";
 
 // Commands and paths are displayed or passed to native tools; control bytes are invalid.
 // oxlint-disable-next-line no-control-regex
@@ -57,6 +57,13 @@ export const appSchema = packageRecipeSchema
         }),
       )
       .optional(),
+    // Ordered candidate paths use the same environment expansion as user_config destinations.
+    cleanup: z
+      .strictObject({
+        uninstall: z.array(z.array(z.string().min(1).regex(printable)).min(1)).optional(),
+        purge: z.array(z.array(z.string().min(1).regex(printable)).min(1)).optional(),
+      })
+      .optional(),
     hooks: z
       .strictObject({
         before_install: hooks.optional(),
@@ -66,6 +73,9 @@ export const appSchema = packageRecipeSchema
         after_build: hooks.optional(),
         before_configure: hooks.optional(),
         after_configure: hooks.optional(),
+        before_uninstall: hooks.optional(),
+        uninstall: hooks.optional(),
+        after_uninstall: hooks.optional(),
       })
       .optional(),
   })
@@ -74,5 +84,16 @@ export const appSchema = packageRecipeSchema
       context.addIssue({ code: "custom", message: "Git apps require a URL", path: ["url"] });
   });
 export const appsIndexSchema = z.strictObject({ packages: z.array(relativePathSchema) });
+/** Installed package identity and last successful Git revision; used to decide whether to rebuild. */
+export const appStateSchema = z.strictObject({
+  name: z.string(),
+  source: z.string(),
+  revision: z.string().optional(),
+});
+
+/** Native structured configuration may contain arbitrary application-specific keys. */
+export const appConfigRecordSchema = z.record(z.string(), z.unknown());
+
+export type AppState = z.infer<typeof appStateSchema>;
 export type AppManifest = z.infer<typeof appSchema>;
 export type HookStage = keyof NonNullable<AppManifest["hooks"]>;

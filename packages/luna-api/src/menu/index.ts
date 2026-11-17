@@ -60,13 +60,36 @@ async function start(context: MenuContext) {
 }
 
 async function operate(
-  action: "status" | "start" | "show" | "hide" | "toggle" | "stop" | "system",
+  action:
+    | "status"
+    | "start"
+    | "show"
+    | "hide"
+    | "toggle"
+    | "stop"
+    | "system"
+    | "clipboard"
+    | "emoji",
   options: MenuOptions,
 ) {
   const context = await menuContext(options);
-  if (action === "start" || action === "show" || action === "toggle" || action === "system")
+  if (
+    action === "start" ||
+    action === "show" ||
+    action === "toggle" ||
+    action === "system" ||
+    action === "clipboard" ||
+    action === "emoji"
+  )
     await start(context);
-  if (action === "show" || action === "toggle" || action === "system") await ipc(context, action);
+  if (
+    action === "show" ||
+    action === "toggle" ||
+    action === "system" ||
+    action === "clipboard" ||
+    action === "emoji"
+  )
+    await ipc(context, action);
   if (action === "hide" && (await running(context))) await ipc(context, "hide");
   if (action === "stop" && (await running(context)))
     await command(context, ["kill", "-p", context.shellDirectory]);
@@ -85,6 +108,8 @@ export const menu = {
   start: (options: MenuOptions = {}) => respond(() => operate("start", options)),
   show: (options: MenuOptions = {}) => respond(() => operate("show", options)),
   system: (options: MenuOptions = {}) => respond(() => operate("system", options)),
+  clipboard: (options: MenuOptions = {}) => respond(() => operate("clipboard", options)),
+  emoji: (options: MenuOptions = {}) => respond(() => operate("emoji", options)),
   hide: (options: MenuOptions = {}) => respond(() => operate("hide", options)),
   toggle: (options: MenuOptions = {}) => respond(() => operate("toggle", options)),
   stop: (options: MenuOptions = {}) => respond(() => operate("stop", options)),

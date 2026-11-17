@@ -22,7 +22,7 @@ export interface WebappInstallOptions extends WebappOptions {
 }
 
 /** Manage web app exports; resolve options per call so the shared instance holds no user state. */
-class Webapp {
+export class Webapp {
   /** Encode a validated name as a stable directory and desktop-entry ID, preserving case. */
   private _createAppId(name: string) {
     return `luna-webapp-${Buffer.from(name, "utf8").toString("hex")}`;

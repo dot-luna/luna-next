@@ -39,4 +39,7 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [["$XDG_CONFIG_HOME/hypr"], ["$XDG_CACHE_HOME/hyprland"]],
+  },
 }

@@ -28,4 +28,7 @@
       "target": "hypr.d/fastfetch.lua",
     },
   ],
+  "cleanup": {
+    "purge": [["$XDG_CONFIG_HOME/fastfetch"], ["$XDG_CACHE_HOME/fastfetch"]],
+  },
 }

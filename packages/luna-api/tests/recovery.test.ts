@@ -3,7 +3,11 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Luna } from "../src/index.ts";
 import { InstallContext } from "../src/self/install/command.ts";
-import { closeApp, type AppProcess, type ProcessControl } from "../src/apps/processes.ts";
+import {
+  appProcesses,
+  type AppProcess,
+  type ProcessControl,
+} from "../src/modules/apps/processes.ts";
 import { AppFixture } from "./fixtures/app-fixture.ts";
 
 let f: AppFixture;
@@ -141,7 +145,7 @@ test("app shutdown warns, terminates only declared identities and escalates afte
     ],
     true,
   );
-  await closeApp(context(), app, mock.control);
+  await appProcesses.close({ context: context(), app, control: mock.control });
   expect(mock.signals).toEqual([
     { pid: 100, signal: "SIGTERM" },
     { pid: 100, signal: "SIGKILL" },
@@ -155,12 +159,14 @@ test("shutdown does not kill the installer host or a reused PID", async () => {
     { pid: 999, parent: 100, started: "4", executable: "bun" },
     { pid: 100, parent: 1, started: "1", executable: "chromium" },
   ]);
-  await expect(closeApp(context(), app, host.control)).rejects.toThrow("hosting");
+  await expect(
+    appProcesses.close({ context: context(), app, control: host.control }),
+  ).rejects.toThrow("hosting");
   expect(host.signals).toEqual([]);
   const mock = processFixture([{ pid: 100, parent: 1, started: "1", executable: "chromium" }]);
   mock.control.pause = async () =>
     mock.replace([{ pid: 100, parent: 1, started: "2", executable: "unrelated" }]);
-  await closeApp(context(), app, mock.control);
+  await appProcesses.close({ context: context(), app, control: mock.control });
   expect(mock.signals).toEqual([]);
 });
 
@@ -288,7 +294,7 @@ test.each([false, true])(
   async (custom) => {
     const { cpSync, mkdirSync } = await import("node:fs");
     const { setupMise } = await import("../src/self/install/mise.ts");
-    const { integrate } = await import("../src/apps/integration.ts");
+    const { appIntegration } = await import("../src/modules/apps/integration.ts");
     const data = join(f.root, "custom mise data");
     f.env.MISE_DATA_DIR = data;
     const zshHome = custom ? join(f.root, "custom zdot") : f.home;
@@ -300,7 +306,11 @@ test.each([false, true])(
     const exported = join(f.home, ".config/luna/zsh/zshrc");
     mkdirSync(join(exported, ".."), { recursive: true });
     cpSync(new URL("../../../apps/zsh/config/tools.zsh", import.meta.url), exported);
-    await integrate(exported, join(zshHome, ".zshrc"), "include");
+    await appIntegration.apply({
+      source: exported,
+      target: join(zshHome, ".zshrc"),
+      mode: "include",
+    });
     const env = { ...f.env };
     delete env.MISE_DATA_DIR;
     const result = Bun.spawnSync([Bun.which("zsh")!, "-ic", "[[ -n ${MISE_DATA_DIR:-} ]]"], {

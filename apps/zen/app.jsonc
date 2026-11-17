@@ -7,4 +7,7 @@
   "hooks": {
     "after_configure": ["scripts/setup-profile.ts"],
   },
+  "cleanup": {
+    "purge": [["$HOME/.zen"], ["$XDG_CONFIG_HOME/zen"], ["$XDG_CACHE_HOME/zen"]],
+  },
 }

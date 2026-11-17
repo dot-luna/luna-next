@@ -1,8 +1,9 @@
 # Menu
 
-`luna menu` opens the menu. `show`, `system`, and `toggle` start it when needed; `start`
+`luna menu` opens the menu. `show`, `system`, `clipboard`, `emoji`, and `toggle` start it when needed; `start`
 prepares a hidden instance. `hide`, `stop`, and `status` control that menu only.
 Super+Space toggles it; Super+Esc opens System directly (`luna menu system`).
+Super+V opens Clipboard directly (`luna clipboard`). Super+. opens Emoji (`luna emoji`).
 
 The default renderer is `$LUNA_CONFIG_HOME_DIR/menu` (otherwise
 `$XDG_CONFIG_HOME/luna/menu`, then `~/.config/luna/menu`). For source testing, use
@@ -15,15 +16,41 @@ Apps opens installed applications. Trigger → Toggles contains Stay awake.
 Trigger → Screenshot offers Select Region, Active Screen, Active Window, and All Screens.
 Each dismisses the menu before running `luna screenshot region|screen|window|all`.
 Screenshot failures are logged, like Screensaver and Lock startup failures.
+Insert → Clipboard shows saved text and images, with a full preview of the selected
+entry. Type to filter, then press Enter or click to copy and paste into the app
+focused before the menu opened. The menu closes before pasting. Changed focus
+cancels insertion and reports a notification; the copied entry stays available
+for manual paste. Apps must support Ctrl+V (Ctrl+Shift+V in recognized terminals).
+Clipboard searches stay within history and offer no browser or command actions.
+
+Insert → Emoji is an offline, searchable grid. A leading `:` in any menu search
+switches to Emoji, keeping the remaining text as its query (for example, `:heart`).
+Arrows navigate; Home/End and Page Up/Down move through results. Tab or click adds a
+copy, preserving duplicates and order across searches. Shift+Tab or Shift+click
+removes one copy; clicking a selected preview removes that copy. Backspace with an
+empty query removes the last selection. Enter or the Insert button pastes the
+selection, or Enter pastes the highlighted emoji when none are selected. Leaving
+or reopening clears the selection. Search stays within emoji data.
+
+The picker uses only Noto Color Emoji (`noto-fonts-emoji`), installed with the menu.
+It needs no artwork downloads, extra fonts or autostart process. Inserted text is
+Unicode; the receiving app controls its appearance. Insertion uses the same saved
+window and focus checks as Clipboard.
+
 System lists Screensaver, Lock,
 Suspend, Hibernate, Logout, Reboot, and Shutdown; Suspend and Hibernate are placeholders. About
 opens the same terminal as Super+Shift+F (requires Fastfetch). Other main sections remain
 placeholders. Hidden and NoDisplay desktop entries are excluded.
 
+Application icons refresh when the menu opens or desktop-entry icons change.
+Icons installed after an entry appears become available on the next opening,
+without restarting the menu or session. Lookups use the GTK icon theme (or
+`QS_ICON_THEME`) and support absolute icon paths.
+
 Typing at the root searches all nested menu entries and applications. Each submenu
 searches its descendants; Apps searches applications. Nested results show their
 menu path, which can also be searched (for example, `system lock`).
-A nonempty query always adds Search in browser last
+Outside Clipboard, a nonempty query adds Search in browser last
 (DuckDuckGo in the default browser). A web URL or domain offers Open in browser
 first. `!command` offers Run in terminal first, using the default terminal and
 `$SHELL` (otherwise `/bin/sh`). Terminal output stays until a silent keypress.
@@ -57,7 +84,7 @@ session starts it automatically. Another D-Bus provider is never replaced.
 Up/Down and Tab/Shift+Tab select results. Home/End jump to either end; Page Up/Down
 move a visible page. Enter or click opens an entry. Escape, Alt+Left, or Backspace
 in an empty submenu search returns to the previously visited menu. A directly
-opened submenu, including System via Super+Esc, dismisses instead. Escape at the
+opened submenu, including System via Super+Esc and Clipboard via Super+V, dismisses instead. Escape at the
 root dismisses, or clears a nonempty search first.
 The clear button resets the query. Any mouse button outside dismisses the menu,
 including on other monitors. Opening resets the search on the focused monitor.
@@ -79,6 +106,11 @@ backups and restarts an already-running menu hidden; a stopped menu stays stoppe
 Opening links and searches requires `xdg-utils`, included in a full Luna installation.
 Application idle inhibition requires `python-dbus` and `python-gobject`, installed
 with `luna-menu`.
+Application icon lookup also uses `python-gobject` and GTK 3, installed with the menu.
+Clipboard dependencies are included with the menu. Hyprland starts history capture
+at login; `luna clipboard start` starts it in an existing session. Capture continues
+while the menu is closed. `luna clipboard clear` removes saved history. See the
+[clipboard API](../../packages/luna-api/DOCS.md#clipboard-api) for storage and limits.
 No separate systemd service is required. Hyprland starts it hidden at login, and
 the shortcut can start it on demand.
 
@@ -98,7 +130,7 @@ on startup/reload; run `hyprctl reload` after changing them, including `size` an
 
 ## API and checks
 
-`Luna.menu` provides `start`, `show`, `system`, `hide`, `toggle`, `stop`, and `status`.
+`Luna.menu` provides `start`, `show`, `system`, `clipboard`, `emoji`, `hide`, `toggle`, `stop`, and `status`.
 Options are `repository` for explicit source QML and `env` to replace the process
 environment. Responses contain `{running, shellDirectory}`. Missing QML returns
 `INVALID_PATH`; unavailable Quickshell or failed native commands return
@@ -118,4 +150,5 @@ They use private XDG paths,
 fake application/session executables, and real Qt keyboard/mouse events. No test
 logs out, reboots, or shuts down the host. Offscreen tests
 retain production content but replace compositor-specific windows. Focused-monitor
-placement, compositor blur, and layer keyboard focus need a Wayland session.
+placement, compositor blur, layer keyboard focus, and actual clipboard insertion
+need a Wayland session. Clipboard tests use fake capture and paste executables.

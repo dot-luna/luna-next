@@ -28,4 +28,7 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [["$MPV_HOME", "$XDG_CONFIG_HOME/mpv"], ["$XDG_CACHE_HOME/mpv"]],
+  },
 }

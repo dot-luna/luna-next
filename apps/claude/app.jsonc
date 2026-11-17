@@ -18,4 +18,11 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [
+      ["$CLAUDE_CONFIG_DIR", "$HOME/.claude"],
+      ["$HOME/.claude.json"],
+      ["$XDG_CACHE_HOME/claude"],
+    ],
+  },
 }
