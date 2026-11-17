@@ -49,7 +49,7 @@ export function addSelfCommands(
   });
   self
     .command("update")
-    .description("Update the Luna checkout and rebuild the CLI")
+    .description("Update Luna and apply pending release migrations")
     .option("--install-dir <path>", "Luna source checkout")
     .option("--ref <ref>", "Git branch, tag, or latest (remote default branch)", "latest")
     .action(async (options: SelfOptions) => {
@@ -58,6 +58,6 @@ export function addSelfCommands(
         ref: options.ref,
         onProgress: output.progress,
       });
-      setExitCode(output.response(response, (data) => `Luna CLI updated: ${data.executable}`));
+      setExitCode(output.response(response, (data) => `Luna updated: ${data.executable}`));
     });
 }

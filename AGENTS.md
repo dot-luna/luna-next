@@ -21,8 +21,9 @@
   edits and include only intended files when committing.
 - Use free Hugeicons for Luna's UI icons, with the upstream license notice.
   Do not introduce Lucide icons.
-- This repository is in active development. Do not add legacy migrations,
-  backward-compatibility layers, or old-format fallbacks.
+- Use versioned update scripts in `migrations/` for changes to existing installations.
+  Keep scripts safe to retry and limited to their declared changes. Do not add
+  unrelated compatibility layers or old-format fallbacks.
 - Installing or configuring apps replaces the declared destination files and
   folders. Do not create backups or preserve their previous contents. Leave
   paths outside those exports untouched; keep validation and safe writes.

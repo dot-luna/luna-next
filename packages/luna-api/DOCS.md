@@ -2,7 +2,7 @@
 
 `Luna.info(options?)` reads the checkout's root `package.json` on every call.
 `Luna.self.install(options?)` installs prerequisites, Git configuration, themes, apps, later packages, and web apps, then applies default applications.
-`Luna.self.update(options?)` updates the checkout and rebuilds/publishes only the CLI.
+`Luna.self.update(options?)` updates the checkout, builds the CLI, applies pending release migrations, then publishes the CLI.
 
 All operations return `{ succes: true, data }` or
 `{ succes: false, err, errMessage }`. The `succes` spelling is the API contract.
@@ -43,7 +43,15 @@ returned after a failed required stage. With `skipFailed`, individual app failur
 return a report with `completed: false` and `failed` entries containing the app, error,
 retry command and `logDirectory`. Later packages, web apps, and defaults are still attempted. An early AUR recipe requires an already installed
 Yay; theme and app stages can install the catalog’s Yay provider. Update requires mise and
-changes only the checkout and CLI. Both publish to `$HOME/.local/bin/luna`.
+applies the version-to-version scripts shipped with the selected checkout. Both publish to `$HOME/.local/bin/luna`.
+
+Updates run the complete executable `migrations/v<from>-v<to>.<extension>` chain
+from the last applied version to the checkout version. Successful steps are recorded
+in the Luna state directory's `migrations.jsonc`. Failed steps stop publication and
+are retried on the next update; earlier steps are not repeated. Missing links,
+ambiguous chains, and downgrades fail. Fresh installs record their version only after
+complete setup. Existing tracked installations also apply pending migrations during
+`self install`. See [migration scripts](../../migrations/README.md) for authoring.
 
 Completed steps remain after failure. Build/copy failures keep the previous CLI.
 Logs live under `$LUNA_STATE_HOME_DIR/install-logs` (otherwise
@@ -309,12 +317,12 @@ Install/configure Chromium first (`luna install chromium`); installing a web app
 also requires the Luna executable. Installation does not open the browser or
 modify its profile.
 
-| Method | Behavior |
-| --- | --- |
-| `install(name, url, options?)` | Create or update the named app, its icon, and desktop entry. |
-| `list(options?)` | Return installed records sorted by display name. A missing library is empty. |
-| `launch(name, options?)` | Match the name, focus an open app window, or open the app. |
-| `uninstall(name, options?)` | Remove the exact named app's entry, metadata, and icon files. |
+| Method                         | Behavior                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `install(name, url, options?)` | Create or update the named app, its icon, and desktop entry.                 |
+| `list(options?)`               | Return installed records sorted by display name. A missing library is empty. |
+| `launch(name, options?)`       | Match the name, focus an open app window, or open the app.                   |
+| `uninstall(name, options?)`    | Remove the exact named app's entry, metadata, and icon files.                |
 
 Names are trimmed, case-sensitive display names of at most 100 UTF-8 bytes.
 URLs must use HTTP(S) without credentials. Results use the standard API response.
@@ -326,11 +334,11 @@ profile data, unrelated files, and the app directory containing its lock file.
 
 With the default environment, installation writes:
 
-| File | Default path |
-| --- | --- |
-| Desktop entry | `~/.local/share/applications/<id>.desktop` |
-| App metadata | `~/.local/share/luna/webapps/<id>/app.jsonc` |
-| Copied or downloaded icon | `~/.local/share/luna/webapps/<id>/icon.<format>` |
+| File                      | Default path                                      |
+| ------------------------- | ------------------------------------------------- |
+| Desktop entry             | `~/.local/share/applications/<id>.desktop`        |
+| App metadata              | `~/.local/share/luna/webapps/<id>/app.jsonc`      |
+| Copied or downloaded icon | `~/.local/share/luna/webapps/<id>/icon.<format>`  |
 | Persistent operation lock | `~/.local/share/luna/webapps/<id>/app.jsonc.lock` |
 
 `<id>` is `luna-webapp-` followed by the display name's UTF-8 bytes encoded as hex.
@@ -412,14 +420,14 @@ CLI installation accepts `--icon <path-or-url>`; launch accepts
 
 All methods accept these overrides; nonempty explicit paths take priority:
 
-| Option | Default selection |
-| --- | --- |
-| `dataDir` | `$LUNA_DATA_HOME_DIR/webapps`, otherwise `$XDG_DATA_HOME/luna/webapps` |
-| `applicationsDir` | `$XDG_DATA_HOME/applications` |
-| `launcher` | `$HOME/.local/bin/luna` |
-| `profileRoot` | `$CHROME_USER_DATA_DIR`, then `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium` |
-| `chromium` | `chromium`, resolved through the selected environment's `PATH` |
-| `env` | A copy of the current process environment |
+| Option            | Default selection                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `dataDir`         | `$LUNA_DATA_HOME_DIR/webapps`, otherwise `$XDG_DATA_HOME/luna/webapps`                         |
+| `applicationsDir` | `$XDG_DATA_HOME/applications`                                                                  |
+| `launcher`        | `$HOME/.local/bin/luna`                                                                        |
+| `profileRoot`     | `$CHROME_USER_DATA_DIR`, then `$CHROME_CONFIG_HOME/chromium`, then `$XDG_CONFIG_HOME/chromium` |
+| `chromium`        | `chromium`, resolved through the selected environment's `PATH`                                 |
+| `env`             | A copy of the current process environment                                                      |
 
 Unset XDG roots default to `~/.local/share` and `~/.config`. Supplying `env`
 replaces the environment entirely; include `HOME`, `PATH`, and any desktop session

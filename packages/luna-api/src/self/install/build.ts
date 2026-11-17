@@ -1,6 +1,7 @@
 import { chmod, copyFile, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { dirname, join } from "pathe";
 import { ApiError } from "../../lib/response.ts";
+import { checkoutVersion, readState } from "../migrations/state.ts";
 import type { InstallContext } from "./command.ts";
 
 /** Publish beside the destination so build/copy failures preserve the installed CLI. */
@@ -13,6 +14,11 @@ export async function buildCli(context: InstallContext, executable: string) {
   context.env.PATH = `${dirname(bun)}:${context.env.PATH ?? ""}`;
   await context.execute([bun, "install", "--frozen-lockfile"]);
   await context.execute([bun, "run", "--cwd", "src/luna-cli", "build", "--no-install"]);
+  if (
+    context.env.LUNA_UPDATE_FROM_VERSION &&
+    (await readState(context))?.version !== (await checkoutVersion(context.repository))
+  )
+    throw new ApiError("INVALID_METADATA", "The selected release did not complete its migrations");
   const directory = dirname(executable);
   await mkdir(directory, { recursive: true });
   const staging = await mkdtemp(join(directory, ".luna-"));
