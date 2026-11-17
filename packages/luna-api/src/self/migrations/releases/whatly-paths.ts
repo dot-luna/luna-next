@@ -1,3 +1,4 @@
+import { userInfo } from "node:os";
 import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "pathe";
 import { metadata } from "../../../lib/files.ts";
@@ -67,6 +68,20 @@ export async function whatlyPaths(context: InstallContext) {
     join(data, "licenses/whatly"),
     join(env.LUNA_STATE_HOME_DIR!, "apps/whatly.jsonc"),
   ]);
+  // Qt uses RuntimeLocation, falling back to TempLocation if it is unavailable.
+  const temporary = env.TMPDIR || "/tmp";
+  const runtime = env.XDG_RUNTIME_DIR || join(temporary, `runtime-${userInfo().username}`);
+  for (const directory of new Set([runtime, temporary])) {
+    if (!isAbsolute(directory) || resolve(directory) === "/")
+      throw new ApiError("INVALID_PATH", "Whatly runtime paths must be absolute and non-root");
+    for (const name of await names(directory)) {
+      if (!/^whatly-unread(?:-[a-z0-9_-]{1,32})?$/u.test(name)) continue;
+      const path = join(directory, name);
+      const info = await metadata(path);
+      if (info && info.uid === process.getuid?.() && (info.isFile() || info.isSymbolicLink()))
+        paths.add(path);
+    }
+  }
   const settings = new Map<string, string>();
   for (const name of await names(join(config, "shakaran"))) {
     if (!profileConfig.test(name)) continue;

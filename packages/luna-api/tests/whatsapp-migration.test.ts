@@ -16,6 +16,8 @@ let icon: ReturnType<typeof spyOn<typeof webappIcon, "downloadBest">>;
 beforeEach(() => {
   f = new AppFixture();
   f.browser();
+  f.env.XDG_RUNTIME_DIR = join(f.root, "runtime");
+  f.env.TMPDIR = join(f.root, "tmp");
   // Tests must never contact WhatsApp or close processes in the real desktop session.
   close = spyOn(processes, "closeApp").mockResolvedValue();
   icon = spyOn(webappIcon, "downloadBest").mockResolvedValue(undefined);
@@ -161,4 +163,25 @@ test("release catalog installs WhatsApp and contains no Whatly recipe", () => {
     readFileSync(join(repository, "installs/packages.webapp.jsonc"), "utf8"),
   );
   expect(webapps).toContainEqual({ name: "WhatsApp", url: "https://web.whatsapp.com/" });
+});
+
+test("runtime cleanup removes only Whatly unread files and preserves unrelated runtime entries", async () => {
+  const runtime = f.env.XDG_RUNTIME_DIR!;
+  const temporary = f.env.TMPDIR!;
+  for (const name of [
+    "whatly-unread",
+    "whatly-unread-work",
+    "other-unread",
+    "whatly-unread-unrelated.txt",
+  ])
+    f.write(runtime, name, "3");
+  f.write(temporary, "whatly-unread", "4");
+  f.write(runtime, "whatly-unread-directory/keep", "keep");
+  await run();
+  expect(existsSync(join(runtime, "whatly-unread"))).toBe(false);
+  expect(existsSync(join(runtime, "whatly-unread-work"))).toBe(false);
+  expect(existsSync(join(temporary, "whatly-unread"))).toBe(false);
+  expect(readFileSync(join(runtime, "other-unread"), "utf8")).toBe("3");
+  expect(readFileSync(join(runtime, "whatly-unread-unrelated.txt"), "utf8")).toBe("3");
+  expect(readFileSync(join(runtime, "whatly-unread-directory/keep"), "utf8")).toBe("keep");
 });
