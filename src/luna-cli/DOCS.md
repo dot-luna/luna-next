@@ -23,8 +23,11 @@ commits. They never reset or autostash changes.
   installing dependencies. `install.sh` passes `--from-bootstrap` to skip the
   repeated checkout update, system upgrade, and CLI build/publication; shared
   package stages and Git configuration still run.
-- `luna self update`: update the checkout and rebuild/publish only the CLI.
-  Requires mise from setup; does not install desktop packages or configure Git.
+- `luna self update`: update the checkout, build the CLI, run pending release
+  migrations, then publish the CLI. Requires mise from setup. Migrations can install,
+  remove, rebuild, or reconfigure apps. Successful steps are saved; rerun the same
+  command after a failure to resume. Downgrades and incomplete migration chains fail.
+  Fresh installs skip historical migrations. See [migration scripts](../../migrations/README.md).
 
 Git identity values, including global include/includeIf files, are kept unless
 overridden with `--git-name` or `--git-email`.

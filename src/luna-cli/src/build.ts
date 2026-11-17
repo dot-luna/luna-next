@@ -1,5 +1,6 @@
 import { chmod, copyFile, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { migrateAfterBuild } from "../../../packages/luna-api/src/self/migrations/build.ts";
 
 /** Build beside the checkout; publish atomically unless bootstrap/update owns publication. */
 async function build() {
@@ -23,6 +24,7 @@ async function build() {
     },
   );
   if ((await child.exited) !== 0) throw new Error("CLI build failed");
+  await migrateAfterBuild(resolve(import.meta.dir, "../../.."));
   if (args.includes("--no-install")) return;
   const home = Bun.env.HOME;
   if (!home || !home.startsWith("/") || resolve(home) === "/")
