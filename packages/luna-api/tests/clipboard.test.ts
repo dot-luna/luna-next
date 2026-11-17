@@ -288,3 +288,28 @@ test("invalid emoji selections and targets cannot change the clipboard", async (
   });
   expect(calls()).toHaveLength(0);
 });
+
+test("history labels hide binary markers and visible previews identify attachments", async () => {
+  const current = state();
+  current.entries.push({
+    id: "3",
+    name: "[[ binary data 12 B ]]",
+    data: Buffer.from("%PDF-fixture").toString("base64"),
+    mime: "application/pdf",
+  });
+  current.entries.push({
+    id: "4",
+    name: "file:///home/example/Quarterly%20report.pdf",
+    data: Buffer.from("file:///home/example/Quarterly%20report.pdf").toString("base64"),
+    mime: "text/uri-list",
+  });
+  save(current);
+  const entries = data(await Luna.clipboard.list({ env }));
+  expect(entries[0]).toMatchObject({ id: "2", name: "[PNG] 10 B png 1x1", attachment: true });
+  expect(entries[2]).toMatchObject({ id: "3", name: "[File] 12 B", attachment: true });
+  expect(entries[3]?.name).toBe("[PDF] Quarterly report.pdf");
+  expect(calls().filter((call) => call.args[0] === "decode")).toHaveLength(0);
+  expect(data(await Luna.clipboard.preview("3", { env })).text).toBe("[PDF] 12 bytes");
+  expect(data(await Luna.clipboard.preview("4", { env })).text).toBe("[PDF] Quarterly report.pdf");
+  expect(calls().some((call) => call.name === "wl-copy")).toBe(false);
+});

@@ -67,7 +67,7 @@ Scope {
             if (!history.active || generation !== history.generation) return;
             try {
                 history.entries = history.readResponse(listOutput.text, code || status).map(entry =>
-                    ({id: entry.id, name: entry.name, icon: "clipboard", clipboard: true}));
+                    Object.assign({}, entry, {clipboard: true}));
             } catch (error) {
                 history.error = "Couldn’t load clipboard history";
                 console.warn("Luna clipboard: " + error.message);

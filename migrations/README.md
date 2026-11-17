@@ -74,3 +74,9 @@ then reconfigures Hyprland for Super+V, Super+. and clipboard capture at login. 
 inside Wayland. Reload Hyprland or log in again to load the shortcut. Clipboard
 history is retained. The refreshed menu also fixes application icons after installation,
 and Hyprland gives Calculator the same centered floating behavior as Bitwarden.
+
+## v0.0.7
+
+Refreshes menu clipboard rows and changes the emoji shortcut to Super+E.
+Reconfigures only Luna Menu and Hyprland; clipboard history is retained.
+Reload Hyprland or log in again to load the changed shortcut.

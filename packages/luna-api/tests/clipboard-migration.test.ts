@@ -34,3 +34,24 @@ test.each([
   expect(calls[0].args).toEqual([["luna-menu"]]);
   if (calls[1]) expect(calls[1].args).toEqual([["hypr"]]);
 });
+
+test.each([false, true])(
+  "v0.0.7 refreshes only menu and Hyprland, propagating failure=%s",
+  async (failure) => {
+    const script = `
+    import { Luna } from ${JSON.stringify(resolve(import.meta.dir, "../src/index.ts"))};
+    Luna.apps.configure = async (names) => {
+      console.log(JSON.stringify(names));
+      return ${JSON.stringify(failure)} ? {succes: false, errMessage: "fixture failure"} : {succes: true};
+    };
+    try { await import(${JSON.stringify(resolve(import.meta.dir, "../../../migrations/v0.0.6-v0.0.7.ts"))}); }
+    catch { process.exitCode = 1; }
+  `;
+    const child = Bun.spawn([process.execPath, "--eval", script], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(JSON.parse(await new Response(child.stdout).text())).toEqual(["luna-menu", "hypr"]);
+    expect(await child.exited).toBe(failure ? 1 : 0);
+  },
+);

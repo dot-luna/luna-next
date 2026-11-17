@@ -1,3 +1,4 @@
+import { entryLabel, fileLabel, fileNames } from "./presentation.ts";
 import { ApiError } from "@/lib/response.ts";
 import { command, executable, type ClipboardContext } from "./context.ts";
 import { clipboardIdSchema, type ClipboardEntry, type ClipboardPreview } from "./schema.ts";
@@ -20,7 +21,7 @@ export async function list(context: ClipboardContext): Promise<ClipboardEntry[]>
     const separator = line.indexOf("\t");
     const id = line.slice(0, separator);
     if (separator < 1 || !clipboardIdSchema.safeParse(id).success) continue;
-    entries.push({ id, name: line.slice(separator + 1) });
+    entries.push({ id, ...entryLabel(line.slice(separator + 1)) });
   }
   return entries;
 }
@@ -60,10 +61,22 @@ export async function preview({
 }): Promise<ClipboardPreview> {
   const data = await decode({ context, id });
   const mime = await mimeType({ context, data });
+  const name = fileLabel(mime, `${data.length.toLocaleString("en-US")} bytes`);
   if (mime.startsWith("image/"))
-    return { id, mime, text: "", image: `data:${mime};base64,${data.toString("base64")}` };
-  const text = decodeText(data) ?? `${mime}\n${data.length} bytes`;
-  return { id, mime, text, image: "" };
+    return { id, mime, name, text: "", image: `data:${mime};base64,${data.toString("base64")}` };
+  const decoded = decodeText(data);
+  // Structured text stays readable; document/archive bytes should not appear as raw text.
+  const readable =
+    mime.startsWith("text/") ||
+    ["application/json", "application/xml", "application/javascript"].includes(mime);
+  const text = decoded !== null && readable ? (fileNames(decoded) ?? decoded) : name;
+  return {
+    id,
+    mime,
+    name: decoded !== null ? (fileNames(decoded) ?? name) : name,
+    text,
+    image: "",
+  };
 }
 
 /** Copy exact bytes and promote the selected entry, even outside cliphist's deduplication window. */
