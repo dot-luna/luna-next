@@ -48,3 +48,11 @@ installed for Whatly and no remaining Luna recipe or installed package requires 
 optionally uses them. Pre-existing packages and packages with unknown ownership stay
 installed. Unrelated files and existing Chromium data stay in place. WhatsApp Web needs its own
 sign-in. Run `luna webapp launch WhatsApp` after updating.
+
+## v0.0.4
+
+Reconfigures Luna Notify to advertise separate browser-origin metadata, then
+reconfigures Chromium to build and install Better WhatsApp Web and Luna Browser Links
+in the Luna profile. Chromium closes during configuration; save drafts before updating.
+Profiles, sessions and extension preferences remain. A running Luna notification
+provider restarts; a stopped provider stays stopped. Repeating the migration is safe.

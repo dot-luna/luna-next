@@ -200,6 +200,7 @@ Item {
                 }
             }
             Label {
+                objectName: "messageBody"
                 Layout.fillWidth: true
                 visible: text !== ""
                 text: card.notification.body

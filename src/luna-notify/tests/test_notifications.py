@@ -84,7 +84,9 @@ class NotificationTests(unittest.TestCase):
                     const strip = input.findChild(c, "priorityStrip");
                     const surface = input.findChild(c, "toastSurface");
                     const shadow = input.findChild(c, "toastShadow");
+                    const body = input.findChild(c, "messageBody");
                     return {duration: c.duration, remaining: c.remaining, height: c.implicitHeight, hovered: c.testHovered,
+                        body: {text: body.text, visible: body.visible, lines: body.lineCount, truncated: body.truncated},
                         y: c.y, exposed: c.exposed, opacity: c.opacity,
                         priority: {title: c.style.title_color, body: c.style.text_color,
                             stripWidth: strip.width, stripColor: String(strip.color), stripX: strip.x, borderColor: String(surface.border.color),
@@ -195,6 +197,24 @@ class NotificationTests(unittest.TestCase):
             None, Gio.DBusCallFlags.NONE, 3000, None)
         self.wait_for(lambda: self.state()["entries"] == [])
         self.wait_for(lambda: ("NotificationClosed", (identifier, 3)) in self.events)
+
+    def test_origin_metadata_capability_keeps_message_body_unchanged(self):
+        capabilities = self.connection.call_sync(
+            "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+            "org.freedesktop.Notifications", "GetCapabilities", None, None,
+            Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+        self.assertIn("x-kde-origin-name", capabilities)
+        body = "First line\nhttps://a.co/message"
+        self.notify(title="Maya", body=body, app="Chromium",
+                    hints={"x-kde-origin-name": GLib.Variant("s", "web.whatsapp.com")})
+        self.wait_for(lambda: len(self.state()["entries"]) == 1)
+        self.assertEqual(self.state()["entries"][0]["title"], "Maya")
+        self.assertEqual(self.state()["entries"][0]["body"], body)
+        rendered = self.state()["cards"][0]["body"]
+        self.assertEqual(rendered["text"], body)
+        self.assertTrue(rendered["visible"])
+        self.assertEqual(rendered["lines"], 2)
+        self.assertFalse(rendered["truncated"])
 
     def test_timeouts_use_milliseconds_default_critical_and_replacement_timer(self):
         identifier = self.notify(timeout=350)
