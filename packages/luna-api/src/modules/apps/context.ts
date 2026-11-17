@@ -90,7 +90,8 @@ class AppContextResolver {
     env.LUNA_HOME_DIR = repository;
     const shims = join(env.MISE_DATA_DIR || join(env.XDG_DATA_HOME!, "mise"), "shims");
     env.PATH = `${join(home, ".local/bin")}:${shims}:${env.PATH ?? ""}`;
-    env.LC_ALL = "C";
+    // Keep command output deterministic without Qt's non-UTF-8 warning on IPC stdout.
+    env.LC_ALL = "C.UTF-8";
     return new InstallContext(repository, home, env, options.onProgress ?? (() => {}), options.log);
   }
 }

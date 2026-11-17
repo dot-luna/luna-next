@@ -139,7 +139,7 @@ TestCase {
         tryVerify(() => findChild(list.currentItem, "clipboardThumbnail") !== null);
         tryCompare(findChild(list.currentItem, "clipboardThumbnail"), "status", Image.Ready);
         verify(!findChild(list.currentItem, "entryIcon").visible);
-        check(findChild(list.currentItem, "entryLabel").text, "[PNG] 70 bytes");
+        verify(!findChild(list.currentItem, "entryLabel").visible, "Rendered thumbnails have no text beside them");
         mouseClick(list.currentItem, 30, list.currentItem.height / 2);
         check(clipboardId, "2");
         keyClick(Qt.Key_Escape);
@@ -149,6 +149,25 @@ TestCase {
     Component {
         id: clipboardPreviewComponent
         Menu.ClipboardPreview { width: 200; height: 160 }
+    }
+
+    Component {
+        id: clipboardRowComponent
+        Menu.MenuRow { width: 300 }
+    }
+
+    function test_clipboard_failed_thumbnail_keeps_a_useful_label() {
+        const row = createTemporaryObject(clipboardRowComponent, tests, {
+            theme: theme, uiFont: "sans-serif", textSize: 12, textScale: 1,
+            selected: false, appsView: false,
+            entry: {id: "broken-image", name: "[TIFF] Image", clipboard: true, attachment: true}
+        });
+        tryVerify(() => findChild(row, "clipboardThumbnail") !== null);
+        tryCompare(findChild(row, "clipboardThumbnail"), "status", Image.Error);
+        verify(!findChild(row, "entryIcon").visible);
+        const label = findChild(row, "entryLabel");
+        verify(label.visible);
+        check(label.text, "[TIFF] 42 bytes");
     }
 
     function test_clipboard_unsupported_image_shows_type_label() {
