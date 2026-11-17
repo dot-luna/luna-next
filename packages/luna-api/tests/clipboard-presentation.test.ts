@@ -16,6 +16,12 @@ test("file-manager URI lists show decoded names without reading referenced files
   expect(fileNames("copy\nfile:///tmp/photo%20one.png\nfile:///tmp/archive.zip")).toBe(
     "[PNG] photo one.png · [ZIP] archive.zip",
   );
+  expect(fileNames("copy file:///tmp/photo%20one.png file:///tmp/archive.zip")).toBe(
+    "[PNG] photo one.png · [ZIP] archive.zip",
+  );
+  expect(fileNames("file:///tmp/photo%20one.png file:///tmp/archive.zip")).toBe(
+    "[PNG] photo one.png · [ZIP] archive.zip",
+  );
   expect(fileNames("# comment\nfile:///tmp/notes")).toBe("[File] notes");
   expect(fileNames("https://example.com/file.pdf")).toBeNull();
   expect(fileNames("file:///tmp/%GG")).toBeNull();

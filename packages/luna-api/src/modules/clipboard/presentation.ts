@@ -3,6 +3,8 @@ export function fileLabel(mime: string, detail: string) {
   const types: Record<string, string> = {
     "application/octet-stream": "File",
     "application/pdf": "PDF",
+    "application/postscript": "PostScript",
+    "application/rtf": "RTF",
     "application/zip": "ZIP",
     "application/gzip": "GZIP",
     "application/x-tar": "TAR",
@@ -16,7 +18,9 @@ export function fileLabel(mime: string, detail: string) {
 export function fileNames(text: string): string | null {
   const lines = text
     .trim()
-    .split(/\r?\n/u)
+    // Cliphist flattens line breaks in list summaries, while previews keep the original URI list.
+    .replace(/^(?:copy|cut)\s+(?=file:\/\/)/u, "")
+    .split(/\r?\n|\s+(?=file:\/\/)/u)
     .filter((line) => line && !line.startsWith("#"));
   if (lines[0] === "copy" || lines[0] === "cut") lines.shift();
   if (!lines.length || !lines.every((line) => line.startsWith("file://"))) return null;
@@ -39,7 +43,12 @@ export function fileNames(text: string): string | null {
 /** Keep list loading cheap; attachment bytes are decoded only for visible rows or the selected preview. */
 export function entryLabel(name: string) {
   const binary = /^\[\[ binary data (.+) \]\]$/u.exec(name);
-  if (!binary) return { name: fileNames(name) ?? name };
+  if (!binary) {
+    // URI summaries can be truncated. A visible row decodes the full list before showing all names.
+    if (/^(?:(?:copy|cut)\s+)?file:\/\//u.test(name))
+      return { name: fileNames(name) ?? "[File]", attachment: true };
+    return { name };
+  }
   const detail = binary[1]!;
   const image = /\b(png|jpe?g|gif|webp|bmp|tiff?|svg)\b/iu.exec(detail);
   return { name: `[${image ? image[1]!.toUpperCase() : "File"}] ${detail}`, attachment: true };

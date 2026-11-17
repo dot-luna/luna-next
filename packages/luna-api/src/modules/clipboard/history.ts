@@ -66,10 +66,8 @@ export async function preview({
     return { id, mime, name, text: "", image: `data:${mime};base64,${data.toString("base64")}` };
   const decoded = decodeText(data);
   // Structured text stays readable; document/archive bytes should not appear as raw text.
-  const readable =
-    mime.startsWith("text/") ||
-    ["application/json", "application/xml", "application/javascript"].includes(mime);
-  const text = decoded !== null && readable ? (fileNames(decoded) ?? decoded) : name;
+  const document = ["application/pdf", "application/postscript", "application/rtf"].includes(mime);
+  const text = decoded !== null && !document ? (fileNames(decoded) ?? decoded) : name;
   return {
     id,
     mime,

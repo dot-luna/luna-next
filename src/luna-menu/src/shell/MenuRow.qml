@@ -22,7 +22,7 @@ Button {
     Accessible.checkable: typeof entry.checked === "boolean"
     Accessible.checked: entry.checked === true
     focusPolicy: Qt.NoFocus
-    height: (entry.attachment ? 80 : 48) * textScale
+    height: (attachment.content && attachment.content.ready ? 80 : 48) * textScale
     leftPadding: 12
     rightPadding: 12
     topPadding: 8

@@ -313,3 +313,66 @@ test("history labels hide binary markers and visible previews identify attachmen
   expect(data(await Luna.clipboard.preview("4", { env })).text).toBe("[PDF] Quarterly report.pdf");
   expect(calls().some((call) => call.name === "wl-copy")).toBe(false);
 });
+
+test("valid UTF-8 source previews remain readable for nonstandard text MIME types", async () => {
+  save({
+    ...state(),
+    entries: [
+      {
+        id: "1",
+        name: "select 1;",
+        data: Buffer.from("select 1;").toString("base64"),
+        mime: "application/sql",
+      },
+    ],
+  });
+  expect(data(await Luna.clipboard.preview("1", { env })).text).toBe("select 1;");
+});
+
+const realCliphist = Bun.which("cliphist");
+test.skipIf(!realCliphist)(
+  "real cliphist flattened and truncated file lists resolve full filenames",
+  async () => {
+    const paths = [
+      "copy\nfile:///tmp/first%20long%20filename.png\nfile:///tmp/second.pdf",
+      "file:///tmp/photo.png\nfile:///tmp/archive.zip",
+    ];
+    for (const [index, value] of paths.entries()) {
+      const args = [
+        realCliphist!,
+        "-db-path",
+        join(root, `real-${index}.db`),
+        "-preview-width",
+        "30",
+      ];
+      const isolated = { HOME: root, XDG_CONFIG_HOME: root, XDG_CACHE_HOME: root };
+      const stored = Bun.spawnSync([...args, "store"], {
+        env: isolated,
+        stdin: Buffer.from(value),
+      });
+      expect(stored.exitCode, stored.stderr.toString()).toBe(0);
+      const listed = Bun.spawnSync([...args, "list"], { env: isolated });
+      expect(listed.exitCode, listed.stderr.toString()).toBe(0);
+      const summary = listed.stdout.toString().trim().split("\t").slice(1).join("\t");
+      expect(summary).not.toContain("\n");
+      expect(summary.length).toBeLessThan(value.length);
+      save({
+        ...state(),
+        entries: [
+          {
+            id: "1",
+            name: summary,
+            data: Buffer.from(value).toString("base64"),
+            mime: "text/plain",
+          },
+        ],
+      });
+      expect(data(await Luna.clipboard.list({ env }))[0]?.attachment).toBe(true);
+      expect(data(await Luna.clipboard.preview("1", { env })).name).toBe(
+        index === 0
+          ? "[PNG] first long filename.png · [PDF] second.pdf"
+          : "[PNG] photo.png · [ZIP] archive.zip",
+      );
+    }
+  },
+);
