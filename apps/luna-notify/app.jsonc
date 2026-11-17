@@ -11,6 +11,7 @@
     },
   ],
   "hooks": {
+    "before_uninstall": ["scripts/stop.ts"],
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
   },
@@ -18,4 +19,8 @@
     { "source": "generated/shell/", "target": "notify/" },
     { "source": "config/notify.jsonc", "target": "notify.jsonc" },
   ],
+  "cleanup": {
+    "purge": [["$LUNA_NOTIFY_CONFIG", "$LUNA_CONFIG_HOME_DIR/notify.jsonc"]],
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/notify"]],
+  },
 }

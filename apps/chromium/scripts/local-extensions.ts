@@ -1,7 +1,7 @@
 import { chmod } from "node:fs/promises";
 import { buildExtension } from "../../../packages/better-whatsapp-web/src/build.ts";
 import { buildBrowserLinks } from "../../../packages/luna-browser-links/src/build.ts";
-import { browserLinkConfigSchema } from "../../../packages/luna-api/src/modules/webapp/browser-links.ts";
+import { browserLinkConfigSchema } from "../../../packages/luna-api/src/modules/webapp/schema.ts";
 import { HOST } from "../../../packages/luna-browser-links/src/rules.ts";
 
 function idForPath(path: string) {

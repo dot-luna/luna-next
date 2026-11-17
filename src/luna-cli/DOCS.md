@@ -3,9 +3,9 @@
 `luna` shows the CLI version and project information, labeling the checkout version
 separately when it differs. `-v` prints the executable's build version, even if the
 checkout is missing or a later update failed. `-v --json` returns
-`{"succes":true,"data":{"version":"0.0.5"}}`. Other `--json` output returns the
+`{"succes":true,"data":{"version":"0.0.6"}}`. Other `--json` output returns the
 API response unchanged and suppresses progress and identity prompts. Success
-exits with 0, operation failures (including partial install reports) with 1, and argument errors with 2.
+exits with 0, operation failures (including partial app-operation reports) with 1, and argument errors with 2.
 
 ## Self commands
 
@@ -52,7 +52,7 @@ and a JSON summary. Bootstrap prints its retained `bootstrap.log` path.
 Setup closes declared Chromium/Zen/T3 processes when needed. It warns for five
 seconds, sends SIGTERM, then force-kills stragglers after three seconds. Save work
 before setup, and run it from a terminal outside any app it needs to close.
-`--no-close-apps` disables automatic shutdown for install/configure commands.
+`--no-close-apps` disables automatic shutdown for install/configure/update/uninstall commands.
 
 Mise tools are selected globally, shims are refreshed, and new Bash/Zsh sessions
 activate Mise automatically. Existing terminal sessions need restarting.
@@ -123,8 +123,8 @@ luna defaults reset 'image/*' terminal
 
 ## Menu
 
-`luna menu` opens the menu; `show`, `system`, `hide`, `toggle`, `start`, `stop`, and
-`status` control it. Show/system/toggle start a missing instance; start keeps it hidden.
+`luna menu` opens the menu; `show`, `system`, `clipboard`, `emoji`, `hide`, `toggle`, `start`, `stop`, and
+`status` control it. Show/system/clipboard/emoji/toggle start a missing instance; start keeps it hidden.
 `system` opens the session actions directly (Super+Esc).
 Install with `luna install luna-menu`. Use `--install-dir PATH` on menu commands to
 test source QML. Apps, About, session actions, terminal commands, URLs, and browser
@@ -136,6 +136,41 @@ See [menu controls and appearance](../luna-menu/DOCS.md).
 default. Trigger → Toggles → Stay awake controls the same state. On/toggle start a hidden
 menu if needed; closing the menu keeps inhibition active, while stopping its
 process resets it. Accepts `--install-dir PATH` and global `--json`.
+
+## Clipboard
+
+`luna clipboard` opens the picker, also available through Insert → Clipboard,
+`luna menu clipboard`, and Super+V. Enter or click copies the selected entry and
+pastes into the previously focused app. Use `--install-dir PATH` to open source QML.
+Install with `luna install luna-menu`; Hyprland starts history capture at login.
+
+- `start`: start capture now; repeated calls reuse the session watcher.
+- `list`: print newest-first history IDs and previews.
+- `preview <id>`: print full text or an image data URL.
+- `copy <id>`: copy without pasting.
+- `paste <id> [--target <address>]`: copy and paste into the focused app. An explicit
+  target must still be focused; `target` prints the current window address.
+- `delete <id>` / `clear`: remove saved entries without clearing the live clipboard.
+
+All commands accept `--json` and return the API response unchanged. Paste failures
+exit with 1; focus changes leave the entry copied for manual paste. See
+[clipboard behavior and limits](../../packages/luna-api/DOCS.md#clipboard-api).
+
+## Emoji
+
+`luna emoji` opens Insert → Emoji, also available through **Super+.** or
+`luna menu emoji`. Starting a menu search with `:` opens emoji search; for example,
+`:heart`. Arrow keys navigate the grid. Tab or click adds one copy; Shift+Tab or
+Shift+click removes one. Enter or Insert pastes the selection into the previously
+focused app. With no selection, Enter inserts the highlighted emoji.
+
+- `luna emoji list 'red heart'`: search the offline catalog.
+- `luna emoji copy '😀' '❤️'`: copy without pasting.
+- `luna emoji paste '😀' '❤️' [--target ADDRESS]`: paste emoji in the given order.
+
+Commands accept `--json`. Opening the picker accepts `--install-dir PATH`.
+Install with `luna install luna-menu`; only `noto-fonts-emoji` is added for rendering.
+See [emoji API behavior](../../packages/luna-api/DOCS.md#emoji-api).
 
 ## Notifications
 
@@ -252,6 +287,15 @@ to image modes. See [text settings](../../apps/luna-screenshot/DOCS.md#settings)
   selected apps; omit names for all. Match directory IDs or package names.
 - `luna configure [names...] [--install-dir PATH]`: configure without installing.
   `config` and `confi` are aliases. Apps always follow catalog order.
+- `luna update [names...] [--force] [--install-dir PATH]`: update and configure
+  installed catalog apps; omit names for all installed apps. Uninstalled names fail.
+  Uses current package databases; it does not refresh them or upgrade the whole
+  system. `--force` also rebuilds unchanged Git revisions.
+- `luna uninstall <names...> [--purge] [--install-dir PATH]`: remove named apps,
+  keeping personal settings/data and dependencies. `--purge` also deletes declared
+  configuration, data and caches, including personal overrides. Run it later as
+  `luna uninstall kitty --purge` to clean up after an earlier uninstall. The app
+  must still be in the checkout's catalog; undeclared paths and Git clones remain.
 - `luna webapp install [name] [url] [--icon <path-or-url>]`: prompt for a missing
   name or URL in a terminal. JSON mode requires both and never prompts. An explicit
   icon is copied from a local file or downloaded from an HTTP(S) image URL;
@@ -266,6 +310,9 @@ to image modes. See [text settings](../../apps/luna-screenshot/DOCS.md#settings)
 - `luna webapp list`: list installed apps by display name and URL.
 - `luna webapp uninstall <name>`: remove the exact named app's launcher, metadata,
   and icons while retaining its Chromium browser data.
+
+Install, update and uninstall accept `--skip-failed` to continue after individual
+failures, report retries, and exit with 1. App commands accept `--no-close-apps`.
 
 App manifests can declare Zsh shortcuts such as `ff` for `fastfetch`. After changing
 them, reconfigure the app and Zsh (`luna configure fastfetch zsh`), then open a new terminal.

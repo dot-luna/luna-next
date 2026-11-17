@@ -5,7 +5,7 @@ import { formatInfo } from "./info/format.ts";
 import { createOutput } from "./lib/output.ts";
 import { addSelfCommands } from "./self/commands.ts";
 import { addThemeCommands } from "./theme/commands.ts";
-import { addAppCommands } from "./apps/commands.ts";
+import { addAppCommands } from "./modules/apps/commands.ts";
 import { addNotifyCommands } from "./notify/commands.ts";
 import { addMenuCommands } from "./menu/commands.ts";
 import { addToggleCommands } from "./toggle/commands.ts";
@@ -16,6 +16,9 @@ import { addLockCommands } from "./lock/commands.ts";
 import { addScreenshotCommands } from "./screenshot/commands.ts";
 
 import { addWebappCommands } from "./modules/webapp/commands.ts";
+import { addClipboardCommands } from "./modules/clipboard/commands.ts";
+
+import { addEmojiCommands } from "./modules/emoji/commands.ts";
 
 interface GlobalOptions {
   version?: boolean;
@@ -54,6 +57,12 @@ export async function runCli(argv: string[]): Promise<number> {
     exitCode = value;
   });
   addMenuCommands(program, output, (value) => {
+    exitCode = value;
+  });
+  addEmojiCommands(program, output, (value) => {
+    exitCode = value;
+  });
+  addClipboardCommands(program, output, (value) => {
     exitCode = value;
   });
   addToggleCommands(program, output, (value) => {

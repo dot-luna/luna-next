@@ -14,29 +14,36 @@ Rectangle {
     required property var theme
     property var applications: []
     property bool stayAwake: false
+    property bool opened: true
     property string section: "root"
     // Only visited parents belong here; directly opened sections have no back target.
     property var sectionHistory: []
     readonly property bool appsView: section === "apps"
+    readonly property bool emojiView: section === "emoji"
+    readonly property bool clipboardView: section === "clipboard"
     readonly property string query: search.text
     readonly property var menuEntries: Menu.entries(stayAwake)
-    readonly property var matchingEntries: appsView ? Applications.find(applications, query)
+    readonly property var matchingEntries: emojiView ? emojiPicker.entries : clipboardView
+        ? clipboardHistory.entries.filter(entry => entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+        : appsView ? Applications.find(applications, query)
         : Menu.search(Menu.children(menuEntries, section), query).concat(
             section === "root" && query.trim() ? Applications.find(applications, query) : [])
-    readonly property var entries: Query.results(matchingEntries, query)
-    readonly property int selectedIndex: results.currentIndex
+    readonly property var entries: clipboardView || emojiView ? matchingEntries : Query.results(matchingEntries, query)
+    readonly property int selectedIndex: emojiView ? emojiPicker.currentIndex : results.currentIndex
     readonly property var selectedEntry: entries[selectedIndex] || null
     readonly property string uiFont: Qt.fontFamilies().some(family => family.toLowerCase() === theme.fonts.ui.toLowerCase())
         ? theme.fonts.ui : "sans-serif"
     readonly property real textSize: Qt.application.font.pointSize > 0 ? Qt.application.font.pointSize : 10
     readonly property real textScale: textSize / 10
     readonly property color backgroundColor: theme.colors.background
+    signal clipboardActivated(string entryId)
+    signal emojiActivated(var values)
     signal applicationActivated(var entry)
     signal actionActivated(string action)
     signal queryActivated(var entry)
     signal dismissed()
 
-    implicitWidth: 640 * textScale
+    implicitWidth: (clipboardView ? 960 : 640) * textScale
     implicitHeight: 476 * textScale
     // Only the card carries alpha; its window requests blur for this shape.
     color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, theme.appearance.opacity.active)
@@ -46,8 +53,11 @@ Rectangle {
 
     function focusSearch() { search.forceActiveFocus(Qt.OtherFocusReason); }
     function reset(destination) {
+        applicationIcons.refresh();
+        emojiPicker.reset();
         sectionHistory = [];
         showSection(destination);
+        if (clipboardHistory.active) clipboardHistory.refresh();
     }
     function showSection(destination) {
         section = destination || "root";
@@ -90,6 +100,8 @@ Rectangle {
         if (!entry) return;
         if (entry.route) {
             navigate(entry.route);
+        } else if (entry.clipboard) {
+            clipboardActivated(entry.id);
         } else if (entry.queryAction) {
             queryActivated(entry);
         } else if (entry.action) {
@@ -99,6 +111,7 @@ Rectangle {
         }
     }
     function handleKey(event) {
+        if (emojiView && emojiPicker.handleKey(event)) { event.accepted = true; return; }
         if (event.key === Qt.Key_Down || event.key === Qt.Key_Tab) moveSelection(1);
         else if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab) moveSelection(-1);
         else if (event.key === Qt.Key_PageDown) pageSelection(1);
@@ -111,8 +124,20 @@ Rectangle {
         else return;
         event.accepted = true;
     }
+    ClipboardHistory {
+        id: clipboardHistory
+        active: card.opened && card.clipboardView
+        selectedId: card.clipboardView && card.selectedEntry ? card.selectedEntry.id : ""
+    }
+
+    ApplicationIcons {
+        id: applicationIcons
+        names: Array.from(card.applications).map(entry => entry.icon || "")
+    }
+
     onEntriesChanged: {
         resultTransition.stop();
+        if (emojiView) { results.model = []; outgoingResults.model = null; return; }
         // Keep the last visible list when multiple changes arrive before the next frame.
         if (results.opacity > 0) {
             outgoingResults.model = results.model;
@@ -133,6 +158,7 @@ Rectangle {
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
     ListPointer {
         anchors.fill: parent
+        visible: !card.emojiView
         view: results
         onHoveredIndex: index => {
             results.animateSelection = true;
@@ -173,11 +199,20 @@ Rectangle {
                     selectedTextColor: card.theme.colors.accent_foreground
                     selectionColor: card.theme.colors.accent
                     background: Item {}
-                    Accessible.name: card.appsView ? "Search applications"
+                    Accessible.name: card.emojiView ? "Search emoji" : card.clipboardView ? "Search clipboard history" : card.appsView ? "Search applications"
                         : card.section === "system" ? "Search system actions"
                         : card.section === "toggles" ? "Search toggles"
                         : card.section === "trigger" ? "Search triggers" : "Search menu"
                     Accessible.description: card.selectedEntry ? card.selectedEntry.name : "No matching entries"
+                    // A leading colon opts into emoji search; URLs and later colons stay ordinary queries.
+                    onTextChanged: {
+                        if (text.startsWith(":")) {
+                            const emojiQuery = text.slice(1);
+                            if (!card.emojiView) card.navigate("emoji");
+                            text = emojiQuery;
+                            cursorPosition = text.length;
+                        }
+                    }
                     Keys.priority: Keys.BeforeItem
                     Keys.onPressed: event => card.handleKey(event)
                 }
@@ -210,9 +245,10 @@ Rectangle {
                 objectName: "outgoingResults"
                 property bool showingApps: false
                 anchors.fill: parent
+                anchors.rightMargin: card.clipboardView ? parent.width * 0.52 : 0
                 enabled: false
                 interactive: false
-                visible: opacity > 0
+                visible: !card.emojiView && opacity > 0
                 opacity: 0
                 clip: true
                 spacing: 4
@@ -250,10 +286,12 @@ Rectangle {
             ListView {
                 id: results
                 objectName: "applicationList"
+                visible: !card.emojiView
                 // Search resets stay in place; only navigation moves the highlight.
                 property bool animateSelection: false
                 property bool showingApps: false
                 anchors.fill: parent
+                anchors.rightMargin: card.clipboardView ? parent.width * 0.52 : 0
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 currentIndex: count ? 0 : -1
@@ -295,6 +333,8 @@ Rectangle {
                     textScale: card.textScale
                     selected: results.currentIndex === index
                     appsView: card.appsView
+                    applicationIcon: typeof applicationIcons.sources[modelData.icon] === "string"
+                        ? applicationIcons.sources[modelData.icon] : ""
                     width: results.width
                     onClicked: {
                         results.animateSelection = true;
@@ -303,10 +343,47 @@ Rectangle {
                     }
                 }
             }
+            EmojiPicker {
+                id: emojiPicker
+                objectName: "emojiPicker"
+                anchors.fill: parent
+                visible: card.emojiView
+                active: card.opened && card.emojiView
+                query: card.emojiView ? card.query : ""
+                theme: card.theme
+                uiFont: card.uiFont
+                textScale: card.textScale
+                onActivated: values => card.emojiActivated(values)
+            }
+            Rectangle {
+                id: previewDivider
+                visible: card.clipboardView
+                anchors.left: results.right
+                anchors.leftMargin: 12
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: card.theme.colors.muted
+            }
+            ClipboardPreview {
+                objectName: "clipboardPreview"
+                visible: card.clipboardView
+                anchors.left: previewDivider.right
+                anchors.leftMargin: 12
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                entry: clipboardHistory.preview
+                theme: card.theme
+                uiFont: card.uiFont
+                textSize: card.textSize
+                loading: clipboardHistory.previewLoading
+                error: clipboardHistory.previewError
+            }
             ColumnLayout {
-                anchors.centerIn: parent
+                anchors.centerIn: results
                 spacing: 12
-                visible: results.count === 0
+                visible: !card.emojiView && results.count === 0
                 Icon {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: 28
@@ -316,7 +393,10 @@ Rectangle {
                 }
                 Label {
                     Layout.alignment: Qt.AlignHCenter
-                    text: search.text.trim() ? "No matching entries" : "No applications found"
+                    text: card.clipboardView
+                        ? clipboardHistory.error || (clipboardHistory.loading ? "Loading…"
+                            : search.text.trim() ? "No matching entries" : "No clipboard entries")
+                        : search.text.trim() ? "No matching entries" : "No applications found"
                     color: card.theme.colors.foreground
                     font.family: card.uiFont
                     font.pointSize: card.textSize

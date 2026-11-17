@@ -12,8 +12,8 @@ import {
 import { installTheme } from "../../theme/store.ts";
 import { readTheme } from "../../theme/values.ts";
 import { installThemePackages, missingThemePackages } from "../../theme/packages.ts";
-import { installApps } from "../../apps/index.ts";
-import { appContext } from "../../apps/context.ts";
+import { appInstaller } from "../../modules/apps/install.ts";
+import { appContext } from "../../modules/apps/context.ts";
 import type { InstallContext } from "./command.ts";
 
 /** Install bundled copies before app configuration, retaining an existing selection. */
@@ -36,17 +36,15 @@ export async function installThemes(context: InstallContext) {
       !Bun.which("yay", { PATH: context.env.PATH })
     ) {
       context.progress("Installing yay for theme prerequisites...");
-      await installApps(
-        await appContext(
-          {
-            repository: context.repository,
-            env: context.env,
-            onProgress: context.onProgress,
-          },
-          context.log,
-        ),
-        ["yay"],
-      );
+      await appInstaller.install({
+        context: await appContext.resolve({
+          repository: context.repository,
+          env: context.env,
+          onProgress: context.onProgress,
+          log: context.log,
+        }),
+        names: ["yay"],
+      });
     }
     for (const entry of entries) {
       if (entry.isDirectory()) await installTheme(c, join(root, entry.name), entry.name, true);

@@ -50,4 +50,5 @@
       "target": "zsh/generated/",
     },
   ],
+  "cleanup": { "purge": [["$HISTFILE", "$HOME/.histfile"]] },
 }

@@ -29,4 +29,11 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [
+      ["$GLOW_CONFIG_HOME", "$XDG_CONFIG_HOME/glow"],
+      ["$XDG_DATA_HOME/glow"],
+      ["$XDG_CACHE_HOME/glow"],
+    ],
+  },
 }

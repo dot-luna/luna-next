@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import Quickshell
 
 Button {
     id: row
@@ -14,6 +13,7 @@ Button {
     required property real textScale
     required property bool selected
     required property bool appsView
+    property string applicationIcon: ""
     readonly property bool applicationEntry: typeof entry.execute === "function"
 
     Accessible.name: entry.name
@@ -37,10 +37,7 @@ Button {
                 id: appIcon
                 anchors.fill: parent
                 visible: row.applicationEntry
-                source: !row.applicationEntry || !row.entry.icon ? ""
-                    : row.entry.icon.startsWith("/")
-                        ? "file://" + row.entry.icon.split("/").map(encodeURIComponent).join("/")
-                        : Quickshell.iconPath(row.entry.icon, true)
+                source: row.applicationEntry ? row.applicationIcon : ""
                 sourceSize: Qt.size(32, 32)
                 fillMode: Image.PreserveAspectFit
             }

@@ -8,4 +8,10 @@
     "before_install": ["scripts/replace-chromium.sh"],
     "after_configure": ["scripts/create-profile.ts", "scripts/setup-profile.ts"],
   },
+  "cleanup": {
+    "purge": [
+      ["$CHROME_USER_DATA_DIR", "$CHROME_CONFIG_HOME/chromium", "$XDG_CONFIG_HOME/chromium"],
+      ["$XDG_CACHE_HOME/chromium"],
+    ],
+  },
 }

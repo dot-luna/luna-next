@@ -22,4 +22,7 @@
       "target": "hypr.d/btop.lua",
     },
   ],
+  "cleanup": {
+    "purge": [["$XDG_CONFIG_HOME/btop"]],
+  },
 }

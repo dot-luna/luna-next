@@ -5,4 +5,7 @@
   "hooks": {
     "after_install": ["scripts/after-install.sh"],
   },
+  "cleanup": {
+    "purge": [["$GIT_CONFIG_GLOBAL", "$HOME/.gitconfig"], ["$XDG_CONFIG_HOME/git"]],
+  },
 }

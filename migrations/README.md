@@ -66,3 +66,11 @@ files need changing for users who completed v0.0.4. A failed v0.0.4 migration ru
 again with the corrected hook before this no-op version step.
 The CLI now reports its build version independently of the fetched checkout.
 Update failures print the full retry command and retain completed migration steps.
+
+## v0.0.6
+
+Installs the menu's clipboard dependencies and Noto Color Emoji, refreshes its QML,
+then reconfigures Hyprland for Super+V, Super+. and clipboard capture at login. Starts capture when updating
+inside Wayland. Reload Hyprland or log in again to load the shortcut. Clipboard
+history is retained. The refreshed menu also fixes application icons after installation,
+and Hyprland gives Calculator the same centered floating behavior as Bitwarden.

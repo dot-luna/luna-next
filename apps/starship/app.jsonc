@@ -14,4 +14,7 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [["$STARSHIP_CACHE", "$XDG_CACHE_HOME/starship"]],
+  },
 }

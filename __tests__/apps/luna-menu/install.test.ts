@@ -65,8 +65,16 @@ else process.exit(2);
     expect(
       f.commands().some((c) => c.name === "sudo" && c.args.includes("xdg-terminal-exec")),
     ).toBe(true);
-    for (const dependency of ["python-dbus", "python-gobject"])
+    expect(await Bun.file(join(destination, "application_icons.py")).exists()).toBe(true);
+    for (const dependency of ["python-dbus", "python-gobject", "gtk3", "noto-fonts-emoji"])
       expect(f.commands().some((c) => c.name === "sudo" && c.args.includes(dependency))).toBe(true);
+    const manifest = Bun.JSONC.parse(readFileSync(join(app, "app.jsonc"), "utf8"));
+    expect(
+      manifest.deps
+        .filter((dep: { name: string }) => /font|emoji/.test(dep.name))
+        .map((dep: { name: string }) => dep.name),
+    ).toEqual(["noto-fonts-emoji"]);
+    expect(await Bun.file(join(destination, "EmojiPicker.qml")).exists()).toBe(true);
     f.write(f.home, ".config/luna/menu/stale.qml", "remove");
     writeFileSync(running, "running");
     expect(await Luna.apps.configure(["luna-menu"], options)).toMatchObject({

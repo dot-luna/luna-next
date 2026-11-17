@@ -14,4 +14,7 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [["$CODEX_HOME", "$HOME/.codex"]],
+  },
 }

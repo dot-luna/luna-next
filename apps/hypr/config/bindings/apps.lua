@@ -1,5 +1,9 @@
 return function(bind)
     bind("SUPER + Space", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" menu toggle'), "Toggle Luna menu")
+    bind("SUPER + V", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" clipboard'), "Open clipboard history",
+        { repeating = false })
+    bind("SUPER + period", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" emoji'), "Open emoji picker",
+        { repeating = false })
     bind("SUPER + Escape", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" menu system'), "Open Luna system menu")
     bind("SUPER + N", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" notify focus'), "Focus notification toasts")
     bind("SUPER + L", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" lock'), "Lock session")

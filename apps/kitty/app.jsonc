@@ -30,4 +30,7 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [["$KITTY_CONFIG_DIRECTORY", "$XDG_CONFIG_HOME/kitty"]],
+  },
 }

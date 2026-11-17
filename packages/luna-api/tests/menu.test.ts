@@ -42,7 +42,7 @@ if (args.includes('--daemonize')) {
     else if (action === 'toggle') state.awake = !state.awake;
     console.log(Bun.env.MENU_TEST_AWAKE_RESPONSE || (state.awake ? 'on' : 'off'));
   }
-  else if (method === 'show' || method === 'system') { state.visible=true; state.section=method === 'system' ? 'system' : 'root'; }
+  else if (method === 'show' || method === 'system' || method === 'clipboard' || method === 'emoji') { state.visible=true; state.section=method === 'show' ? 'root' : method; }
   else if (method === 'hide') state.visible=false;
   else if (method === 'toggle') state.visible=!state.visible;
   else process.exit(2);
@@ -112,7 +112,7 @@ test("source checkout selection is explicit and renderer failure is returned wit
   });
 });
 
-test.each([[], ["system"]])(
+test.each([[], ["system"], ["clipboard"], ["emoji"]])(
   "menu CLI opens the requested view %j and keeps JSON responses unchanged",
   (...args: string[]) => {
     const f = fixture();
@@ -127,7 +127,7 @@ test.each([[], ["system"]])(
     });
     expect(f.state()).toMatchObject({
       visible: true,
-      section: args[0] === "system" ? "system" : "root",
+      section: args[0] || "root",
     });
   },
 );

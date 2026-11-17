@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "pathe";
 import { z } from "zod";
-import { readCatalog } from "../../../apps/catalog.ts";
+import { appCatalog } from "../../../modules/apps/catalog.ts";
 import { metadata } from "../../../lib/files.ts";
 import { ApiError } from "../../../lib/response.ts";
 import type { InstallContext } from "../../install/command.ts";
@@ -173,7 +173,7 @@ export async function removeWhatlyDependencies(context: InstallContext) {
       (item) => item.name,
     ),
   );
-  for (const app of await readCatalog(context)) {
+  for (const app of await appCatalog.read(context)) {
     protectedPackages.add(app.manifest.name);
     for (const dependency of app.manifest.deps ?? []) protectedPackages.add(dependency.name);
   }

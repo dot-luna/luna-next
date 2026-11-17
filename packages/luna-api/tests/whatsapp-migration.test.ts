@@ -2,16 +2,16 @@ import { afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { AppFixture } from "./fixtures/app-fixture.ts";
-import { appsIndexSchema } from "../src/apps/schema.ts";
-import { appContext } from "../src/apps/context.ts";
-import * as processes from "../src/apps/processes.ts";
+import { appsIndexSchema } from "../src/modules/apps/schema.ts";
+import { appContext } from "../src/modules/apps/context.ts";
+import { appProcesses } from "../src/modules/apps/processes.ts";
 import { webappIcon } from "../src/modules/webapp/icon.ts";
 import { replaceWhatly } from "../src/self/migrations/releases/whatsapp.ts";
 import { whatlyPaths } from "../src/self/migrations/releases/whatly-paths.ts";
 import { Luna } from "../src/index.ts";
 
 let f: AppFixture;
-let close: ReturnType<typeof spyOn<typeof processes, "closeApp">>;
+let close: ReturnType<typeof spyOn<typeof appProcesses, "close">>;
 let icon: ReturnType<typeof spyOn<typeof webappIcon, "downloadBest">>;
 beforeEach(() => {
   f = new AppFixture();
@@ -19,7 +19,7 @@ beforeEach(() => {
   f.env.XDG_RUNTIME_DIR = join(f.root, "runtime");
   f.env.TMPDIR = join(f.root, "tmp");
   // Tests must never contact WhatsApp or close processes in the real desktop session.
-  close = spyOn(processes, "closeApp").mockResolvedValue();
+  close = spyOn(appProcesses, "close").mockResolvedValue();
   icon = spyOn(webappIcon, "downloadBest").mockResolvedValue(undefined);
 });
 afterEach(() => {
@@ -30,7 +30,7 @@ afterEach(() => {
 
 const run = () => replaceWhatly({ env: f.env });
 test("migration installs WhatsApp and removes all owned Whatly files while retaining shared data", async () => {
-  const context = await appContext({ env: f.env });
+  const context = await appContext.resolve({ env: f.env });
   const files = [
     ".local/bin/whatly",
     ".local/share/luna/git/clone/whatly/source.cpp",
@@ -75,7 +75,7 @@ test("migration installs WhatsApp and removes all owned Whatly files while retai
   expect(installed.url).toBe("https://web.whatsapp.com/");
   expect(readFileSync(installed.desktopFile, "utf8")).toContain('"webapp" "launch" "WhatsApp"');
   expect(close).toHaveBeenCalledTimes(1);
-  expect(close.mock.calls[0]![1].manifest.processes).toEqual(["whatly"]);
+  expect(close.mock.calls[0]![0].app.manifest.processes).toEqual(["whatly"]);
   for (const path of files) expect(existsSync(join(f.home, path)), path).toBe(false);
   for (const path of kept) expect(readFileSync(join(f.home, path), "utf8"), path).toBe("keep");
   expect(readFileSync(join(f.home, ".config/chromium/Luna/Preferences"), "utf8")).toBe("{}");

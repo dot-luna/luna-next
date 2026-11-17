@@ -3,17 +3,49 @@
   "source": "local",
   "alias": [["menu", ["luna", "menu"]]],
   "deps": [
-    {"name": "quickshell", "source": "pacman", "purpose": "Render Luna's application menu"},
-    {"name": "xdg-terminal-exec", "source": "pacman", "purpose": "Launch terminal applications from desktop entries"},
-    {"name": "python-dbus", "source": "pacman", "purpose": "Receive application idle-inhibit requests"},
-    {"name": "python-gobject", "source": "pacman", "purpose": "Run the idle-inhibit D-Bus event loop"},
+    {
+      "name": "noto-fonts-emoji",
+      "source": "pacman",
+      "purpose": "Render the emoji picker with Noto Color Emoji",
+    },
+    { "name": "cliphist", "source": "pacman", "purpose": "Store clipboard text and image history" },
+    {
+      "name": "wl-clipboard",
+      "source": "pacman",
+      "purpose": "Capture and restore Wayland clipboard contents",
+    },
+    { "name": "file", "source": "pacman", "purpose": "Identify clipboard image and text formats" },
+    { "name": "libnotify", "source": "pacman", "purpose": "Report clipboard paste failures" },
+    { "name": "quickshell", "source": "pacman", "purpose": "Render Luna's application menu" },
+    {
+      "name": "xdg-terminal-exec",
+      "source": "pacman",
+      "purpose": "Launch terminal applications from desktop entries",
+    },
+    {
+      "name": "python-dbus",
+      "source": "pacman",
+      "purpose": "Receive application idle-inhibit requests",
+    },
+    {
+      "name": "python-gobject",
+      "source": "pacman",
+      "purpose": "Run the idle-inhibit D-Bus event loop",
+    },
+    {
+      "name": "gtk3",
+      "source": "pacman",
+      "purpose": "Resolve installed application icons with GTK's icon theme lookup",
+    },
   ],
   "hooks": {
+    "before_uninstall": ["scripts/stop.ts"],
     // QML needs no compilation; refresh its source on every configuration run.
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
   },
-  "exports": [
-    {"source": "generated/shell/", "target": "menu/"},
-  ],
+  "exports": [{ "source": "generated/shell/", "target": "menu/" }],
+  "cleanup": {
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/menu"]],
+  },
 }

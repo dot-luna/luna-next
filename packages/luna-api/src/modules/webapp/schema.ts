@@ -97,6 +97,24 @@ export const webappCatalogSchema = z.array(webappDetailsSchema).superRefine((app
   }
 });
 
+/** The bridge accepts HTTP(S) URLs only; it never accepts a command or executable from the browser. */
+export const browserLinkRequestSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("origins") }).strict(),
+  z.object({ type: z.literal("open"), url: webappUrlSchema }).strict(),
+]);
+
+const originSchema = webappUrlSchema.transform((value) => new URL(value).origin);
+export const browserLinkExtraOriginsSchema = z.array(originSchema);
+export const browserLinkConfigSchema = z
+  .object({
+    dataDir: z.string().startsWith("/"),
+    profileRoot: z.string().startsWith("/"),
+    extensionId: z.string().regex(/^[a-p]{32}$/u),
+    extraOrigins: browserLinkExtraOriginsSchema.default([]),
+  })
+  .strict();
+
 export type WebappRecipe = z.infer<typeof webappRecipeSchema>;
 export type WebappRecord = z.infer<typeof webappRecordSchema>;
 export type WebappLaunchSettings = z.input<typeof webappLaunchSettingsSchema>;
+export type BrowserLinkConfig = z.infer<typeof browserLinkConfigSchema>;

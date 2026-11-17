@@ -65,6 +65,8 @@ if (name === "xdg-mime") {
   const installed: string[] = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : [];
   const packages = args.slice(args.indexOf("--") + 1);
   if (args[0] === "-Qq") process.exit(installed.includes(args.at(-1)!) ? 0 : 1);
+  if (args[0] === "-R")
+    writeFileSync(path, JSON.stringify(installed.filter((item) => !packages.includes(item))));
   if (args[0] === "-S")
     writeFileSync(path, JSON.stringify([...new Set([...installed, ...packages])]));
   if (args[0] === "-S" && packages.includes(env.LUNA_TEST_DESKTOP_PACKAGE!)) {

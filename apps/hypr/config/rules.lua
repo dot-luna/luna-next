@@ -21,6 +21,15 @@ return function()
         max_size = { "(monitor_w)", "(monitor_h*0.8)" },
     })
 
+    hl.window_rule({
+        match = { class = "^org\\.gnome\\.Calculator$" },
+        float = true,
+        center = true,
+        -- Keep restored windows within the height limit, like Bitwarden.
+        suppress_event = "maximize",
+        max_size = { "(monitor_w)", "(monitor_h*0.8)" },
+    })
+
     -- Silent placement lets the shortcut decide whether a slow launch is still wanted.
     hl.window_rule({
         match = { class = "^luna-next-dropdown$" },

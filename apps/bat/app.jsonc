@@ -13,4 +13,7 @@
       },
     },
   ],
+  "cleanup": {
+    "purge": [["$BAT_CONFIG_DIR", "$XDG_CONFIG_HOME/bat"], ["$XDG_CACHE_HOME/bat"]],
+  },
 }

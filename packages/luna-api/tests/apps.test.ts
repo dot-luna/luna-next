@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
-import { readCatalog } from "../src/apps/catalog.ts";
-import { appContext } from "../src/apps/context.ts";
+import { appCatalog } from "../src/modules/apps/catalog.ts";
+import { appContext } from "../src/modules/apps/context.ts";
 import { AppFixture } from "./fixtures/app-fixture.ts";
 
 let f: AppFixture;
@@ -30,7 +30,9 @@ test("actual app catalog validates against all package ownership declarations", 
   const repo = resolve(import.meta.dir, "../../..");
   expect(
     (
-      await readCatalog(await appContext({ repository: repo, env: { ...f.env, LUNA_ROOT: repo } }))
+      await appCatalog.read(
+        await appContext.resolve({ repository: repo, env: { ...f.env, LUNA_ROOT: repo } }),
+      )
     ).map((app) => app.id),
   ).toContain("chromium");
 });
@@ -94,9 +96,9 @@ test("apps share matching dependencies with each other and install stages when s
   }
   for (const entries of [f.entries, f.entries.toReversed()]) {
     f.write(f.repository, "apps/apps.jsonc", JSON.stringify({ packages: entries }));
-    expect((await readCatalog(await appContext(options()))).map((app) => app.id)).toEqual(
-      entries.map((entry) => entry.split("/")[0]!),
-    );
+    expect(
+      (await appCatalog.read(await appContext.resolve(options()))).map((app) => app.id),
+    ).toEqual(entries.map((entry) => entry.split("/")[0]!));
   }
   expect(data(await Luna.apps.install(["second"], options())).installed).toEqual(["second"]);
   expect(f.hooks().map((hook) => hook.app)).toEqual(["second"]);
