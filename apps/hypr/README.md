@@ -3,6 +3,7 @@
 Luna's Hyprland Lua defaults: monitors, workspaces, input, theme, animations,
 shortcuts, and session startup. The KDE Polkit agent supplies desktop authentication
 prompts; Luna Menu, Screensaver, and Lock start hidden, and Wallpaper starts at login.
+Luna Bar starts at login; Super+B focuses its workspace controls.
 Super+L locks the session.
 
 Print selects a screenshot region, Shift+Print captures the current screen,

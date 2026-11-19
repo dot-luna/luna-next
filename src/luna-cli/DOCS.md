@@ -338,3 +338,9 @@ luna webapp launch "YouTube" --no-focus-existing --no-fuzzy
 ```
 
 See [app behavior](../../apps/DOCS.md) and [web-app options](../../packages/luna-api/DOCS.md#web-app-api).
+
+## Workspace bar
+
+`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, and
+`focus` control it. `Luna.bar` provides the same operations with `{repository?, env?}`.
+See [Luna Bar controls and checks](../luna-bar/DOCS.md).

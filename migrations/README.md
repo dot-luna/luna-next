@@ -93,3 +93,9 @@ Shows only the thumbnail for clipboard images that render successfully. Refreshe
 Luna Menu and Hyprland, restarts a running menu, and reloads the current Hyprland
 session automatically. App hooks use a UTF-8 locale so Qt warnings cannot hide a
 running menu from the refresh hook. Clipboard history is retained.
+
+## v0.0.9
+
+Installs Luna Bar, refreshes Hyprland's startup and Super+B binding, then reloads
+the current Hyprland session and starts the bar immediately. Outside Hyprland,
+the bar starts at the next login. Repeating the migration is safe.

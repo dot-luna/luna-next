@@ -6,6 +6,7 @@ import { apps } from "@/modules/apps/index.ts";
 import { webapp } from "@/modules/webapp/index.ts";
 import { notify } from "@/notify/index.ts";
 import { menu } from "@/menu/index.ts";
+import { bar } from "@/bar/index.ts";
 import { defaults } from "@/defaults/index.ts";
 import { wallpaper } from "@/wallpaper/index.ts";
 import { lock } from "@/lock/index.ts";
@@ -16,7 +17,10 @@ import { clipboard } from "@/modules/clipboard/index.ts";
 import { emoji } from "@/modules/emoji/index.ts";
 export type { EmojiEntry } from "@/modules/emoji/schema.ts";
 
+export type { BarOptions, BarState } from "@/bar/context.ts";
+
 export const Luna = {
+  bar,
   info,
   self: { install, update },
   theme,

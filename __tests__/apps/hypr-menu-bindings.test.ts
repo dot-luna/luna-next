@@ -18,6 +18,7 @@ end)
       .split("\n")
       .map((line) => line.split("\t")),
   );
+  expect(bindings["SUPER + B"]).toBe('"$HOME/.local/bin/luna" bar focus');
   expect(bindings["SUPER + E"]).toBe('"$HOME/.local/bin/luna" emoji');
   expect(bindings["SUPER + V"]).toBe('"$HOME/.local/bin/luna" clipboard');
   expect(bindings["SUPER + Escape"]).toBe('"$HOME/.local/bin/luna" menu system');
