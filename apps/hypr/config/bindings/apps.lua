@@ -5,6 +5,7 @@ return function(bind)
     bind("SUPER + E", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" emoji'), "Open emoji picker",
         { repeating = false })
     bind("SUPER + Escape", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" menu system'), "Open Luna system menu")
+    bind("SUPER + B", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" bar focus'), "Focus workspace bar")
     bind("SUPER + N", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" notify focus'), "Focus notification toasts")
     bind("SUPER + L", hl.dsp.exec_cmd('"$HOME/.local/bin/luna" lock'), "Lock session")
     bind("SUPER + Return", hl.dsp.exec_cmd("xdg-terminal-exec"), "Open default terminal")

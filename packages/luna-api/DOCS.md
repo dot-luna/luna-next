@@ -527,3 +527,9 @@ stopped. Missing QML returns `INVALID_PATH`; launch and bus errors return
 `COMMAND_FAILED`. Focus/dismiss leave a stopped provider stopped. Restart validates settings and resolves the theme/icons before replacing an
 instance. JSONC is parsed with Bun and validated by the notification API; defaults
 are merged only in memory. Unknown source fields and comments are left intact. See [toast controls](../../src/luna-notify/DOCS.md).
+
+## Workspace bar
+
+`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, and
+`focus` control it. `Luna.bar` provides the same operations with `{repository?, env?}`.
+See [Luna Bar controls and checks](../../src/luna-bar/DOCS.md).
