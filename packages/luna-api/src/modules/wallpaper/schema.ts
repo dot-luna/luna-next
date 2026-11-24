@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasControlCharacters } from "@/lib/paths.ts";
 
 // Paths reach Qt and native players; do not let control bytes become arguments or URLs.
 const source = z
@@ -33,8 +34,7 @@ export const wallpaperSettingsSchema = z.looseObject({
 
 export type WallpaperSettings = z.infer<typeof wallpaperSettingsSchema>;
 
-// oxlint-disable-next-line no-control-regex
-const filenameControls = /[\x00-\x1f\x7f]/u;
+/** Reserved names keep library locks and staging directories out of user selections. */
 export const wallpaperNameSchema = z
   .string()
   .min(1)
@@ -50,7 +50,7 @@ export const wallpaperNameSchema = z
       name !== ".library.lock",
     "Wallpaper names must be ordinary single filenames",
   )
-  .refine((name) => !filenameControls.test(name), "Wallpaper names cannot contain controls");
+  .refine((name) => !hasControlCharacters(name), "Wallpaper names cannot contain controls");
 
 export const wallpaperImportSchema = z.object({
   sources: z.array(z.string().min(1)).min(1),

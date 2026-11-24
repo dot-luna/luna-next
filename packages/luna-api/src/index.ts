@@ -67,7 +67,7 @@ export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./modules/de
 export type { MenuOptions, MenuState, StayAwakeState } from "./modules/menu/context.ts";
 export type { StayAwakeAction } from "./modules/menu/schema.ts";
 
-export type { InfoOptions, LunaInfo, LunaInfoResponse } from "./modules/info/types.ts";
+export type { InfoOptions, LunaInfo, LunaInfoResponse } from "./modules/info/index.ts";
 export type { ApiErrorCode, ApiResponse, ErrorResponse, SuccessResponse } from "./lib/response.ts";
 export type {
   GitIdentity,

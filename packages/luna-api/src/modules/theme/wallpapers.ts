@@ -2,7 +2,7 @@ import { realpath } from "node:fs/promises";
 import { isAbsolute, join } from "pathe";
 import { locked } from "@/lib/files.ts";
 import { ApiError } from "@/lib/response.ts";
-import { installMedia, libraryDirectory } from "@/modules/wallpaper/library.ts";
+import { wallpaperLibrary } from "@/modules/wallpaper/library.ts";
 import type { ThemeContext } from "./context.ts";
 
 /** Import confined declared media without recursion or changing wallpaper selection. */
@@ -21,8 +21,8 @@ export async function importWallpapers(context: ThemeContext, root: string, sour
     }
   }
   const library = { env: context.env, libraryDir: context.wallpaperDir };
-  const path = await libraryDirectory(library, true);
+  const path = await wallpaperLibrary.directory({ context: library, create: true });
   await locked({ env: context.env, configFile: join(path, ".library") }, () =>
-    installMedia(library, inputs),
+    wallpaperLibrary.install({ context: library, sources: inputs }),
   );
 }
