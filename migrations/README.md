@@ -99,3 +99,8 @@ running menu from the refresh hook. Clipboard history is retained.
 Installs Luna Bar, refreshes Hyprland's startup and Super+B binding, then reloads
 the current Hyprland session and starts the bar immediately. Outside Hyprland,
 the bar starts at the next login. Repeating the migration is safe.
+
+## v0.0.10
+
+Refreshes Hyprland without duplicating the native config's workspace swipe gesture.
+Existing gesture bindings are retained, and a running Hyprland session reloads.

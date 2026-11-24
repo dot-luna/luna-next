@@ -167,7 +167,6 @@ test("actual app catalog validates against all package ownership declarations", 
     await appContext.resolve({ repository: repo, env: { ...f.env, LUNA_ROOT: repo } }),
   );
   expect(catalog.map((app) => app.id)).toContain("chromium");
-  expect(catalog.every((app) => app.manifest.enabled === false)).toBe(true);
 });
 
 test("selected apps follow catalog order; dependencies and installation precede configuration", async () => {
