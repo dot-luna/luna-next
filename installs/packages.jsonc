@@ -1,5 +1,5 @@
 {
-  // Before building and installing the CLI: bootstrap tools and mise.
+  // Before building and installing the CLI: bootstrap tools and shared desktop helpers.
   "before_cli": [
     {
       "name": "coreutils",
@@ -20,6 +20,16 @@
       "name": "neovim",
       "source": "pacman",
       "purpose": "Git editor configured before app installation",
+    },
+    {
+      "name": "xdg-terminal-exec",
+      "source": "pacman",
+      "purpose": "Select and launch the default terminal",
+    },
+    {
+      "name": "xdg-utils",
+      "source": "pacman",
+      "purpose": "Manage default desktop applications and open files and URLs",
     },
   ],
   // After the CLI is ready, before installing apps/: shared build tools, setup helpers, and runtimes.
@@ -117,11 +127,6 @@
   ],
   // After apps/: shared desktop helpers and standalone utilities. Web apps run last.
   "later": [
-    {
-      "name": "xdg-utils",
-      "source": "pacman",
-      "purpose": "Open files and URLs with desktop applications",
-    },
     {
       "name": "zip",
       "source": "pacman",

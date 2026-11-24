@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "t3code",
   "source": "git",
   "processes": ["t3code", "t3-code", "T3 Code", "T3-Code.AppImage"],
@@ -13,7 +13,7 @@
     "before_build": ["scripts/prepare-build.ts"],
     "build": ["scripts/build.ts"],
     "after_build": ["scripts/install.ts"],
-    "after_configure": ["scripts/configure.ts"],
+    // "after_configure": ["scripts/configure.ts"],
   },
   "cleanup": {
     "uninstall": [

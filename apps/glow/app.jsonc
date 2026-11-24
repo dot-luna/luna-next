@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "glow",
   "source": "pacman",
   "alias": ["md"],

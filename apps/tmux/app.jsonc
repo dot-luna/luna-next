@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "tmux",
   "source": "pacman",
   // `t` attaches to the "main" session, creating it if needed. Use tmux for other commands.
