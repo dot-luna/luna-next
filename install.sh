@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Bootstrap the Luna CLI on Arch Linux, then let the CLI configure the desktop.
+# Install the Luna CLI on Arch Linux. Run luna self install manually for desktop setup.
 # Run as a normal user with working pacman, sudo access, and an internet connection.
 #
 # Flags (both --flag=value and --flag value work):
 #   --install-dir=PATH  Source checkout. Default: $HOME/.local/src/luna-next.
 #                       Relative paths start at the caller's working directory.
-#   --skip-failed       Continue after app failures; show errors, logs and retries at the end.
-#   --no-close-apps     Keep apps open instead of closing them for configuration.
 #   --ref=REF           Git branch or tag. Default: latest, meaning the newest
 #                       commit on the remote default branch, not a release tag.
 #                       A branch wins when a branch and tag share the same name.
@@ -29,7 +27,7 @@
 #   5. Run bun install --frozen-lockfile at the checkout root, then
 #      bun run --cwd src/luna-cli build --no-install to produce target/luna.
 #   6. Publish that binary as ~/.local/bin/luna with executable permissions.
-#   7. Wait five seconds, then hand the remaining setup to luna self install.
+#   7. Print the command for running luna self install manually.
 #
 # Recovery: create missing directories, resolve directory links and '..', reuse
 # empty checkout directories, and retry Git downloads and Bun installation up to
@@ -46,11 +44,9 @@
 # copied successfully. Staged files are removed on exit; private diagnostic logs remain under the state directory;
 # the source checkout and its CLI build artifacts remain for later operations.
 #
-# After building, wait five seconds before running luna self install with the
-# original flags plus --from-bootstrap, since this script updated the checkout
-# and built/published the CLI. Shared package stages and Git setup still run.
-# Ctrl+C during the pause prints the same command to finish later. The CLI must
-# provide self install with checkout updates and CLI rebuilding enabled by default.
+# Desktop setup runs only when you execute the printed command. It preserves the
+# selected checkout and resolved ref, and performs normal setup checks even if
+# you run it later.
 #
 # Checks: bash -n install.sh; bun test __tests__/install.test.ts
 set -euo pipefail
@@ -63,12 +59,8 @@ fail() {
 repo_url=https://github.com/dot-luna/luna-next.git
 repo_root="${HOME:?HOME must be set}/.local/src/luna-next"
 repo_ref=latest
-# Keep spelling, argument boundaries, and latest unchanged for the CLI even after
-# parsing and resolving them for this script. Accept both --flag=value and --flag value.
-cli_args=("$@")
 while (( $# > 0 )); do
     case "$1" in
-        --skip-failed|--no-close-apps) shift ;;
         --install-dir|--ref)
             (( $# >= 2 )) && [[ -n "$2" && "$2" != -* ]] || fail "$1 requires a value."
             if [[ "$1" == --install-dir ]]; then
@@ -91,10 +83,6 @@ while (( $# > 0 )); do
         *) fail "Unknown argument: $1" ;;
     esac
 done
-
-# The CLI must not repeat the checkout update or CLI build completed by bootstrap.
-# Use the same arguments for automatic handoff and the printed resume command.
-cli_args+=(--from-bootstrap)
 
 # Reject malformed refs before system changes, even when Git is not installed yet.
 # Slash-separated branch names are allowed; Git checks the full ref after installation.
@@ -128,7 +116,7 @@ for tool in pacman sudo; do
     command -v "$tool" >/dev/null 2>&1 || fail "$tool is required; prepare an Arch Linux user with sudo access first."
 done
 
-# Keep diagnostics outside temporary staging, including bootstrap failures before CLI handoff.
+# Keep diagnostics outside temporary staging so they survive failed installs.
 state_root=${LUNA_STATE_HOME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/luna}
 [[ "$state_root" == /* && "$state_root" != / && "$state_root" != *[[:cntrl:]]* ]] || fail 'Invalid state directory.'
 log_root=$(prepare_directory "$state_root/install-logs")
@@ -143,18 +131,12 @@ if ! temporary=$(mktemp -d 2>/dev/null); then
 fi
 staged_cli=
 staged_checkout=
-pause_pid=
-# Remove only this run's temporary files. Stop and reap the countdown if cancelled;
-# cleanup succeeds even when the child or staged executable has already gone away.
+# Remove only this run's temporary files; already removed staging is harmless.
 cleanup() {
     local exit_status=$?
     if [[ -n "${bootstrap_log:-}" ]]; then
         printf 'Exit status: %s\n' "$exit_status" >>"$bootstrap_log"
         if (( exit_status != 0 )); then printf 'install: Logs: %s\n' "$bootstrap_log" >&2; fi
-    fi
-    if [[ -n "$pause_pid" ]]; then
-        kill -- "$pause_pid" 2>/dev/null || true
-        wait "$pause_pid" 2>/dev/null || true
     fi
     rm -rf -- "$temporary"
     [[ -z "$staged_cli" ]] || rm -f -- "$staged_cli"
@@ -165,7 +147,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 # Capture one command at a time, retaining its exit code and showing its output only
-# on failure. The final CLI runs directly so its own output remains visible.
+# on failure.
 run() {
     local status
     printf '+ %q ' "$@" >>"$bootstrap_log"
@@ -308,15 +290,13 @@ else
     mv -T -- "$staged_checkout" "$repo_root"
     staged_checkout=
 fi
-# Hooks and the CLI use the resolved checkout; user-supplied flag values stay unchanged.
+# Build hooks use the resolved checkout.
 export LUNA_ROOT="$repo_root"
 
 # 6. Build the CLI using the committed lockfile. Bun resolves the API's source
 # directly, without a separate API build. Stage beside the destination so a failed
 # dependency install, build, or copy keeps the old CLI.
 printf 'Building Luna CLI...\n'
-# Keep directory changes inside a subshell so relative flags forwarded later still
-# refer to the directory from which the user started the installer.
 (
     cd -- "$repo_root"
     run bun install --frozen-lockfile
@@ -328,30 +308,7 @@ run install -m755 -- "$repo_root/target/luna" "$staged_cli"
 mv -fT -- "$staged_cli" "$bin_dir/luna"
 staged_cli=
 
-# 7. Give the user five seconds to stop before the CLI configures the rest.
-# Signal handlers print a shell-safe recovery command with the same caller flags.
-cancel_handoff() {
-    printf '\nSetup cancelled. Other settings are not configured. To finish, run:\n'
-    printf '  %q self install' "$bin_dir/luna"
-    # With no arguments, printf would otherwise emit an unwanted empty argument.
-    if (( ${#cli_args[@]} > 0 )); then
-        printf ' %q' "${cli_args[@]}"
-    fi
-    printf '\n'
-    exit "$1"
-}
-trap 'cancel_handoff 130' INT
-trap 'cancel_handoff 143' TERM
-printf 'Setup will close Chromium, Zen and T3 Code when needed, force-killing if necessary. Save work now.\n'
-printf 'Starting luna self install in 5 seconds. Press Ctrl+C to cancel...\n'
-# Waiting for a background sleep lets Bash handle signals immediately, including
-# when the installer itself is read from a curl pipe.
-sleep 5 &
-pause_pid=$!
-wait "$pause_pid"
-pause_pid=
-# The manual-resume message applies only to the pause, before CLI setup begins.
-trap 'exit 130' INT
-trap 'exit 143' TERM
-printf 'Configuring Luna...\n'
-"$bin_dir/luna" self install "${cli_args[@]}" 2> >(tee -a "$bootstrap_log" >&2) | tee -a "$bootstrap_log"
+# 7. Use absolute, shell-quoted paths so manual setup works from another directory
+# before ~/.local/bin is on PATH. Do not skip checks when setup may run later.
+printf 'Installed Luna CLI: %s\n' "$bin_dir/luna"
+printf 'To configure Luna, run:\n  %q self install --install-dir %q --ref %q\n' "$bin_dir/luna" "$repo_root" "$repo_ref"
