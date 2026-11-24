@@ -2,7 +2,20 @@
   "enabled": true,
   "name": "luna-bar",
   "source": "local",
-  "deps": [{ "name": "quickshell", "source": "pacman", "purpose": "Render Luna's workspace bar" }],
+  "deps": [
+    { "name": "quickshell", "source": "pacman", "purpose": "Render Luna's bar" },
+    { "name": "brightnessctl", "source": "pacman", "purpose": "Adjust display brightness" },
+    {
+      "name": "libpulse",
+      "source": "pacman",
+      "purpose": "Move active audio streams between devices",
+    },
+    {
+      "name": "blueman",
+      "source": "pacman",
+      "purpose": "Pair Bluetooth devices with PIN and confirmation prompts",
+    },
+  ],
   "hooks": {
     "before_uninstall": ["scripts/stop.ts"],
     "before_configure": ["scripts/configure.ts"],

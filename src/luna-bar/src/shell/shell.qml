@@ -11,6 +11,8 @@ ShellRoot {
     // Runtime-only: every screen shows or hides together, and a restart shows the bar again.
     property bool shown: true
 
+    ControlsState { id: controlsState }
+
     Variants {
         id: bars
         model: shell.theme && shell.settings ? Quickshell.screens : []
@@ -20,6 +22,7 @@ ShellRoot {
             theme: shell.theme
             settings: shell.settings
             shown: shell.shown
+            controlsState: controlsState
         }
     }
     IpcHandler {

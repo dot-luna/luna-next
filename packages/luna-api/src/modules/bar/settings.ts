@@ -61,6 +61,12 @@ class BarSettingsStore {
         date_format: source.clock?.date_format ?? barDefaults.clock.date_format,
         world: source.clock?.world ?? barDefaults.clock.world,
       },
+      controls: {
+        sliders: [...new Set(source.controls?.sliders ?? barDefaults.controls.sliders)],
+        tiles: [...new Set(source.controls?.tiles ?? barDefaults.controls.tiles)],
+        media: source.controls?.media ?? barDefaults.controls.media,
+      },
+      tray: { enabled: source.tray?.enabled ?? barDefaults.tray.enabled },
       calendar: { default: source.calendar?.default ?? barDefaults.calendar.default },
     };
   }

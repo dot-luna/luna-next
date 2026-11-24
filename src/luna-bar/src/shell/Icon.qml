@@ -6,8 +6,10 @@ import QtQuick.Effects
 Item {
     id: icon
     required property color ink
-    /** Absolute SVG path; bundled names are resolved by the API before the shell starts. */
-    required property string path
+    /** A bundled icon from icons/, such as "wifi-01". */
+    property string name: ""
+    /** Absolute SVG path; defaults to the bundled `name`. */
+    property string path: name ? decodeURIComponent(Qt.resolvedUrl("icons/" + name + ".svg").toString().replace(/^file:\/\//, "")) : ""
     readonly property bool ready: image.status === Image.Ready
 
     implicitWidth: 16

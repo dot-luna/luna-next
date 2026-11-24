@@ -6,7 +6,7 @@
 Configuring replaces the owned QML directory and settings file, and restarts a
 running bar; a stopped bar stays stopped.
 
-The bar appears on every screen and reserves space above tiled windows. It hides
+The bar appears on every screen and reserves space above tiled windows. Hiding releases its reserved space immediately. It also hides
 while the screen's workspace shows a fullscreen window.
 
 - **Workspaces (left):** four baseline workspaces, plus existing higher numbered
@@ -21,10 +21,32 @@ while the screen's workspace shows a fullscreen window.
   cover BS 2000–2089 (1943-04-14 to 2033-04-13 AD); outside that range the
   calendar shows AD only.
 
+## Quick controls and tray
+
+Click the status icons on the right for volume, microphone and brightness sliders.
+Click an audio icon to mute; its chevron opens device selection and per-app volumes.
+Selecting a device changes the default and moves existing app streams. The panel
+shows apps actively using the microphone. Brightness is hidden without a backlight.
+
+The network tile shows **Wired · Connected** when Ethernet is connected, otherwise
+Wi-Fi status. Wired is display-only. The Wi-Fi tile toggles Wi-Fi, and the chevron
+always opens networks. Select a network to connect or disconnect; new WPA personal
+networks ask for a password. Set up enterprise networks in NetworkManager first.
+
+Bluetooth toggles separately from its device page. Paired devices connect in the
+panel; selecting a new device opens Blueman for pairing and PIN prompts. Discovery
+stops when the page closes. Dark mode changes the desktop light/dark preference;
+Stay awake uses Luna Menu's idle inhibitor. Media controls appear for playing or
+paused players. Lock and power use Luna's existing actions and system menu.
+
+The small dropdown beside the status icons lists tray apps. Click an app to open
+it, or its chevron for the app's menu. Escape or a click outside closes popups.
+Sliders and buttons support Tab, arrows and Enter; long lists scroll with focus.
+
 ## Keyboard
 
 Super+B focuses the bar on the focused monitor. Left/Right select a workspace,
-Tab moves on to the clock, Enter/Space activates, and Escape returns to the app.
+Tab moves on to the clock and controls, Enter/Space activates, and Escape returns to the app.
 In the calendar, Left/Right change month and Tab reaches the AD/BS switch.
 Super+Shift+Space shows or hides the bar on every screen; the choice lasts until
 the bar restarts. The existing Super+1–9/0 shortcuts switch directly. Normal bar
@@ -44,6 +66,11 @@ Missing files are created as `{}`; defaults merge only in memory. Run
 | `clock.time_format` / `clock.date_format` | `HH:mm` / `ddd d MMM`                                                       | Clocks beside the calendar.                                                                                                |
 | `clock.world`                             | CST, EST, UTC                                                               | Up to 8 `{name, timezone}` clocks; `timezone` is an IANA name. A configured list replaces the defaults.                    |
 | `calendar.default`                        | `ad`                                                                        | Calendar shown first: `ad` or `bs`.                                                                                        |
+
+`controls.sliders` defaults to `["output", "input", "brightness"]` and
+`controls.tiles` to `["network", "bluetooth", "dark_mode", "stay_awake"]`.
+Each list replaces its defaults, keeps its order and removes duplicates; use `[]`
+to hide that group. `controls.media` and `tray.enabled` default to `true`.
 
 Unknown icons or timezones and out-of-range values fail with `INVALID_METADATA`
 before a running bar is replaced. Theme colors, font, opacity, rounding, border,

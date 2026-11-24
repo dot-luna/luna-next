@@ -29,4 +29,13 @@
   },
   // Calendar shown first: "ad" (Gregorian) or "bs" (Bikram Sambat).
   "calendar": { "default": "ad" },
+  // Controls panel on the right; remove entries to hide them, reorder to move them.
+  "controls": {
+    "sliders": ["output", "input", "brightness"],
+    "tiles": ["network", "bluetooth", "dark_mode", "stay_awake"],
+    // Media controls appear while a player is playing or paused.
+    "media": true,
+  },
+  // A dropdown next to the controls for system tray apps.
+  "tray": { "enabled": true },
 }

@@ -154,6 +154,12 @@ test("bar settings merge defaults in memory, resolve icons and reach the rendere
     "UTC",
   ]);
   expect(settings.calendar.default).toBe("ad");
+  expect(settings.controls).toEqual({
+    sliders: ["output", "input", "brightness"],
+    tiles: ["network", "bluetooth", "dark_mode", "stay_awake"],
+    media: true,
+  });
+  expect(settings.tray.enabled).toBe(true);
 
   const custom = join(f.root, "custom.svg");
   writeFileSync(custom, "<svg/>\n");
@@ -162,6 +168,8 @@ test("bar settings merge defaults in memory, resolve icons and reach the rendere
   "workspaces": { "visible": 6, "icons": { "5": "${custom}" } },
   "clock": { "format": "HH:mm", "world": [] },
   "calendar": { "default": "bs" },
+  "controls": { "sliders": ["input", "output", "input"], "tiles": [], "media": false },
+  "tray": { "enabled": false },
 }
 `;
   writeFileSync(file, source);
@@ -172,6 +180,8 @@ test("bar settings merge defaults in memory, resolve icons and reach the rendere
     workspaces: { visible: 6, icons: { "5": custom } },
     clock: { format: "HH:mm", time_format: "HH:mm", world: [] },
     calendar: { default: "bs" },
+    controls: { sliders: ["input", "output"], tiles: [], media: false },
+    tray: { enabled: false },
   });
   expect(readFileSync(file, "utf8")).toBe(source);
 });
@@ -188,6 +198,10 @@ test("invalid bar settings fail before replacing a running bar", async () => {
     ],
     ['{"workspaces":{"visible":0}}', file],
     ['{"calendar":{"default":"lunar"}}', file],
+    ['{"controls":{"sliders":["camera"]}}', file],
+    ['{"controls":{"tiles":["ethernet"]}}', file],
+    ['{"controls":{"media":"yes"}}', file],
+    ['{"tray":{"enabled":1}}', file],
   ];
   for (const [source, message] of cases) {
     writeFileSync(file, source);

@@ -9,6 +9,7 @@ PanelWindow {
     id: bar
     required property var theme
     required property var settings
+    required property var controlsState
     required property bool shown
     readonly property var monitor: Hyprland.monitorFor(screen)
     readonly property int activeWorkspace: monitor && monitor.activeWorkspace ? monitor.activeWorkspace.id : 0
@@ -25,6 +26,8 @@ PanelWindow {
     function beginFocus() {
         if (!presented) return;
         calendar.open = false;
+        controls.open = false;
+        tray.open = false;
         keyboardActive = true;
         strip.focusActive();
     }
@@ -33,9 +36,13 @@ PanelWindow {
     onPresentedChanged: if (!presented) {
         release();
         calendar.open = false;
+        controls.open = false;
+        tray.open = false;
     }
 
-    visible: presented || reveal > 0
+    // Stay mapped while hidden: Hyprland recalculates reserved space a step late when a layer
+    // maps or unmaps, which left windows below a hidden bar. Hidden, it is transparent,
+    // reserves nothing and passes input through.
     anchors { top: true; left: true; right: true }
     // qmllint disable missing-property
     margins { top: bar.gap; left: bar.gap; right: bar.gap }
@@ -80,6 +87,8 @@ PanelWindow {
             onActivated: workspace => {
                 bar.release();
                 calendar.open = false;
+                controls.open = false;
+                tray.open = false;
                 Hyprland.dispatch("hl.dsp.focus({workspace=" + workspace + "})");
             }
         }
@@ -90,14 +99,69 @@ PanelWindow {
             format: bar.settings.clock.format
             open: calendar.open
             Keys.onEscapePressed: bar.release()
-            onLeaving: strip.focusActive()
+            onLeaving: direction => {
+                if (direction < 0) strip.focusActive();
+                else status.forceActiveFocus(Qt.TabFocusReason);
+            }
             onClicked: {
                 bar.release();
+                controls.open = false;
+                tray.open = false;
                 calendar.open = !calendar.open;
+            }
+        }
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
+            IconButton {
+                theme: bar.theme
+                iconName: "arrow-down-01"
+                size: 26
+                visible: bar.settings.tray.enabled
+                active: tray.open
+                Accessible.name: "Tray apps"
+                Keys.onEscapePressed: bar.release()
+                onClicked: {
+                    bar.release();
+                    calendar.open = false;
+                    controls.open = false;
+                    tray.open = !tray.open;
+                }
+            }
+            StatusButton {
+                id: status
+                theme: bar.theme
+                services: bar.controlsState
+                open: controls.open
+                Keys.onEscapePressed: bar.release()
+                onClicked: {
+                    bar.release();
+                    calendar.open = false;
+                    tray.open = false;
+                    controls.open = !controls.open;
+                }
             }
         }
     }
 
+    ControlsPanel {
+        id: controls
+        screen: bar.screen
+        theme: bar.theme
+        barWindow: bar
+        services: bar.controlsState
+        settings: bar.settings.controls
+        top: bar.gap + bar.implicitHeight + bar.gap
+    }
+    TrayPopup {
+        id: tray
+        screen: bar.screen
+        theme: bar.theme
+        barWindow: bar
+        top: bar.gap + bar.implicitHeight + bar.gap
+    }
     Calendar {
         id: calendar
         screen: bar.screen

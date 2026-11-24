@@ -124,7 +124,7 @@ FocusScope {
                 anchors.centerIn: parent
                 width: 16
                 height: 16
-                path: decodeURIComponent(Qt.resolvedUrl("icons/" + nav.iconName + ".svg").toString().replace(/^file:\/\//, ""))
+                name: nav.iconName
                 ink: view.theme.colors.foreground
             }
         }

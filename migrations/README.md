@@ -116,3 +116,10 @@ theme without closing. Zen and Chromium close while they are reconfigured: Zen
 themes its popups and built-in pages, and Chromium removes Better WhatsApp Web and
 sends only links clicked in installed web apps to the default browser. Apps newly
 enabled by default are not installed on existing systems. Repeating it is safe.
+
+## v0.0.12
+
+Refreshes Luna Bar only when installed, adding quick controls, a tray dropdown and
+the hidden-bar space fix. Installs brightnessctl, libpulse and Blueman for brightness,
+active audio routing and Bluetooth pairing. Replaces the owned bar settings and QML;
+a running bar restarts, and a stopped bar stays stopped. Repeating it is safe.

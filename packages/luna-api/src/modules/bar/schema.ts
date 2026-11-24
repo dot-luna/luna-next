@@ -42,6 +42,28 @@ export const barSettingsSchema = z.looseObject({
         .optional(),
     })
     .optional(),
+  controls: z
+    .looseObject({
+      /** Sliders shown in the controls panel, in order. */
+      sliders: z
+        .array(z.enum(["output", "input", "brightness"]))
+        .max(3)
+        .optional(),
+      /** Toggle tiles shown in the controls panel, in order. */
+      tiles: z
+        .array(z.enum(["network", "bluetooth", "dark_mode", "stay_awake"]))
+        .max(4)
+        .optional(),
+      /** Show media controls for a playing or paused player. */
+      media: z.boolean().optional(),
+    })
+    .optional(),
+  tray: z
+    .looseObject({
+      /** Show a dropdown for system tray apps. */
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
   calendar: z
     .looseObject({
       /** Calendar shown first: "ad" (Gregorian) or "bs" (Bikram Sambat). */
@@ -74,5 +96,16 @@ export const barDefaults = {
       { name: "UTC", timezone: "UTC" },
     ],
   },
+  controls: {
+    sliders: ["output", "input", "brightness"] as ("output" | "input" | "brightness")[],
+    tiles: ["network", "bluetooth", "dark_mode", "stay_awake"] as (
+      | "network"
+      | "bluetooth"
+      | "dark_mode"
+      | "stay_awake"
+    )[],
+    media: true,
+  },
+  tray: { enabled: true },
   calendar: { default: "ad" as "ad" | "bs" },
 };
