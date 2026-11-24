@@ -63,14 +63,16 @@ export const webappLaunchSettingsSchema = z.object({
 });
 
 /** Read only the Hyprland client fields needed to identify and focus an app window. */
-export const webappWindowsSchema = z.array(z.object({
-  address: z.string().regex(/^0x[0-9a-f]+$/iu),
-  class: z.string(),
-  initialClass: z.string().optional(),
-  pid: z.number().int(),
-  mapped: z.boolean().optional(),
-  focusHistoryID: z.number().int().optional(),
-}));
+export const webappWindowsSchema = z.array(
+  z.object({
+    address: z.string().regex(/^0x[0-9a-f]+$/iu),
+    class: z.string(),
+    initialClass: z.string().optional(),
+    pid: z.number().int(),
+    mapped: z.boolean().optional(),
+    focusHistoryID: z.number().int().optional(),
+  }),
+);
 
 // Ignore individual malformed manifest icons without discarding other usable candidates.
 const manifestIconSchema = z
@@ -100,7 +102,7 @@ export const webappCatalogSchema = z.array(webappDetailsSchema).superRefine((app
 /** The bridge accepts HTTP(S) URLs only; it never accepts a command or executable from the browser. */
 export const browserLinkRequestSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("origins") }).strict(),
-  z.object({ type: z.literal("open"), url: webappUrlSchema }).strict(),
+  z.object({ type: z.literal("open"), url: webappUrlSchema, source: webappUrlSchema }).strict(),
 ]);
 
 const originSchema = webappUrlSchema.transform((value) => new URL(value).origin);

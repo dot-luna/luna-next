@@ -261,14 +261,25 @@ test("real Chromium setup recovers after SIGTERM, persists extensions and preser
     await unpack(extension.bytes, extension.id, `${stage}/${extension.id}`),
   ];
   // App configuration sends SIGTERM; Chromium can exit without removing its singleton links.
-  const browser = Bun.spawn([Bun.which("chromium")!, "--headless=new", "--no-sandbox",
-    "--disable-gpu", "--disable-background-networking", "--no-first-run",
-    `--user-data-dir=${value.data}`, "--profile-directory=Luna", "about:blank"],
-    { env: value.env, stdout: "ignore", stderr: "ignore" });
+  const browser = Bun.spawn(
+    [
+      Bun.which("chromium")!,
+      "--headless=new",
+      "--no-sandbox",
+      "--disable-gpu",
+      "--disable-background-networking",
+      "--no-first-run",
+      `--user-data-dir=${value.data}`,
+      "--profile-directory=Luna",
+      "about:blank",
+    ],
+    { env: value.env, stdout: "ignore", stderr: "ignore" },
+  );
   try {
     const deadline = Date.now() + 10_000;
     while (!(await lstat(`${value.data}/SingletonLock`).catch(() => null))) {
-      if (Date.now() > deadline || browser.exitCode !== null) throw new Error("Fixture Chromium did not start");
+      if (Date.now() > deadline || browser.exitCode !== null)
+        throw new Error("Fixture Chromium did not start");
       await Bun.sleep(25);
     }
     browser.kill("SIGTERM");
@@ -278,10 +289,33 @@ test("real Chromium setup recovers after SIGTERM, persists extensions and preser
     if (browser.exitCode === null) browser.kill("SIGKILL");
     await browser.exited;
   }
+  const retiredDirectory = `${value.data}/Luna/Luna/extensions/better-whatsapp-web`;
+  const retiredId = extensionId(retiredDirectory);
+  await Bun.write(
+    `${retiredDirectory}/manifest.json`,
+    JSON.stringify({ manifest_version: 3, name: "Retired fixture", version: "1.0" }),
+  );
+  const oldBrowser = startBrowser(Bun.which("chromium")!, {
+    root: value.data,
+    directory: `${value.data}/Luna`,
+    preferences: value.preferences,
+    assets: "",
+  });
+  try {
+    await oldBrowser.call("Extensions.loadUnpacked", { path: retiredDirectory });
+  } finally {
+    await oldBrowser.close();
+  }
+  const oldPreferences = await Bun.file(value.preferences).json();
+  oldPreferences.extensions.settings[retiredId].creation_flags &= ~(1 << 15);
+  oldPreferences.extensions.settings[retiredId].disable_reasons = [1];
+  await Bun.write(value.preferences, JSON.stringify(oldPreferences));
   const first = await setupProfile(config, theme, prepare);
+  expect(await lstat(retiredDirectory).catch(() => null)).toBeNull();
   expect(first.extensions).toContain(extension.id);
-  expect(first.extensions.length).toBe(5);
+  expect(first.extensions.length).toBe(4);
   const preferences = await Bun.file(value.preferences).json();
+  expect(preferences.extensions.settings).not.toHaveProperty(retiredId);
   expect(preferences.profile.name).toBe("Test Name / नमस्ते");
   expect(preferences.profile.default_content_setting_values.cookies).toBe(1);
   expect(preferences.extensions.settings[extension.id].creation_flags & (1 << 15)).toBe(0);
@@ -340,42 +374,247 @@ printf '%s\\n' ungoogled-chromium-bin > "$FIXTURE_ROOT/state"
   expect(await Bun.file(`${root}/arguments`).exists()).toBe(false);
 });
 
-test("profile routes external GETs through the native host and keeps registered apps inside", async () => {
+test("only clicked links in registered apps leave Chromium", async () => {
   const value = await fixture();
-  const internal = Bun.serve({ port: 0, fetch: () => new Response("<title>Luna fixture</title><p>Internal app</p>", { headers: { "Content-Type": "text/html" } }) });
   let externalRequests = 0;
-  const external = Bun.serve({ port: 0, fetch: () => { externalRequests++; return new Response("external"); } });
-  const internalUrl = `http://127.0.0.1:${internal.port}/`;
+  const external = Bun.serve({
+    port: 0,
+    fetch: () => {
+      externalRequests++;
+      return new Response(
+        '<title>Ordinary page</title><a id="link" href="https://unrelated.example/">Link</a>',
+        { headers: { "Content-Type": "text/html" } },
+      );
+    },
+  });
   const externalUrl = `http://127.0.0.1:${external.port}/article?query=test#section`;
+  const internal = Bun.serve({
+    port: 0,
+    fetch: () =>
+      new Response(
+        `<title>Luna fixture</title>
+    <a id="link" href="${externalUrl}">External</a>
+    <a id="internal" href="/inside">Internal</a>
+    <a id="download" href="${externalUrl}" download>Download</a>
+    <form method="post" action="${externalUrl}"><button>Submit</button></form>`,
+        { headers: { "Content-Type": "text/html" } },
+      ),
+  });
+  const internalUrl = `http://127.0.0.1:${internal.port}/`;
   run(["mkdir", "-p", `${value.root}/bin`]);
   await Bun.write(`${value.root}/bin/xdg-mime`, '#!/bin/sh\nprintf "zen.desktop\\n"\n');
-  await Bun.write(`${value.root}/bin/gio`, '#!/usr/bin/env bun\nawait Bun.write(Bun.env.LUNA_TEST_OPEN_LOG!, JSON.stringify(Bun.argv.slice(2)));\n');
+  await Bun.write(
+    `${value.root}/bin/gio`,
+    `#!/usr/bin/env bun
+if (await Bun.file(Bun.env.LUNA_TEST_OPEN_LOG + ".fail").exists()) { console.error("Fixture opener failure"); process.exit(1); }
+await Bun.write(Bun.env.LUNA_TEST_OPEN_LOG!, JSON.stringify(Bun.argv.slice(2)));
+`,
+  );
   run(["chmod", "+x", `${value.root}/bin/xdg-mime`, `${value.root}/bin/gio`]);
-  Object.assign(Bun.env, value.env, { PATH: `${value.root}/bin:${environment.PATH}`, LUNA_TEST_OPEN_LOG: `${value.root}/opened.json` });
+  const log = `${value.root}/opened.json`;
+  Object.assign(Bun.env, value.env, {
+    PATH: `${value.root}/bin:${environment.PATH}`,
+    LUNA_TEST_OPEN_LOG: log,
+  });
   const appId = `luna-webapp-${Buffer.from("Fixture").toString("hex")}`;
-  await Bun.write(`${value.root}/data/luna/webapps/${appId}/app.jsonc`, JSON.stringify({ id: appId, name: "Fixture", url: internalUrl }));
+  await Bun.write(
+    `${value.root}/data/luna/webapps/${appId}/app.jsonc`,
+    JSON.stringify({ id: appId, name: "Fixture", url: internalUrl }),
+  );
   run([Bun.which("bun")!, createScript], { env: { ...Bun.env } });
   let browser: ReturnType<typeof startBrowser> | undefined;
   async function waitFor(check: () => Promise<boolean>) {
     const deadline = Date.now() + 8000;
-    while (Date.now() < deadline) { if (await check()) return; await Bun.sleep(40); }
-    throw new Error("Browser routing timed out: " + JSON.stringify(await browser?.call("Target.getTargets")));
+    while (Date.now() < deadline) {
+      if (await check()) return;
+      await Bun.sleep(40);
+    }
+    throw new Error(
+      "Browser routing timed out: " + JSON.stringify(await browser?.call("Target.getTargets")),
+    );
+  }
+  async function evaluate(session: string, expression: string) {
+    const result = await browser!.call(
+      "Runtime.evaluate",
+      { expression, returnByValue: true },
+      session,
+    );
+    if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
+    return result.result.value;
+  }
+  async function page(url: string) {
+    const { targetId } = await browser!.call("Target.createTarget", { url });
+    const { sessionId } = await browser!.call("Target.attachToTarget", { targetId, flatten: true });
+    await waitFor(
+      async () =>
+        (await evaluate(sessionId, "document.readyState")) === "complete" &&
+        (await evaluate(sessionId, "location.href")) === url,
+    );
+    return sessionId;
+  }
+  async function appPage() {
+    const session = await page(internalUrl);
+    const contexts: number[] = [];
+    const unsubscribe = browser!.onEvent((event) => {
+      if (
+        event.sessionId === session &&
+        event.method === "Runtime.executionContextCreated" &&
+        !event.params.context.auxData?.isDefault
+      )
+        contexts.push(event.params.context.id);
+    });
+    try {
+      await browser!.call("Runtime.enable", {}, session);
+      // Inspect the isolated extension world; main-world listeners exclude it.
+      await waitFor(async () => {
+        for (const contextId of contexts) {
+          const { result } = await browser!.call(
+            "Runtime.evaluate",
+            {
+              expression: "getEventListeners(window).click?.length || 0",
+              contextId,
+              includeCommandLineAPI: true,
+              returnByValue: true,
+            },
+            session,
+          );
+          if (result.value > 0) return true;
+        }
+        return false;
+      });
+    } finally {
+      unsubscribe();
+    }
+    return session;
+  }
+  async function click(session: string, id: string, button = "left", modifiers = 0) {
+    const rect = await evaluate(
+      session,
+      `(() => { const r = document.getElementById(${JSON.stringify(id)}).getBoundingClientRect(); return { x:r.x+r.width/2, y:r.y+r.height/2 }; })()`,
+    );
+    await browser!.call(
+      "Input.dispatchMouseEvent",
+      { type: "mousePressed", ...rect, button, modifiers, clickCount: 1 },
+      session,
+    );
+    await browser!.call(
+      "Input.dispatchMouseEvent",
+      { type: "mouseReleased", ...rect, button, modifiers, clickCount: 1 },
+      session,
+    );
   }
   try {
-    await setupProfile({ extensions: [], preferences: { extensions: { ui: { developer_mode: true } } } }, theme, async () => []);
-    browser = startBrowser(Bun.which("chromium")!, { root: value.data, directory: `${value.data}/Luna`, preferences: value.preferences, assets: `${value.data}/Luna/Luna Next` });
-    const { targetId } = await browser.call("Target.createTarget", { url: internalUrl });
-    const { sessionId } = await browser.call("Target.attachToTarget", { targetId, flatten: true });
-    await waitFor(async () => (await browser!.call("Runtime.evaluate", { expression: "document.title", returnByValue: true }, sessionId)).result.value === "Luna fixture");
-    expect(await Bun.file(`${value.root}/opened.json`).exists()).toBe(false);
-    await browser.call("Target.createTarget", { url: externalUrl });
-    await waitFor(() => Bun.file(`${value.root}/opened.json`).exists());
-    expect(await Bun.file(`${value.root}/opened.json`).json()).toEqual(["open", externalUrl]);
-    expect(externalRequests).toBe(0);
-    await browser.call("Page.navigate", { url: externalUrl }, sessionId);
-    await waitFor(async () => (await browser!.call("Runtime.evaluate", { expression: "location.href", returnByValue: true }, sessionId)).result.value === internalUrl);
-    expect(externalRequests).toBe(0);
+    await setupProfile(
+      { extensions: [], preferences: { extensions: { ui: { developer_mode: true } } } },
+      theme,
+      async () => [],
+    );
+    browser = startBrowser(Bun.which("chromium")!, {
+      root: value.data,
+      directory: `${value.data}/Luna`,
+      preferences: value.preferences,
+      assets: `${value.data}/Luna/Luna Next`,
+    });
+    const ordinary = await page(externalUrl);
+    expect(externalRequests).toBeGreaterThan(0);
+    expect(await Bun.file(log).exists()).toBe(false);
+    // Even on an app tab, an address-bar navigation must remain in Chromium.
+    const typed = await appPage();
+    await browser.call("Page.navigate", { url: externalUrl }, typed);
+    await waitFor(async () => (await evaluate(typed, "document.title")) === "Ordinary page");
+    expect(await Bun.file(log).exists()).toBe(false);
+    // A page on the same host but a different port is not the installed app.
+    await evaluate(
+      ordinary,
+      `document.getElementById('link').href = ${JSON.stringify(externalUrl + "2")}`,
+    );
+    await click(ordinary, "link");
+    await waitFor(async () => (await evaluate(ordinary, "location.href")) === externalUrl + "2");
+    expect(await Bun.file(log).exists()).toBe(false);
+    const app = await appPage();
+    const before = externalRequests;
+    const targetsBefore = (await browser.call("Target.getTargets")).targetInfos.length;
+    await click(app, "link");
+    await waitFor(() => Bun.file(log).exists());
+    expect(await Bun.file(log).json()).toEqual(["open", externalUrl]);
+    await waitFor(async () => (await evaluate(app, "location.href")) === internalUrl);
+    expect(externalRequests).toBe(before);
+    expect((await browser.call("Target.getTargets")).targetInfos.length).toBe(targetsBefore);
+    // New tabs, modifier clicks, middle clicks and keyboard activation also route.
+    for (const mode of ["blank", "ctrl", "middle", "keyboard"]) {
+      const session = await appPage();
+      const count = (await browser.call("Target.getTargets")).targetInfos.length;
+      run(["unlink", log]);
+      if (mode === "blank")
+        await evaluate(session, "document.getElementById('link').target = '_blank'");
+      if (mode === "keyboard") {
+        await evaluate(session, "document.getElementById('link').focus()");
+        await browser.call(
+          "Input.dispatchKeyEvent",
+          { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 },
+          session,
+        );
+        await browser.call(
+          "Input.dispatchKeyEvent",
+          { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 },
+          session,
+        );
+      } else
+        await click(
+          session,
+          "link",
+          mode === "middle" ? "middle" : "left",
+          mode === "ctrl" ? 2 : 0,
+        );
+      await waitFor(() => Bun.file(log).exists());
+      expect(await Bun.file(log).json()).toEqual(["open", externalUrl]);
+      expect(externalRequests).toBe(before);
+      expect((await browser.call("Target.getTargets")).targetInfos.length).toBe(count);
+    }
+    run(["unlink", log]);
+    const inside = await appPage();
+    await click(inside, "internal");
+    await waitFor(async () => (await evaluate(inside, "location.pathname")) === "/inside");
+    expect(await Bun.file(log).exists()).toBe(false);
+    const post = await appPage();
+    await evaluate(post, "document.querySelector('form').submit()");
+    await waitFor(async () => (await evaluate(post, "document.title")) === "Ordinary page");
+    expect(await Bun.file(log).exists()).toBe(false);
+    const failed = await appPage();
+    await Bun.write(log + ".fail", "fail");
+    await click(failed, "link");
+    let errorTab: { targetId: string; url: string } | undefined;
+    await waitFor(async () => {
+      errorTab = (await browser!.call("Target.getTargets")).targetInfos.find(
+        (target: { url: string }) => target.url.includes("/open.html?"),
+      );
+      return Boolean(errorTab);
+    });
+    expect(await evaluate(failed, "location.href")).toBe(internalUrl);
+    const { sessionId: retrySession } = await browser.call("Target.attachToTarget", {
+      targetId: errorTab!.targetId,
+      flatten: true,
+    });
+    await waitFor(
+      async () =>
+        (await evaluate(retrySession, "document.getElementById('retry')?.hidden")) === false,
+    );
+    expect(await evaluate(retrySession, "document.getElementById('status').textContent")).toContain(
+      "Fixture opener failure",
+    );
+    run(["unlink", log + ".fail"]);
+    await click(retrySession, "retry");
+    await waitFor(() => Bun.file(log).exists());
+    await waitFor(
+      async () =>
+        !(await browser!.call("Target.getTargets")).targetInfos.some(
+          (target: { targetId: string }) => target.targetId === errorTab!.targetId,
+        ),
+    );
+    expect(await Bun.file(log).json()).toEqual(["open", externalUrl]);
   } finally {
-    await browser?.close(); internal.stop(true); external.stop(true);
+    await browser?.close();
+    internal.stop(true);
+    external.stop(true);
   }
-}, 30_000);
+}, 60_000);

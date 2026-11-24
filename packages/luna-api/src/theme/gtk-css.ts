@@ -42,12 +42,7 @@ ${Object.entries(named)
   -gtk-icon-palette: error @error_color, warning @warning_color, success @success_color;
 }
 .monospace, .monospace * { font-family: "${monoFont}"; }
-/* Keep GTK's more specific grouped-control and circular-control corner rules. */
-button, entry, menuitem, modelbutton.flat, .menuitem.button.flat,
-menu, .menu, .context-menu, .csd menu, .csd .menu, .csd .context-menu,
-popover.background, .csd popover.background, tooltip, tooltip.background {
-  border-radius: ${theme.appearance.rounding}px;
-}
+/* Adwaita owns widget spacing, grouped controls and corner geometry. */
 window, .background, window:backdrop, .background:backdrop {
   color: @theme_fg_color;
   background-color: @theme_bg_color;
@@ -135,6 +130,28 @@ button:focus, checkbutton:focus, radiobutton:focus, switch:focus, scale:focus {
 }
 entry.error, entry.error:focus { border-color: ${c.error}; }
 entry.warning, entry.warning:focus { border-color: ${c.warning}; }
+/* GTK's file chooser has local sidebar/backdrop colors outside its generic views. */
+.sidebar, .sidebar:backdrop, .sidebar list, .sidebar list:backdrop,
+filechooser #pathbarbox, filechooser #pathbarbox:backdrop,
+filechooser .dialog-action-box, filechooser .dialog-action-box:backdrop {
+  color: @theme_fg_color;
+  background-color: @theme_bg_color;
+  background-image: none;
+  border-color: @borders;
+}
+placessidebar row, placessidebar row:backdrop {
+  color: @theme_fg_color;
+  background-color: transparent;
+}
+placessidebar row:hover, placessidebar row:hover:backdrop,
+placessidebar row:selected, placessidebar row:selected:backdrop,
+placessidebar row.activatable:selected:hover, placessidebar row.activatable:selected:backdrop {
+  color: @theme_selected_fg_color;
+  background-color: @theme_selected_bg_color;
+}
+placessidebar row:disabled, placessidebar row:disabled:backdrop {
+  color: @insensitive_fg_color;
+}
 selection, selection:focus, textview text selection, textview text selection:focus,
 treeview.view:selected, treeview.view:selected:focus, treeview.view:selected:backdrop,
 iconview.view:selected, row:selected, row:selected:backdrop,

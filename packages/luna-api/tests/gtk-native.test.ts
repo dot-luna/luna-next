@@ -79,6 +79,18 @@ test.skipIf(!available).each(["dark", "light"] as const)(
       image: false,
       radius: 9999,
     });
+    expect(result.button!.normal!.radius).toBeGreaterThan(0);
+    expect(result.entry!.normal!.radius).toBeGreaterThan(0);
+    for (const name of ["sidebar", "pathbar"]) {
+      for (const state of ["normal", "backdrop"])
+        expect(result[name]![state]).toMatchObject({
+          foreground: "#223344",
+          background: theme.colors.background,
+        });
+    }
+    expect(result.place!.backdrop).toMatchObject({ foreground: "#223344" });
+    for (const state of ["selected", "selected_backdrop"])
+      expect(result.place![state]).toMatchObject({ foreground: "#faf0e0", background: "#a04020" });
     for (const name of ["model", "legacy"]) {
       const styles = result[name]!;
       expect(styles.normal).toMatchObject({ foreground: "#223344", alpha: 0, image: false });

@@ -80,22 +80,9 @@ test("explicitly monospace widgets and their text nodes use the mono font", () =
   expect(css).toContain('.monospace, .monospace * { font-family: "Luna Code"; }');
 });
 
-test.each([0, 17])("GTK3 surfaces and ordinary controls accept %ipx rounding", (rounding) => {
-  const theme = resolveTheme({ appearance: { rounding } }, "rounding");
-  const css = gtkCss(theme, "dark");
-  const rule = css.match(/([^{}]+)\{\s*border-radius: (\d+)px;\s*\}/u);
-  expect(rule?.[2]).toBe(String(rounding));
-  const selectors = rule?.[1]
-    ?.replace(/\/\*.*?\*\//gsu, "")
-    .trim()
-    .split(/,\s*/u);
-  expect(selectors).toContain("button");
-  expect(selectors).toContain("entry");
-  expect(selectors).toContain("menuitem");
-  expect(selectors).toContain(".csd menu");
-  expect(selectors).toContain(".csd popover.background");
-  expect(selectors).not.toContain("*");
-  expect(selectors).not.toContain("window");
-  expect(selectors).not.toContain("radio");
-  expect(selectors).not.toContain("button.circular");
+test("GTK keeps Adwaita geometry regardless of Luna's window rounding", () => {
+  const square = gtkCss(resolveTheme({ appearance: { rounding: 0 } }, "square"), "dark");
+  const rounded = gtkCss(resolveTheme({ appearance: { rounding: 17 } }, "rounded"), "dark");
+  expect(square).toBe(rounded);
+  expect(square).not.toContain("border-radius:");
 });

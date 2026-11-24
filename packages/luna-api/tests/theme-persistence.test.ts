@@ -44,7 +44,7 @@ async function cli<T>(env: Record<string, string>, args: string[]): Promise<T> {
 test
   .skipIf(!Bun.which("gsettings") || !Bun.which("dbus-run-session"))
   .each(["dark", "light"] as const)(
-  "%s GTK colors, fonts, rounding and selection survive fresh CLI and D-Bus sessions",
+  "%s GTK colors, fonts and selection survive fresh CLI and D-Bus sessions",
   async (mode) => {
     // No inherited desktop bus, runtime directory, GTK override or mocked commands.
     const env = {
@@ -96,7 +96,7 @@ test
     expect(theme.appearance.rounding).toBe(17);
     for (const value of ["#172635", "#c78645", ...Object.values(theme.fonts)])
       expect(stylesheet).toContain(value);
-    expect(stylesheet).toMatch(/border-radius:\s*17px/u);
+    expect(stylesheet).not.toContain("border-radius:");
     expect(f.read(cssPath)).toBe(stylesheet);
     expect(f.read(f.configFile)).toBe(selection);
     expect(f.read(join(source, "theme.jsonc"))).toBe(authored);

@@ -1,0 +1,13 @@
+:root {
+  --radius: 0px;
+  --control-radius: 0px;
+}
+
+/* The first layer wins important declarations, including rounded-lg! utilities. */
+@layer theme {
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+  }
+}

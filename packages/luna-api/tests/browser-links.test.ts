@@ -43,7 +43,7 @@ test("registered and login origins stay in Luna without opening another browser"
   for (const url of ["https://web.whatsapp.com/chat", "https://accounts.google.com/login"]) {
     const result = await webappBrowserLinks.route({
       ...f,
-      request: { type: "open", url },
+      request: { type: "open", source: "https://web.whatsapp.com/chat", url },
       run: async () => {
         throw new Error("Must not spawn");
       },
@@ -59,7 +59,7 @@ test("external URL remains a literal argument and profile overrides do not escap
   const url = "https://example.com/?value=$(touch%20/tmp/no)&q=`id`#section";
   const result = await webappBrowserLinks.route({
     ...f,
-    request: { type: "open", url },
+    request: { type: "open", source: "https://web.whatsapp.com/chat", url },
     run: async ({ args, env }) => {
       calls.push(args);
       expect(env).not.toHaveProperty("BROWSER");
@@ -83,23 +83,75 @@ test("unsafe schemes, credentials, loops and helper failures are reported", asyn
     "--help",
   ])
     await expect(
-      webappBrowserLinks.route({ ...f, request: { type: "open", url } }),
+      webappBrowserLinks.route({
+        ...f,
+        request: { type: "open", source: "https://web.whatsapp.com/chat", url },
+      }),
     ).rejects.toThrow();
   await expect(
     webappBrowserLinks.route({
       ...f,
-      request: { type: "open", url: "https://example.com/" },
+      request: {
+        type: "open",
+        source: "https://web.whatsapp.com/chat",
+        url: "https://example.com/",
+      },
       run: async () => "chromium.desktop",
     }),
   ).rejects.toThrow("default browser");
   await expect(
     webappBrowserLinks.route({
       ...f,
-      request: { type: "open", url: "https://example.com/" },
+      request: {
+        type: "open",
+        source: "https://web.whatsapp.com/chat",
+        url: "https://example.com/",
+      },
       run: async ({ args }) => {
         if (args[0] === "xdg-mime") return "zen.desktop";
         throw new Error("Cannot open default browser");
       },
     }),
   ).rejects.toThrow("Cannot open");
+});
+
+test("the native host rechecks source membership and does not treat sign-in origins as apps", async () => {
+  const f = await fixture();
+  const run = async () => {
+    throw new Error("Must not spawn");
+  };
+  for (const source of [
+    "https://unrelated.test",
+    "https://accounts.google.com",
+    "http://web.whatsapp.com",
+    "https://sub.web.whatsapp.com",
+    "https://web.whatsapp.com:8443",
+  ]) {
+    expect(
+      (
+        await webappBrowserLinks.route({
+          ...f,
+          run,
+          request: { type: "open", source, url: "https://external.test" },
+        })
+      ).opened,
+    ).toBe(false);
+  }
+  await expect(
+    webappBrowserLinks.route({
+      ...f,
+      run,
+      request: { type: "open", url: "https://external.test" },
+    }),
+  ).rejects.toThrow();
+  await rm(f.config.dataDir, { recursive: true });
+  expect(
+    (
+      await webappBrowserLinks.route({
+        ...f,
+        run,
+        request: { type: "open", source: "https://web.whatsapp.com", url: "https://external.test" },
+      })
+    ).opened,
+  ).toBe(false);
 });

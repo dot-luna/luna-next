@@ -15,9 +15,10 @@ Firefox's [built-in web apps are Windows-only](https://support.mozilla.org/en-US
 [Native PWA support in Zen](https://github.com/zen-browser/desktop/discussions/14454)
 remains a feature request.
 
-Configuration also builds and installs [Better WhatsApp Web](../../packages/better-whatsapp-web/DOCS.md)
-and [Luna Browser Links](../../packages/luna-browser-links/DOCS.md) locally in the Luna
-profile. External links open in your default browser; installed web apps stay here.
+Configuration builds and installs [Luna Browser Links](../../packages/luna-browser-links/DOCS.md) locally in the Luna
+profile. External links clicked in installed web apps open in your default browser;
+manual navigation and other pages stay in Chromium. Configuration removes the retired
+Better WhatsApp Web extension.
 Run `luna configure chromium` after changing extension sources or sign-in origins.
 Configuration recovers verified stale profile locks left after Chromium exits.
 Active or unverifiable locks still require Chromium to be closed first.

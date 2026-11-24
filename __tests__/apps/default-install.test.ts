@@ -25,9 +25,10 @@ test("the default installer includes the CLI tools, Luna Menu, Luna Wallpaper, a
   }
 });
 
-test("T3 Code installs the AUR nightly binary without Luna build or theme hooks", async () => {
+test("T3 Code installs from Git with its post-configuration hook disabled", async () => {
   const file = Bun.file(new URL("t3code/app.jsonc", appsDirectory));
-  const manifest = Bun.JSONC.parse(await file.text()) as { hooks?: unknown };
-  expect(manifest).toMatchObject({ name: "t3code-nightly-bin", source: "aur" });
-  expect(manifest.hooks).toBeUndefined();
+  const manifest = Bun.JSONC.parse(await file.text()) as { hooks: Record<string, string[]> };
+  expect(manifest).toMatchObject({ name: "t3code", source: "git" });
+  expect(manifest.hooks.after_build).toEqual(["scripts/install.ts"]);
+  expect(manifest.hooks.after_configure).toBeUndefined();
 });

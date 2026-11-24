@@ -62,4 +62,25 @@ for name, widget in (("model", model), ("legacy", legacy)):
         "selected_backdrop": sample(widget, selected | backdrop),
         "disabled_selected_backdrop": sample(widget, disabled | selected | backdrop),
     }
+ordinary = Gtk.Button(label="Open")
+entry = Gtk.Entry()
+result["button"] = {"normal": sample(ordinary, normal)}
+result["entry"] = {"normal": sample(entry, normal)}
+chooser = Gtk.FileChooserWidget(action=Gtk.FileChooserAction.OPEN)
+def descendants(widget):
+    yield widget
+    if isinstance(widget, Gtk.Container):
+        for child in widget.get_children():
+            yield from descendants(child)
+sidebar = next(w for w in descendants(chooser) if isinstance(w, Gtk.PlacesSidebar))
+row = next(w for w in descendants(sidebar) if isinstance(w, Gtk.ListBoxRow))
+pathbar = next(w for w in descendants(chooser) if w.get_name() == "pathbarbox")
+for name, widget in (("sidebar", sidebar), ("place", row), ("pathbar", pathbar)):
+    result[name] = {
+        "normal": sample(widget, normal),
+        "backdrop": sample(widget, backdrop),
+        "selected": sample(widget, selected),
+        "selected_backdrop": sample(widget, selected | backdrop),
+    }
+chooser.destroy()
 print(json.dumps(result))
