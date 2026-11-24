@@ -2,7 +2,8 @@ import { realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "pathe";
 import { repositoryPath, type RepositoryOptions } from "@/lib/repository.ts";
 import { ApiError } from "@/lib/response.ts";
-import { canonicalPath, overlaps } from "@/lib/paths.ts";
+import { environment } from "@/lib/env.ts";
+import { canonicalPath, hasControlCharacters, overlaps } from "@/lib/paths.ts";
 import type { InstallLog } from "@/modules/self/install/log.ts";
 import { InstallContext } from "@/modules/self/install/command.ts";
 
@@ -25,15 +26,12 @@ export interface AppUninstallOptions extends Omit<AppOptions, "force"> {
 class AppContextResolver {
   /** Resolve and validate fresh paths and environment; never retain caller settings. */
   async resolve(options: AppOptions & { log?: InstallLog } = {}) {
-    const env: Record<string, string> = {};
-    for (const [key, value] of Object.entries(options.env ?? Bun.env))
-      if (value !== undefined) env[key] = value;
+    const env = environment(options.env);
     if (!env.HOME || !isAbsolute(env.HOME) || resolve(env.HOME) === "/")
       throw new ApiError("INVALID_PATH", "HOME must be an absolute user home");
     const repository = await realpath(repositoryPath(options));
     // Paths also appear in generated native includes.
-    // oxlint-disable-next-line no-control-regex
-    if (repository === "/" || /[\x00-\x1f\x7f]/u.test(repository))
+    if (repository === "/" || hasControlCharacters(repository))
       throw new ApiError("INVALID_PATH", "Invalid checkout path");
     const home = await realpath(env.HOME);
     if (home === "/") throw new ApiError("INVALID_PATH", "HOME must not resolve to root");
@@ -57,12 +55,7 @@ class AppContextResolver {
         /^XDG_(CONFIG|DATA|CACHE|STATE)_HOME$/u.test(key) ||
         ["MISE_DATA_DIR", "ZDOTDIR"].includes(key),
     )) {
-      if (
-        !isAbsolute(env[key]!) ||
-        resolve(env[key]!) === "/" ||
-        // oxlint-disable-next-line no-control-regex
-        /[\x00-\x1f\x7f]/u.test(env[key]!)
-      )
+      if (!isAbsolute(env[key]!) || resolve(env[key]!) === "/" || hasControlCharacters(env[key]!))
         throw new ApiError("INVALID_PATH", `${key} must be an absolute non-root path`);
       env[key] = resolve(env[key]!);
     }

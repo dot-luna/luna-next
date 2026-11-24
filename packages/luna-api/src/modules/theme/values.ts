@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "pathe";
 import { parse } from "@/lib/files.ts";
-import { ApiError } from "@/lib/response.ts";
 import { validate } from "@/lib/validation.ts";
 import { defaults, lightColors } from "./defaults.ts";
 import { themeSourceSchema, type ResolvedTheme } from "./schema.ts";
+import { valueAtKey } from "@/lib/keys.ts";
 
 /** Roles whose foreground is derived for contrast when a theme sets only the fill. */
 const foregroundRoles = [
@@ -47,15 +47,7 @@ class ThemeValues {
 
   /** Return the value at a dot-separated key, or null when any segment is absent. */
   lookup({ theme, key }: { theme: ResolvedTheme; key?: string }): unknown {
-    if (key === undefined) return theme;
-    if (key.split(".").some((part) => !part))
-      throw new ApiError("INVALID_ARGUMENT", "Theme keys use nonempty dot-separated segments");
-    let value: unknown = theme;
-    for (const part of key.split(".")) {
-      if (!value || typeof value !== "object" || !Object.hasOwn(value, part)) return null;
-      value = (value as Record<string, unknown>)[part];
-    }
-    return value;
+    return valueAtKey({ value: theme, key, label: "Theme" });
   }
 
   /** Merge objects recursively; arrays and scalars replace defaults. */

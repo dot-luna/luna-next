@@ -4,6 +4,7 @@ import { validate } from "@/lib/validation.ts";
 import { lockContext, type LockContext } from "./context.ts";
 import { lockSettingsSchema } from "./schema.ts";
 import { lockRuntime } from "./runtime.ts";
+import { valueAtKey } from "@/lib/keys.ts";
 
 class LockSettingsStore {
   /** Read and validate the JSONC file, creating `{}` when it is missing. */
@@ -17,16 +18,7 @@ class LockSettingsStore {
 
   /** Return all settings, or the value at a dot-separated key; missing keys are null. */
   async get({ context, key }: { context: LockContext; key?: string }) {
-    const value = (await this.read(context)).value;
-    if (key === undefined) return value;
-    if (!key || key.split(".").some((part) => !part))
-      throw new ApiError("INVALID_ARGUMENT", "Lock keys use nonempty dot-separated segments");
-    let result: unknown = value;
-    for (const part of key.split(".")) {
-      if (!result || typeof result !== "object" || !Object.hasOwn(result, part)) return null;
-      result = (result as Record<string, unknown>)[part];
-    }
-    return result;
+    return valueAtKey({ value: (await this.read(context)).value, key, label: "Lock" });
   }
 
   /**

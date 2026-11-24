@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/response.ts";
 import type { WallpaperContext } from "./context.ts";
 import { wallpaperRenderer } from "./runtime.ts";
 import { wallpaperSettingsSchema, type WallpaperSettings } from "./schema.ts";
+import { valueAtKey } from "@/lib/keys.ts";
 
 class WallpaperSettingsStore {
   /** Create only missing documents; reads preserve authored JSONC and omitted settings. */
@@ -14,15 +15,7 @@ class WallpaperSettingsStore {
 
   /** Read a dot-separated key; missing keys return null rather than renderer defaults. */
   lookup({ settings, key }: { settings: WallpaperSettings; key?: string }): unknown {
-    if (key === undefined) return settings;
-    if (key.split(".").some((part) => !part))
-      throw new ApiError("INVALID_ARGUMENT", "Wallpaper keys use nonempty dot-separated segments");
-    let value: unknown = settings;
-    for (const part of key.split(".")) {
-      if (!value || typeof value !== "object" || !Object.hasOwn(value, part)) return null;
-      value = (value as Record<string, unknown>)[part];
-    }
-    return value;
+    return valueAtKey({ value: settings, key, label: "Wallpaper" });
   }
 
   /**

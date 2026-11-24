@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "pathe";
 import { readDocument } from "@/lib/files.ts";
-import { ApiError } from "@/lib/response.ts";
 import { validate } from "@/lib/validation.ts";
 import { themeSelection } from "@/modules/theme/selection.ts";
 import { themeContext } from "@/modules/theme/context.ts";
 import { notifyDefaults, notifySettingsSchema, type NotifySettings } from "./schema.ts";
+import { valueAtKey } from "@/lib/keys.ts";
 
 export type NotifySnapshot = Awaited<ReturnType<NotifySettingsStore["snapshot"]>>;
 
@@ -21,18 +21,7 @@ class NotifySettingsStore {
    * Missing keys return null; empty segments fail with INVALID_ARGUMENT.
    */
   async get({ context, key }: { context: { configFile: string }; key?: string }) {
-    let value: unknown = await this.read(context);
-    if (key === undefined) return value;
-    if (!key || key.split(".").some((part) => !part))
-      throw new ApiError(
-        "INVALID_ARGUMENT",
-        "Notification keys use nonempty dot-separated segments",
-      );
-    for (const part of key.split(".")) {
-      if (!value || typeof value !== "object" || !Object.hasOwn(value, part)) return null;
-      value = (value as Record<string, unknown>)[part];
-    }
-    return value;
+    return valueAtKey({ value: await this.read(context), key, label: "Notification" });
   }
 
   /**

@@ -4,6 +4,7 @@ import { validate } from "@/lib/validation.ts";
 import { screensaverContext, type ScreensaverContext } from "./context.ts";
 import { screensaverSettingsSchema } from "./schema.ts";
 import { screensaverRuntime } from "./runtime.ts";
+import { valueAtKey } from "@/lib/keys.ts";
 
 class ScreensaverSettingsStore {
   /** Read and validate the JSONC file, creating `{}` when it is missing. */
@@ -17,19 +18,7 @@ class ScreensaverSettingsStore {
 
   /** Return all settings, or the value at a dot-separated key; missing keys are null. */
   async get({ context, key }: { context: ScreensaverContext; key?: string }) {
-    const value = (await this.read(context)).value;
-    if (key === undefined) return value;
-    if (!key || key.split(".").some((part) => !part))
-      throw new ApiError(
-        "INVALID_ARGUMENT",
-        "Screensaver keys use nonempty dot-separated segments",
-      );
-    let result: unknown = value;
-    for (const part of key.split(".")) {
-      if (!result || typeof result !== "object" || !Object.hasOwn(result, part)) return null;
-      result = (result as Record<string, unknown>)[part];
-    }
-    return result;
+    return valueAtKey({ value: (await this.read(context)).value, key, label: "Screensaver" });
   }
 
   /**
