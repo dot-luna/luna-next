@@ -13,6 +13,8 @@ Install the screenshot dependencies with `luna install luna-screenshot`.
 
 The [app manifest](app.jsonc) exports `config/` to `$LUNA_CONFIG_HOME_DIR/hypr/`
 and includes Luna's entry in the user's Hyprland configuration before personal overrides.
+Swipe bindings stay in that native configuration so Luna does not duplicate
+Hyprland's generated three-finger workspace gesture.
 
 Colors, gaps, borders, rounding, opacity, blur, and shadows come from
 `luna theme hyprland` on startup/reload, including Luna's defaults when no theme is

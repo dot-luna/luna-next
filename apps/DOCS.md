@@ -1,6 +1,6 @@
 # App manifests
 
-Each `app.jsonc` accepts `enabled`, currently `false` for every bundled app.
+Each `app.jsonc` accepts `enabled` to control its installation independently.
 Disabled apps are skipped by bulk and named `luna install` commands, including
 their dependencies and hooks. Set an app to `true` to install it; omission also
 means enabled. A disabled Yay provider cannot be installed implicitly for an AUR app.

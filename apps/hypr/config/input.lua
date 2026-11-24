@@ -25,5 +25,5 @@ hl.config({
     gestures = { workspace_swipe_create_new = false, workspace_swipe_use_r = false },
 })
 
--- Swipe left or right with three fingers to switch workspaces using the limits above.
-hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+-- Keep gesture bindings in the native Hyprland config. Its generated default already
+-- declares the three-finger workspace swipe; registering it here would shadow it.
