@@ -23,9 +23,8 @@ commits. They never reset or autostash changes.
   rebuild/publish the CLI, configure Git, then install `after_cli` packages,
   the mise list, themes and their packages, apps in catalog order, later packages,
   web apps, and application defaults. A direct invocation also upgrades system packages before
-  installing dependencies. `install.sh` passes `--from-bootstrap` to skip the
-  repeated checkout update, system upgrade, and CLI build/publication; shared
-  package stages and Git configuration still run.
+  installing dependencies. `install.sh` installs only the CLI and prints a command
+  for starting this setup manually.
 - `luna self update`: update the checkout, build the CLI, run pending release
   migrations, then publish the CLI. Requires mise from setup. Migrations can install,
   remove, rebuild, or reconfigure apps. Successful steps are saved; rerun the same

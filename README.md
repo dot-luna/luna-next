@@ -5,16 +5,14 @@ A Hyprland desktop setup with shared themes, app configurations, and the `luna` 
 On Arch Linux, run as your normal user with sudo access:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/dev/install.sh | bash -s -- --ref=dev
+curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/install.sh | bash -s -- --ref=master
 ```
 
 This installs Git, mise, and Bun, clones Luna into `~/.local/src/luna-next`,
 builds the CLI, and installs `luna` into `~/.local/bin`.
-After a five-second cancellation window, it runs `luna self install` with the
-same flags plus `--from-bootstrap`, skipping the checkout update and CLI rebuild.
-Cancelling prints the command to finish setup later. CLI setup installs shared
-prerequisites, configures Git, installs themes and their dependencies, then installs
-apps in catalog order, later packages, and web apps, then applies application defaults.
+Desktop setup is manual. When ready, run the command printed by the installer,
+or use `~/.local/bin/luna self install` with the default checkout. This installs
+Luna's packages, themes, and apps and applies their configuration.
 
 Use `--install-dir=PATH` for another checkout location. `--ref=latest` follows
 Git's default branch; a branch or tag name selects that ref instead.
