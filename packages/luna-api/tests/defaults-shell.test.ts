@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { realpathSync, symlinkSync } from "node:fs";
 import { join } from "pathe";
-import { currentShell, prepareShell } from "../src/modules/defaults/shell.ts";
+import { loginShell } from "../src/modules/defaults/shell.ts";
 import type { InstallContext } from "../src/modules/self/install/command.ts";
 import { DefaultsNativeFixture } from "./fixtures/defaults-native-fixture.ts";
 
@@ -32,20 +32,27 @@ test("shell selection resolves links, reads the account shell, and only changes 
       };
     },
   };
-  const selected = await prepareShell(context, "shell-alias", { uid: 123, shellsFile: shells });
+  const selected = await loginShell.prepare({
+    context,
+    value: "shell-alias",
+    uid: 123,
+    shellsFile: shells,
+  });
   expect(selected.selected).toBe(realpathSync(shell));
   expect(calls).toEqual([["getent", "passwd", "123"]]);
   await selected.apply();
   expect(calls.at(-1)).toEqual(["sudo", "chsh", "--shell", shell, "--", "fixture"]);
   calls.length = 0;
   current = alias;
-  await (await prepareShell(context, "selected-shell", { uid: 123, shellsFile: shells })).apply();
+  await (
+    await loginShell.prepare({ context, value: "selected-shell", uid: 123, shellsFile: shells })
+  ).apply();
   expect(calls).toEqual([["getent", "passwd", "123"]]);
-  expect((await currentShell(context, 123)).shell).toBe(shell);
+  expect((await loginShell.current({ context, uid: 123 })).shell).toBe(shell);
   f.write(shells, current + "-not-registered\n");
   current = join(f.bin, "old-shell");
   await expect(
-    prepareShell(context, "selected-shell", { uid: 123, shellsFile: shells }),
+    loginShell.prepare({ context, value: "selected-shell", uid: 123, shellsFile: shells }),
   ).rejects.toThrow("/etc/shells");
   expect(calls.filter((args) => args[0] === "sudo")).toHaveLength(0);
 });
@@ -61,9 +68,11 @@ test("malformed accounts and root selection never run chsh", async () => {
       return { exitCode: 0, stderr: "", stdout };
     },
   };
-  await expect(prepareShell(context, "selected-shell", { uid: 123 })).rejects.toThrow("account");
+  await expect(loginShell.prepare({ context, value: "selected-shell", uid: 123 })).rejects.toThrow(
+    "account",
+  );
   stdout = "root:x:0:0::/root:/bin/sh";
-  await expect(prepareShell(context, "selected-shell", { uid: 0 })).rejects.toThrow(
+  await expect(loginShell.prepare({ context, value: "selected-shell", uid: 0 })).rejects.toThrow(
     "normal Linux user",
   );
   expect(calls.every((args) => args[0] === "getent")).toBe(true);

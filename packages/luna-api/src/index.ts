@@ -61,7 +61,7 @@ export type {
 } from "./modules/wallpaper/context.ts";
 export type { WallpaperSettings } from "./modules/wallpaper/schema.ts";
 
-export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./modules/defaults/types.ts";
+export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./modules/defaults/context.ts";
 
 export type { MenuOptions, MenuState, StayAwakeState } from "./modules/menu/context.ts";
 export type { StayAwakeAction } from "./modules/menu/schema.ts";

@@ -1,8 +1,11 @@
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "pathe";
+import { environment } from "@/lib/env.ts";
+import { hasControlCharacters } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
 
 export type ScreenshotMode = "region" | "screen" | "window" | "all";
+
 export interface ScreenshotOptions {
   /** Replaces Bun.env for tools, the clipboard, and screenshot paths. */
   env?: Record<string, string>;
@@ -11,6 +14,7 @@ export interface ScreenshotOptions {
   /** Overrides LUNA_SCREENSHOT_DIR; relative paths use the caller's working directory. */
   directory?: string;
 }
+
 export interface ScreenshotResult {
   cancelled: boolean;
   path: string | null;
@@ -20,96 +24,56 @@ export interface ScreenshotTextOptions extends Omit<ScreenshotOptions, "director
   /** Explicit JSONC path; relative paths use the caller's working directory. */
   configFile?: string;
 }
+
 export interface ScreenshotTextResult {
   cancelled: boolean;
   /** null on cancellation, empty when no text was recognized; otherwise the copied text. */
   text: string | null;
 }
 
-export function screenshotRuntime(options: Pick<ScreenshotOptions, "env">) {
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(options.env ?? Bun.env))
-    if (value !== undefined) env[key] = value;
-  const runtime = env.XDG_RUNTIME_DIR || join(tmpdir(), `luna-${process.getuid?.() ?? "user"}`);
-  if (!isAbsolute(runtime) || runtime === "/")
-    throw new ApiError("INVALID_PATH", "XDG_RUNTIME_DIR must be an absolute non-root path");
-  return { env, runtime: join(runtime, "luna-screenshot") };
+export interface ScreenshotContext {
+  env: Record<string, string>;
+  /** Per-user directory for the capture lock and transient files. */
+  runtime: string;
 }
-export type ScreenshotContext = ReturnType<typeof screenshotRuntime>;
 
-export function screenshotContext(options: ScreenshotOptions) {
-  const context = screenshotRuntime(options);
-  const { env } = context;
-  let directory = options.directory ?? env.LUNA_SCREENSHOT_DIR;
-  if (directory === undefined) {
-    if (!env.HOME || !isAbsolute(env.HOME))
-      throw new ApiError("INVALID_PATH", "Set HOME or a screenshot directory");
-    directory = join(env.HOME, "Pictures/Screenshots");
+export interface ScreenshotCaptureContext extends ScreenshotContext {
+  /** Absolute destination for saved screenshots. */
+  directory: string;
+}
+
+class ScreenshotContextResolver {
+  /** Resolve the environment and runtime directory shared by captures and text extraction. */
+  runtime(options: Pick<ScreenshotOptions, "env">): ScreenshotContext {
+    const env = environment(options.env);
+    const runtime = env.XDG_RUNTIME_DIR || join(tmpdir(), `luna-${process.getuid?.() ?? "user"}`);
+    if (!isAbsolute(runtime) || runtime === "/")
+      throw new ApiError("INVALID_PATH", "XDG_RUNTIME_DIR must be an absolute non-root path");
+    return { env, runtime: join(runtime, "luna-screenshot") };
   }
-  if (directory === "~" || directory.startsWith("~/")) {
-    if (!env.HOME || !isAbsolute(env.HOME))
-      throw new ApiError("INVALID_PATH", "Set HOME to expand the screenshot directory");
-    directory = env.HOME + directory.slice(1);
-  }
-  // oxlint-disable-next-line no-control-regex
-  if (!directory || /[\x00-\x1f\x7f]/u.test(directory) || resolve(directory) === "/")
-    throw new ApiError("INVALID_PATH", "Use a nonempty screenshot directory other than root");
-  return { ...context, directory: resolve(directory) };
-}
 
-/** Capture tool diagnostics without a shell; zero timeout allows interactive selection. */
-export async function command(context: ScreenshotContext, args: string[], timeout = 10_000) {
-  const executable = Bun.which(args[0]!, { PATH: context.env.PATH ?? "" });
-  if (!executable)
-    throw new ApiError("COMMAND_FAILED", `Install ${args[0]} before taking a screenshot`);
-  const child = Bun.spawn([executable, ...args.slice(1)], {
-    env: context.env,
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-    ...(timeout > 0 ? { timeout } : {}),
-  });
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  return { stdout: stdout.trim(), stderr: stderr.trim(), code };
-}
-
-export async function checked(context: ScreenshotContext, args: string[], timeout?: number) {
-  const result = await command(context, args, timeout);
-  if (result.code !== 0)
-    throw new ApiError("COMMAND_FAILED", `${args[0]} failed (${result.code}): ${result.stderr}`);
-  return result.stdout;
-}
-
-/** Notification availability never changes the capture result. */
-export async function notify(
-  context: ScreenshotContext,
-  title: string,
-  body: string,
-  path?: string,
-) {
-  const env = { ...context.env };
-  delete env.LD_LIBRARY_PATH;
-  delete env.LD_PRELOAD;
-  try {
-    await command(
-      { ...context, env },
-      [
-        "notify-send",
-        "--app-name=Luna Screenshot",
-        "--icon=video-display",
-        "--urgency=normal",
-        ...(path ? [`--hint=string:image-path:${path}`] : []),
-        "--",
-        title,
-        body,
-      ],
-      3000,
-    );
-  } catch {
-    /* Notification feedback is optional. */
+  /**
+   * Add the save directory: directory, then LUNA_SCREENSHOT_DIR, then ~/Pictures/Screenshots.
+   * A leading `~` expands to HOME; root and control characters fail with INVALID_PATH.
+   */
+  resolve(options: ScreenshotOptions): ScreenshotCaptureContext {
+    const context = this.runtime(options);
+    const { env } = context;
+    let directory = options.directory ?? env.LUNA_SCREENSHOT_DIR;
+    if (directory === undefined) {
+      if (!env.HOME || !isAbsolute(env.HOME))
+        throw new ApiError("INVALID_PATH", "Set HOME or a screenshot directory");
+      directory = join(env.HOME, "Pictures/Screenshots");
+    }
+    if (directory === "~" || directory.startsWith("~/")) {
+      if (!env.HOME || !isAbsolute(env.HOME))
+        throw new ApiError("INVALID_PATH", "Set HOME to expand the screenshot directory");
+      directory = env.HOME + directory.slice(1);
+    }
+    if (!directory || hasControlCharacters(directory) || resolve(directory) === "/")
+      throw new ApiError("INVALID_PATH", "Use a nonempty screenshot directory other than root");
+    return { ...context, directory: resolve(directory) };
   }
 }
+
+export const screenshotContext = new ScreenshotContextResolver();

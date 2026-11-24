@@ -2,7 +2,7 @@ import { join } from "pathe";
 import { appCatalog } from "@/modules/apps/catalog.ts";
 import { appContext } from "@/modules/apps/context.ts";
 import { appInstaller } from "@/modules/apps/install.ts";
-import { applyDefaults, readDefaults } from "@/modules/defaults/index.ts";
+import { defaultsManifest } from "@/modules/defaults/manifest.ts";
 import type { InstallOptions } from "./context.ts";
 import { cliBuilder } from "./install/build.ts";
 import { selfCheckout } from "./install/checkout.ts";
@@ -88,7 +88,7 @@ class SelfInstaller {
             retry: `${installReport.quote(executable)} defaults reset --install-dir ${installReport.quote(repository)}`,
             skipFailed: options.skipFailed ?? false,
             failed,
-            operation: () => applyDefaults(appsContext),
+            operation: () => defaultsManifest.apply({ context: appsContext }),
           });
           const result = {
             repository,
@@ -128,7 +128,7 @@ class SelfInstaller {
       }),
     );
     await bundledWebapps.read(context);
-    await readDefaults(context);
+    await defaultsManifest.read({ context });
     return packages;
   }
 }

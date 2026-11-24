@@ -48,6 +48,7 @@ export const notifySettingsSchema = z.looseObject({
 });
 export type NotifySettings = z.infer<typeof notifySettingsSchema>;
 
+/** Rendering defaults; merged over source settings only in memory. */
 export const notifyDefaults = {
   timeout_ms: 5000,
   appearance: {
@@ -91,16 +92,3 @@ export const notifyDefaults = {
     },
   },
 };
-
-export function resolveNotifySettings(source: NotifySettings) {
-  return {
-    timeout_ms: source.timeout_ms ?? notifyDefaults.timeout_ms,
-    appearance: { ...notifyDefaults.appearance, ...source.appearance },
-    stack: { ...notifyDefaults.stack, ...source.stack },
-    priority: {
-      low: { ...notifyDefaults.priority.low, ...source.priority?.low },
-      normal: { ...notifyDefaults.priority.normal, ...source.priority?.normal },
-      critical: { ...notifyDefaults.priority.critical, ...source.priority?.critical },
-    },
-  };
-}

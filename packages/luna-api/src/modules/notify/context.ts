@@ -1,6 +1,9 @@
 import { realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "pathe";
+import { environment, lunaConfigHome } from "@/lib/env.ts";
 import { metadata } from "@/lib/files.ts";
+import { hasControlCharacters } from "@/lib/paths.ts";
+import { quickshell, type QuickshellContext } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
 
 export interface NotifyOptions {
@@ -11,84 +14,61 @@ export interface NotifyOptions {
   /** Replaces Bun.env for runtime paths, theme selection, and child processes. */
   env?: Record<string, string>;
 }
+
 export interface NotifyState {
   running: boolean;
   shellDirectory: string;
   configFile: string;
 }
 
-export function notifySettingsContext(options: NotifyOptions = {}) {
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(options.env ?? Bun.env))
-    if (value !== undefined) env[key] = value;
-  const config =
-    env.LUNA_CONFIG_HOME_DIR ||
-    (env.XDG_CONFIG_HOME
-      ? join(env.XDG_CONFIG_HOME, "luna")
-      : env.HOME
-        ? join(env.HOME, ".config/luna")
-        : undefined);
-  if (config && !isAbsolute(config))
-    throw new ApiError("INVALID_PATH", "Notification configuration home must be absolute");
-  const file =
-    options.configFile ??
-    (env.LUNA_NOTIFY_CONFIG || (config ? join(config, "notify.jsonc") : undefined));
-  // oxlint-disable-next-line no-control-regex
-  if (!file || /[\x00-\x1f\x7f]/u.test(file) || resolve(file) === "/")
-    throw new ApiError("INVALID_PATH", "Set a nonempty notification config file or HOME");
-  return { env, config, configFile: resolve(file) };
+/** Enough to read settings; it does not require Quickshell or an installed shell. */
+export interface NotifySettingsContext {
+  env: Record<string, string>;
+  configHome: string | undefined;
+  configFile: string;
 }
 
-export async function notifyContext(options: NotifyOptions) {
-  const { env, config, configFile } = notifySettingsContext(options);
-  const shell = options.repository
-    ? join(options.repository, "src/luna-notify/src/shell")
-    : config
-      ? join(config, "notify")
-      : undefined;
-  // oxlint-disable-next-line no-control-regex
-  if (!shell || !isAbsolute(shell) || /[\x00-\x1f\x7f]/u.test(shell))
-    throw new ApiError(
-      "INVALID_PATH",
-      "Notifications require an absolute configuration or checkout path",
-    );
-  if (!(await metadata(join(shell, "shell.qml")))?.isFile())
-    throw new ApiError("INVALID_PATH", `Notify shell is missing: ${shell}`);
-  const executable =
-    Bun.which("qs", { PATH: env.PATH }) ?? Bun.which("quickshell", { PATH: env.PATH });
-  if (!executable)
-    throw new ApiError("COMMAND_FAILED", "Install Quickshell to use Luna notifications");
-  return { env, executable, configFile, shellDirectory: await realpath(shell) };
+/** A Quickshell context scoped to the notify shell; `configFile` is absolute. */
+export interface NotifyContext extends QuickshellContext {
+  configFile: string;
 }
 
-export type NotifyContext = Awaited<ReturnType<typeof notifyContext>>;
+class NotifyContextResolver {
+  /** Resolve the settings file: configFile, then LUNA_NOTIFY_CONFIG, then notify.jsonc in Luna's config home. */
+  settings(options: NotifyOptions = {}): NotifySettingsContext {
+    const env = environment(options.env);
+    const configHome = lunaConfigHome(env);
+    if (configHome && !isAbsolute(configHome))
+      throw new ApiError("INVALID_PATH", "Notification configuration home must be absolute");
+    const file =
+      options.configFile ??
+      (env.LUNA_NOTIFY_CONFIG || (configHome ? join(configHome, "notify.jsonc") : undefined));
+    if (!file || hasControlCharacters(file) || resolve(file) === "/")
+      throw new ApiError("INVALID_PATH", "Set a nonempty notification config file or HOME");
+    return { env, configHome, configFile: resolve(file) };
+  }
 
-/** Config-scoped commands cannot control a different Quickshell application. */
-export async function command(context: NotifyContext, args: string[], allowFailure = false) {
-  const child = Bun.spawn([context.executable, ...args], {
-    env: context.env,
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-    timeout: 5000,
-  });
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  if (code !== 0 && !allowFailure)
-    throw new ApiError(
-      "COMMAND_FAILED",
-      `Notify command failed (${code}): ${(stderr || stdout).trim()}`,
-    );
-  return { code, stdout: stdout.trim(), stderr: stderr.trim() };
+  /**
+   * Resolve the shell from the checkout or the installed copy, then find Quickshell.
+   * Fails with INVALID_PATH when shell.qml is missing and COMMAND_FAILED without Quickshell.
+   */
+  async resolve(options: NotifyOptions = {}): Promise<NotifyContext> {
+    const { env, configHome, configFile } = this.settings(options);
+    const shell = options.repository
+      ? join(options.repository, "src/luna-notify/src/shell")
+      : configHome
+        ? join(configHome, "notify")
+        : undefined;
+    if (!shell || !isAbsolute(shell) || hasControlCharacters(shell))
+      throw new ApiError(
+        "INVALID_PATH",
+        "Notifications require an absolute configuration or checkout path",
+      );
+    if (!(await metadata(join(shell, "shell.qml")))?.isFile())
+      throw new ApiError("INVALID_PATH", `Notify shell is missing: ${shell}`);
+    const executable = quickshell.executable({ env, feature: "Luna notifications" });
+    return { env, executable, configFile, shellDirectory: await realpath(shell) };
+  }
 }
 
-export function ipc(context: NotifyContext, method: string, allowFailure = false) {
-  return command(
-    context,
-    ["ipc", "-p", context.shellDirectory, "call", "--", "notify", method],
-    allowFailure,
-  );
-}
+export const notifyContext = new NotifyContextResolver();

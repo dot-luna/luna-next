@@ -1,5 +1,6 @@
 import type { RepositoryOptions } from "@/lib/repository.ts";
 
+/** Defaults operations resolve their environment through the apps context. */
 export interface DefaultsOptions extends RepositoryOptions {
   /** Defaults manifest; otherwise installs/defaults.jsonc in the selected checkout. */
   configFile?: string;

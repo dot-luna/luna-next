@@ -1,30 +1,35 @@
 import { isAbsolute, join, resolve } from "pathe";
+import { lunaConfigHome } from "@/lib/env.ts";
 import { readDocument } from "@/lib/files.ts";
+import { hasControlCharacters } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
-import type { ScreenshotContext, ScreenshotTextOptions } from "./context.ts";
+import type { ScreenshotContext } from "./context.ts";
 import { screenshotSettingsSchema } from "./schema.ts";
 
-export async function textSettings(context: ScreenshotContext, options: ScreenshotTextOptions) {
-  const { env } = context;
-  const home =
-    env.LUNA_CONFIG_HOME_DIR ||
-    (env.XDG_CONFIG_HOME
-      ? join(env.XDG_CONFIG_HOME, "luna")
-      : env.HOME
-        ? join(env.HOME, ".config/luna")
-        : undefined);
-  if (home && !isAbsolute(home))
-    throw new ApiError("INVALID_PATH", "Screenshot configuration home must be absolute");
-  const file = options.configFile ?? (home ? join(home, "screenshot.jsonc") : undefined);
-  // oxlint-disable-next-line no-control-regex
-  if (!file || /[\x00-\x1f\x7f]/u.test(file) || resolve(file) === "/")
-    throw new ApiError("INVALID_PATH", "Set a screenshot config file or HOME");
-  const document = await readDocument(resolve(file));
-  const parsed = screenshotSettingsSchema.safeParse(document.value);
-  if (!parsed.success)
-    throw new ApiError("INVALID_METADATA", `Invalid screenshot settings: ${parsed.error.message}`);
-  return {
-    layout: parsed.data.text?.layout ?? "block",
-    preserve_spaces: parsed.data.text?.preserve_spaces ?? false,
-  };
+class ScreenshotSettings {
+  /**
+   * Read OCR settings from configFile or screenshot.jsonc in Luna's config home, creating an
+   * empty file when missing. Defaults are applied in memory only.
+   */
+  async text({ context, configFile }: { context: ScreenshotContext; configFile?: string }) {
+    const home = lunaConfigHome(context.env);
+    if (home && !isAbsolute(home))
+      throw new ApiError("INVALID_PATH", "Screenshot configuration home must be absolute");
+    const file = configFile ?? (home ? join(home, "screenshot.jsonc") : undefined);
+    if (!file || hasControlCharacters(file) || resolve(file) === "/")
+      throw new ApiError("INVALID_PATH", "Set a screenshot config file or HOME");
+    const document = await readDocument(resolve(file));
+    const parsed = screenshotSettingsSchema.safeParse(document.value);
+    if (!parsed.success)
+      throw new ApiError(
+        "INVALID_METADATA",
+        `Invalid screenshot settings: ${parsed.error.message}`,
+      );
+    return {
+      layout: parsed.data.text?.layout ?? "block",
+      preserve_spaces: parsed.data.text?.preserve_spaces ?? false,
+    };
+  }
 }
+
+export const screenshotSettings = new ScreenshotSettings();
