@@ -13,7 +13,7 @@
     "before_build": ["scripts/prepare-build.ts"],
     "build": ["scripts/build.ts"],
     "after_build": ["scripts/install.ts"],
-    // "after_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/configure.ts"],
   },
   "cleanup": {
     "uninstall": [
