@@ -1,3 +1,4 @@
+import { capture } from "@/lib/process.ts";
 import { webapp } from "./index.ts";
 import { browserLinkRequestSchema, type BrowserLinkConfig } from "./schema.ts";
 
@@ -28,14 +29,9 @@ class WebappBrowserLinks {
 
   /** Run literal arguments without a shell; report command failures with their diagnostics. */
   private async _runCommand({ args, env }: BrowserLinkCommandOptions) {
-    const child = Bun.spawn(args, { env, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-    const [code, output, error] = await Promise.all([
-      child.exited,
-      new Response(child.stdout).text(),
-      new Response(child.stderr).text(),
-    ]);
-    if (code !== 0) throw new Error(error.trim() || `${args[0]} failed (${code})`);
-    return output.trim();
+    const { code, stdout, stderr } = await capture({ args, env });
+    if (code !== 0) throw new Error(stderr.trim() || `${args[0]} failed (${code})`);
+    return stdout.trim();
   }
 
   /**

@@ -5,8 +5,14 @@ import { desktopArgument } from "@/lib/desktop.ts";
 import { locked, metadata, parse, readOptional, writeFile } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
 import { iconExtensions, webappIcon } from "./icon.ts";
-import { webappLauncher, type WebappLaunchOptions } from "./launch.ts";
-import { webappContext, type WebappContext, type WebappOptions } from "./context.ts";
+import { webappLauncher } from "./launch.ts";
+import {
+  webappContext,
+  type WebappContext,
+  type WebappInstallOptions,
+  type WebappLaunchOptions,
+  type WebappOptions,
+} from "./context.ts";
 import {
   webappLaunchSettingsSchema,
   webappNameSchema,
@@ -16,13 +22,8 @@ import {
   type WebappRecord,
 } from "./schema.ts";
 
-export interface WebappInstallOptions extends WebappOptions {
-  /** Local file or direct HTTP(S) image URL; omit to discover the website's icon. */
-  icon?: string;
-}
-
 /** Manage web app exports; resolve options per call so the shared instance holds no user state. */
-export class Webapp {
+class Webapp {
   /** Encode a validated name as a stable directory and desktop-entry ID, preserving case. */
   private _createAppId(name: string) {
     return `luna-webapp-${Buffer.from(name, "utf8").toString("hex")}`;
@@ -43,7 +44,10 @@ export class Webapp {
           pathMetadata &&
           (pathMetadata.isSymbolicLink() || (!pathMetadata.isFile() && !pathMetadata.isDirectory()))
         )
-          throw new ApiError("INVALID_PATH", `Web app exports must be ordinary paths: ${ancestorPath}`);
+          throw new ApiError(
+            "INVALID_PATH",
+            `Web app exports must be ordinary paths: ${ancestorPath}`,
+          );
       }
     }
   }
@@ -53,7 +57,15 @@ export class Webapp {
    * Require the saved name and ID to match the directory. Missing apps raise
    * INVALID_ARGUMENT; malformed or mismatched metadata raises INVALID_METADATA.
    */
-  private async _readInstalledApp(context: WebappContext, nameOrId: string, isAppId = false) {
+  private async _readInstalledApp({
+    context,
+    nameOrId,
+    isAppId = false,
+  }: {
+    context: WebappContext;
+    nameOrId: string;
+    isAppId?: boolean;
+  }) {
     const appId = isAppId
       ? nameOrId
       : this._createAppId(validate(webappNameSchema, nameOrId, "Web app name"));
@@ -79,7 +91,9 @@ export class Webapp {
       if (!directoryEntry.isDirectory() || !/^luna-webapp-[0-9a-f]+$/u.test(directoryEntry.name))
         continue;
       if (!(await metadata(join(context.dataDir, directoryEntry.name, "app.jsonc")))) continue;
-      installedApps.push(await this._readInstalledApp(context, directoryEntry.name, true));
+      installedApps.push(
+        await this._readInstalledApp({ context, nameOrId: directoryEntry.name, isAppId: true }),
+      );
     }
     return installedApps.sort((firstApp, secondApp) => firstApp.name.localeCompare(secondApp.name));
   }
@@ -95,8 +109,13 @@ export class Webapp {
     fuzzy: boolean;
   }) {
     const exactMetadataPath = join(context.dataDir, this._createAppId(query), "app.jsonc");
-    if (!fuzzy || (await metadata(exactMetadataPath))) return this._readInstalledApp(context, query);
-    return webappLauncher.matchName({ context, query, apps: await this._listInstalledApps(context) });
+    if (!fuzzy || (await metadata(exactMetadataPath)))
+      return this._readInstalledApp({ context, nameOrId: query });
+    return webappLauncher.matchName({
+      context,
+      query,
+      apps: await this._listInstalledApps(context),
+    });
   }
 
   /**
@@ -273,12 +292,14 @@ export class Webapp {
     return respond(async () => {
       const context = webappContext.resolve(options);
       await webappContext.validateExportPaths(context);
-      const app = await this._readInstalledApp(context, name);
+      const app = await this._readInstalledApp({ context, nameOrId: name });
       const appDirectory = join(context.dataDir, app.id);
       const metadataPath = join(appDirectory, "app.jsonc");
       return locked({ configFile: metadataPath, env: context.env }, async () => {
         const desktopEntryPath = join(context.applicationsDir, `${app.id}.desktop`);
-        const iconPaths = iconExtensions.map((extension) => join(appDirectory, `icon.${extension}`));
+        const iconPaths = iconExtensions.map((extension) =>
+          join(appDirectory, `icon.${extension}`),
+        );
         await this._assertOrdinaryPaths(desktopEntryPath, ...iconPaths);
         await rm(desktopEntryPath, { force: true });
         // Keep the persistent lock inode; remove only declared app files, never profile data.
@@ -304,7 +325,6 @@ export class Webapp {
       return webappLauncher.launch({ context, app, focusExisting: settings.focusExisting });
     });
   }
-
 }
 
 export const webapp = new Webapp();

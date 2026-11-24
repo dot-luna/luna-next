@@ -85,8 +85,8 @@ export type {
 } from "./modules/theme/types.ts";
 export type { AppOptions, AppUninstallOptions } from "./modules/apps/context.ts";
 export type { WebappOptions } from "./modules/webapp/context.ts";
-export type { WebappInstallOptions } from "./modules/webapp/index.ts";
-export type { WebappLaunchOptions } from "./modules/webapp/launch.ts";
+export type { WebappInstallOptions } from "./modules/webapp/context.ts";
+export type { WebappLaunchOptions } from "./modules/webapp/context.ts";
 export type { WebappRecord } from "./modules/webapp/schema.ts";
 
 export type { AppInstallResult, InstallFailure } from "./modules/self/install/report.ts";

@@ -1,8 +1,10 @@
 import { isAbsolute, join, resolve } from "pathe";
 import { z } from "zod";
-import { ApiError } from "@/lib/response.ts";
-import { canonicalPath, overlaps } from "@/lib/paths.ts";
+import { environment } from "@/lib/env.ts";
 import { metadata } from "@/lib/files.ts";
+import { canonicalPath, hasControlCharacters, overlaps } from "@/lib/paths.ts";
+import { ApiError } from "@/lib/response.ts";
+import type { WebappLaunchSettings } from "./schema.ts";
 
 /** Override web app locations and browser selection for one operation. */
 export interface WebappOptions {
@@ -20,12 +22,18 @@ export interface WebappOptions {
   chromium?: string;
 }
 
+export interface WebappInstallOptions extends WebappOptions {
+  /** Local file or direct HTTP(S) image URL; omit to discover the website's icon. */
+  icon?: string;
+}
+
+export type WebappLaunchOptions = WebappOptions & WebappLaunchSettings;
+
 /** Resolve fresh settings per operation; the shared resolver keeps no environment or path cache. */
 class WebappContextResolver {
   /** Normalize an absolute destination, rejecting filesystem root and control characters. */
   private _resolveExportPath(path: string) {
-    // oxlint-disable-next-line no-control-regex
-    if (!isAbsolute(path) || resolve(path) === "/" || /[\x00-\x1f\x7f]/u.test(path))
+    if (!isAbsolute(path) || resolve(path) === "/" || hasControlCharacters(path))
       throw new ApiError("INVALID_PATH", "Web app paths must be absolute non-root paths");
     return resolve(path);
   }
@@ -49,9 +57,7 @@ class WebappContextResolver {
    * Operations that touch exports must also resolve filesystem aliases with validateExportPaths.
    */
   resolve(options: WebappOptions = {}) {
-    const env: Record<string, string> = {};
-    for (const [name, value] of Object.entries(options.env ?? Bun.env))
-      if (value !== undefined) env[name] = value;
+    const env = environment(options.env);
     const homeDirectory = env.HOME;
     if (!homeDirectory || !isAbsolute(homeDirectory) || resolve(homeDirectory) === "/")
       throw new ApiError("INVALID_PATH", "HOME must be an absolute user home");
@@ -69,7 +75,9 @@ class WebappContextResolver {
     const applicationsDir = this._resolveExportPath(
       options.applicationsDir || join(dataDirectory, "applications"),
     );
-    const launcher = this._resolveExportPath(options.launcher || join(homeDirectory, ".local/bin/luna"));
+    const launcher = this._resolveExportPath(
+      options.launcher || join(homeDirectory, ".local/bin/luna"),
+    );
     for (const exportPath of [dataDir, applicationsDir, launcher])
       this._assertProfileSeparation({ exportPath, profileRoot });
 

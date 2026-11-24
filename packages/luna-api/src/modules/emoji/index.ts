@@ -1,64 +1,46 @@
-import source from "./data/emoji.jsonc" with { type: "text" };
-import { ApiError, respond } from "@/lib/response.ts";
-import { validate } from "@/lib/validation.ts";
+import { respond } from "@/lib/response.ts";
+import { clipboardTools } from "@/modules/clipboard/tools.ts";
 import {
   clipboardContext,
-  command,
   type ClipboardContext,
   type ClipboardOptions,
   type ClipboardPasteOptions,
 } from "@/modules/clipboard/context.ts";
-import { copyBytes } from "@/modules/clipboard/history.ts";
-import { pasteIntoWindow, pasteTarget } from "@/modules/clipboard/paste.ts";
-import { emojiCatalogSchema, emojiSelectionSchema } from "./schema.ts";
-
-// Embed licensed data in the compiled CLI so search works offline without a checkout.
-const entries = validate(emojiCatalogSchema, Bun.JSONC.parse(source), "Emoji catalog");
-const known = new Set(entries.map((entry) => entry.emoji));
-
-function selection(values: string[]) {
-  const parsed = emojiSelectionSchema.safeParse(values);
-  if (!parsed.success || parsed.data.some((value) => !known.has(value)))
-    throw new ApiError("INVALID_ARGUMENT", "Choose between 1 and 256 emoji from the catalog");
-  return parsed.data.join("");
-}
-
-async function copyText({ context, text }: { context: ClipboardContext; text: string }) {
-  const data = Buffer.from(text);
-  await copyBytes({ context, data, mime: "text/plain;charset=utf-8" });
-  await command({ context, args: ["cliphist", "store"], input: data });
-}
+import { clipboardPaste } from "@/modules/clipboard/paste.ts";
+import { emojiCatalog } from "./catalog.ts";
 
 /** Offline Unicode search and insertion. Selection order and duplicate emoji are preserved. */
 class Emoji {
+  /** Search the bundled catalog; an empty query returns every entry. */
   list(query = "") {
-    return respond(() => {
-      const words = query.toLocaleLowerCase().trim().split(/\s+/u).filter(Boolean);
-      return entries
-        .filter((entry) => {
-          const text = `${entry.name} ${entry.keywords} ${entry.emoji}`.toLocaleLowerCase();
-          return words.every((word) => text.includes(word));
-        })
-        .map((entry) => ({ ...entry }));
-    });
+    return respond(() => emojiCatalog.search(query));
   }
+
+  /** Copy the selected emoji as one text entry and add it to clipboard history. */
   copy(values: string[], options: ClipboardOptions = {}) {
     return respond(async () => {
-      const text = selection(values);
-      await copyText({ context: clipboardContext(options), text });
+      const text = emojiCatalog.text(values);
+      await this._copyText({ context: clipboardContext.resolve(options), text });
       return { text };
     });
   }
+
   /** Copy selected Unicode sequences, then paste only if the saved window still has focus. */
   paste(values: string[], options: ClipboardPasteOptions = {}) {
     return respond(async () => {
-      const text = selection(values);
-      const context = clipboardContext(options);
-      const address = await pasteTarget({ context, target: options.target });
-      await copyText({ context, text });
-      await pasteIntoWindow({ context, address });
+      const text = emojiCatalog.text(values);
+      const context = clipboardContext.resolve(options);
+      const address = await clipboardPaste.target({ context, target: options.target });
+      await this._copyText({ context, text });
+      await clipboardPaste.intoWindow({ context, address });
       return { text, target: address };
     });
+  }
+
+  private async _copyText({ context, text }: { context: ClipboardContext; text: string }) {
+    const data = Buffer.from(text);
+    await clipboardTools.copy({ context, data, mime: "text/plain;charset=utf-8" });
+    await clipboardTools.run({ context, args: ["cliphist", "store"], input: data });
   }
 }
 
