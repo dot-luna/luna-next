@@ -1,6 +1,9 @@
 import { realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "pathe";
+import { environment, lunaConfigHome } from "@/lib/env.ts";
 import { metadata } from "@/lib/files.ts";
+import { hasControlCharacters } from "@/lib/paths.ts";
+import { quickshell, type QuickshellContext } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
 
 export interface ScreensaverOptions {
@@ -18,64 +21,69 @@ export interface ScreensaverState {
   configFile: string;
 }
 
-function path(value: string) {
-  // oxlint-disable-next-line no-control-regex
-  if (!value || /[\x00-\x1f\x7f]/u.test(value) || resolve(value) === "/")
-    throw new ApiError(
-      "INVALID_PATH",
-      "Screensaver paths must be nonempty and cannot be the filesystem root",
-    );
-  return resolve(value);
+/** Validated per-call paths; shellDirectory is undefined without HOME or a checkout. */
+export interface ScreensaverContext {
+  env: Record<string, string>;
+  configFile: string;
+  repository?: string;
+  launcher?: string;
+  shellDirectory?: string;
 }
 
-export function screensaverContext(options: ScreensaverOptions = {}) {
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(options.env ?? Bun.env))
-    if (value !== undefined) env[key] = value;
-  const configHome =
-    env.LUNA_CONFIG_HOME_DIR ||
-    (env.XDG_CONFIG_HOME
-      ? join(env.XDG_CONFIG_HOME, "luna")
-      : env.HOME
-        ? join(env.HOME, ".config/luna")
-        : undefined);
-  if (configHome && !isAbsolute(configHome))
-    throw new ApiError("INVALID_PATH", "Screensaver configuration home must be absolute");
-  const file =
-    options.configFile ??
-    (env.LUNA_SCREENSAVER_CONFIG ||
-      (configHome ? join(configHome, "screensaver.jsonc") : undefined));
-  if (!file) throw new ApiError("INVALID_PATH", "Set a screensaver config file or HOME");
-  const launcher = options.launcher ?? (env.HOME ? join(env.HOME, ".local/bin/luna") : undefined);
-  const repository = options.repository ? path(options.repository) : undefined;
-  return {
-    env,
-    configFile: path(file),
-    repository,
-    launcher: launcher ? path(launcher) : undefined,
-    shellDirectory: repository
-      ? join(repository, "src/luna-screensaver/src/shell")
-      : configHome
-        ? join(configHome, "screensaver")
-        : undefined,
-  };
+/** A screensaver context whose Quickshell executable and shell directory are resolved. */
+export interface ScreensaverRenderer extends ScreensaverContext, QuickshellContext {
+  shellDirectory: string;
 }
-export type ScreensaverContext = ReturnType<typeof screensaverContext>;
 
-export async function rendererContext(context: ScreensaverContext) {
-  if (
-    !context.shellDirectory ||
-    !(await metadata(join(context.shellDirectory, "shell.qml")))?.isFile()
-  )
-    throw new ApiError(
-      "INVALID_PATH",
-      `Screensaver shell is missing: ${context.shellDirectory ?? "set HOME or a checkout"}`,
-    );
-  const executable =
-    Bun.which("qs", { PATH: context.env.PATH }) ??
-    Bun.which("quickshell", { PATH: context.env.PATH });
-  if (!executable)
-    throw new ApiError("COMMAND_FAILED", "Install Quickshell to use Luna's screensaver");
-  return { ...context, executable, shellDirectory: await realpath(context.shellDirectory) };
+class ScreensaverContextResolver {
+  /** Resolve fresh paths without touching the filesystem; caller env is copied, never retained. */
+  resolve(options: ScreensaverOptions = {}): ScreensaverContext {
+    const env = environment(options.env);
+    const configHome = lunaConfigHome(env);
+    if (configHome && !isAbsolute(configHome))
+      throw new ApiError("INVALID_PATH", "Screensaver configuration home must be absolute");
+    const file =
+      options.configFile ??
+      (env.LUNA_SCREENSAVER_CONFIG ||
+        (configHome ? join(configHome, "screensaver.jsonc") : undefined));
+    if (!file) throw new ApiError("INVALID_PATH", "Set a screensaver config file or HOME");
+    const launcher = options.launcher ?? (env.HOME ? join(env.HOME, ".local/bin/luna") : undefined);
+    const repository = options.repository ? this._path(options.repository) : undefined;
+    return {
+      env,
+      configFile: this._path(file),
+      repository,
+      launcher: launcher ? this._path(launcher) : undefined,
+      shellDirectory: repository
+        ? join(repository, "src/luna-screensaver/src/shell")
+        : configHome
+          ? join(configHome, "screensaver")
+          : undefined,
+    };
+  }
+
+  /** Require an installed or checkout shell.qml and Quickshell; canonicalize the shell directory. */
+  async renderer(context: ScreensaverContext): Promise<ScreensaverRenderer> {
+    if (
+      !context.shellDirectory ||
+      !(await metadata(join(context.shellDirectory, "shell.qml")))?.isFile()
+    )
+      throw new ApiError(
+        "INVALID_PATH",
+        `Screensaver shell is missing: ${context.shellDirectory ?? "set HOME or a checkout"}`,
+      );
+    const executable = quickshell.executable({ env: context.env, feature: "Luna's screensaver" });
+    return { ...context, executable, shellDirectory: await realpath(context.shellDirectory) };
+  }
+
+  private _path(value: string) {
+    if (!value || hasControlCharacters(value) || resolve(value) === "/")
+      throw new ApiError(
+        "INVALID_PATH",
+        "Screensaver paths must be nonempty and cannot be the filesystem root",
+      );
+    return resolve(value);
+  }
 }
-export type ScreensaverRenderer = Awaited<ReturnType<typeof rendererContext>>;
+
+export const screensaverContext = new ScreensaverContextResolver();

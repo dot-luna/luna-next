@@ -1,4 +1,6 @@
 import { metadata } from "@/lib/files.ts";
+import { capture } from "@/lib/process.ts";
+import { quickshell } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
 import { currentTheme } from "@/modules/theme/selection.ts";
 import { themeContext } from "@/modules/theme/context.ts";
@@ -9,126 +11,151 @@ import {
 } from "./schema.ts";
 import type { ScreensaverRenderer, ScreensaverState } from "./context.ts";
 
-async function execute(context: ScreensaverRenderer, args: string[], allowFailure = false) {
-  const child = Bun.spawn(args, {
-    env: context.env,
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-    timeout: 5000,
-  });
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  if (code !== 0 && !allowFailure)
+class ScreensaverRuntime {
+  ipc({
+    context,
+    method,
+    args,
+    allowFailure,
+  }: {
+    context: ScreensaverRenderer;
+    method: string;
+    args?: string[];
+    allowFailure?: boolean;
+  }) {
+    return quickshell.ipc({
+      context,
+      target: "screensaver",
+      method,
+      args,
+      label: "Screensaver",
+      allowFailure,
+    });
+  }
+
+  /** A failed status call means no shell is listening, which reports as stopped. */
+  async state(context: ScreensaverRenderer): Promise<ScreensaverState> {
+    const response = await this.ipc({ context, method: "status", allowFailure: true });
+    const status = response.code !== 0 ? "stopped" : response.stdout;
+    if (status !== "stopped" && status !== "hidden" && status !== "visible")
+      throw new ApiError("COMMAND_FAILED", `Unexpected screensaver status: ${status}`);
+    return {
+      running: status !== "stopped",
+      status,
+      shellDirectory: context.shellDirectory,
+      configFile: context.configFile,
+    };
+  }
+
+  /** Daemonize the shell with settings, a theme snapshot and the launcher it runs on idle. */
+  async start({
+    context,
+    settings,
+  }: {
+    context: ScreensaverRenderer;
+    settings: ScreensaverSettings;
+  }) {
+    if (!context.launcher || !(await metadata(context.launcher))?.isFile())
+      throw new ApiError(
+        "INVALID_PATH",
+        "Build/install the Luna CLI or supply a screensaver launcher",
+      );
+    const args = [context.launcher, "screensaver", "--config", context.configFile];
+    if (context.repository) args.push("--install-dir", context.repository);
+    const env = {
+      ...context.env,
+      LUNA_SCREENSAVER_SETTINGS: JSON.stringify(settings),
+      LUNA_SCREENSAVER_THEME: JSON.stringify(await this._theme(context)),
+      LUNA_SCREENSAVER_COMMAND: JSON.stringify(args),
+    };
+    await quickshell.command({
+      context: { ...context, env },
+      args: ["--no-color", "--daemonize", "--no-duplicate", "-p", context.shellDirectory],
+      label: "Screensaver",
+    });
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const current = await this.state(context);
+      if (current.running) return current;
+      await Bun.sleep(50);
+    }
     throw new ApiError(
       "COMMAND_FAILED",
-      `Screensaver command failed (${code}): ${(stderr || stdout).trim()}`,
+      "Screensaver did not become ready; inspect the Quickshell log",
     );
-  return { code, stdout: stdout.trim() };
-}
-export function command(context: ScreensaverRenderer, args: string[], allowFailure = false) {
-  return execute(context, [context.executable, ...args], allowFailure);
-}
-export function ipc(
-  context: ScreensaverRenderer,
-  method: string,
-  args: string[] = [],
-  allowFailure = false,
-) {
-  return command(
+  }
+
+  /** The screensaver holds no secure state, so stopping kills its Quickshell instance. */
+  async stop(context: ScreensaverRenderer) {
+    if ((await this.state(context)).running)
+      await quickshell.command({
+        context,
+        args: ["kill", "-p", context.shellDirectory],
+        label: "Screensaver",
+      });
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const current = await this.state(context);
+      if (!current.running) return current;
+      await Bun.sleep(50);
+    }
+    throw new ApiError("COMMAND_FAILED", "Screensaver did not stop");
+  }
+
+  /** Apply settings with a fresh theme snapshot to the running shell. */
+  async reload({
     context,
-    ["ipc", "-p", context.shellDirectory, "call", "--", "screensaver", method, ...args],
-    allowFailure,
-  );
-}
-export async function state(context: ScreensaverRenderer): Promise<ScreensaverState> {
-  const response = await ipc(context, "status", [], true);
-  const status = response.code !== 0 ? "stopped" : response.stdout;
-  if (status !== "stopped" && status !== "hidden" && status !== "visible")
-    throw new ApiError("COMMAND_FAILED", `Unexpected screensaver status: ${status}`);
-  return {
-    running: status !== "stopped",
-    status,
-    shellDirectory: context.shellDirectory,
-    configFile: context.configFile,
-  };
-}
-export function themeSnapshot(context: ScreensaverRenderer) {
-  return currentTheme(themeContext({ env: context.env }));
-}
-export async function start(context: ScreensaverRenderer, settings: ScreensaverSettings) {
-  if (!context.launcher || !(await metadata(context.launcher))?.isFile())
-    throw new ApiError(
-      "INVALID_PATH",
-      "Build/install the Luna CLI or supply a screensaver launcher",
-    );
-  const args = [context.launcher, "screensaver", "--config", context.configFile];
-  if (context.repository) args.push("--install-dir", context.repository);
-  const env = {
-    ...context.env,
-    LUNA_SCREENSAVER_SETTINGS: JSON.stringify(settings),
-    LUNA_SCREENSAVER_THEME: JSON.stringify(await themeSnapshot(context)),
-    LUNA_SCREENSAVER_COMMAND: JSON.stringify(args),
-  };
-  await command({ ...context, env }, [
-    "--no-color",
-    "--daemonize",
-    "--no-duplicate",
-    "-p",
-    context.shellDirectory,
-  ]);
-  const deadline = Date.now() + 5000;
-  while (Date.now() < deadline) {
-    const current = await state(context);
-    if (current.running) return current;
-    await Bun.sleep(50);
+    settings,
+  }: {
+    context: ScreensaverRenderer;
+    settings: ScreensaverSettings;
+  }) {
+    const response = await this.ipc({
+      context,
+      method: "reload",
+      args: [JSON.stringify(settings), JSON.stringify(await this._theme(context))],
+    });
+    if (response.stdout !== "ok")
+      throw new ApiError("COMMAND_FAILED", `Screensaver rejected settings: ${response.stdout}`);
+    return this.state(context);
   }
-  throw new ApiError(
-    "COMMAND_FAILED",
-    "Screensaver did not become ready; inspect the Quickshell log",
-  );
-}
-export async function stop(context: ScreensaverRenderer) {
-  if ((await state(context)).running)
-    await command(context, ["kill", "-p", context.shellDirectory]);
-  const deadline = Date.now() + 3000;
-  while (Date.now() < deadline) {
-    const current = await state(context);
-    if (!current.running) return current;
-    await Bun.sleep(50);
+
+  /** Settings the running shell currently applies, used to roll back a rejected reload. */
+  async snapshot(context: ScreensaverRenderer) {
+    const response = await this.ipc({ context, method: "snapshot" });
+    try {
+      return screensaverSettingsSchema.parse(JSON.parse(response.stdout));
+    } catch (error) {
+      throw new ApiError("COMMAND_FAILED", `Invalid screensaver snapshot: ${String(error)}`);
+    }
   }
-  throw new ApiError("COMMAND_FAILED", "Screensaver did not stop");
-}
-export async function reload(context: ScreensaverRenderer, settings: ScreensaverSettings) {
-  const response = await ipc(context, "reload", [
-    JSON.stringify(settings),
-    JSON.stringify(await themeSnapshot(context)),
-  ]);
-  if (response.stdout !== "ok")
-    throw new ApiError("COMMAND_FAILED", `Screensaver rejected settings: ${response.stdout}`);
-  return state(context);
-}
-export async function snapshot(context: ScreensaverRenderer) {
-  const response = await ipc(context, "snapshot");
-  try {
-    return screensaverSettingsSchema.parse(JSON.parse(response.stdout));
-  } catch (error) {
-    throw new ApiError("COMMAND_FAILED", `Invalid screensaver snapshot: ${String(error)}`);
+
+  /** A screensaver is presentation only; never place it over a secure Hyprland lock. */
+  async sessionLocked(context: ScreensaverRenderer) {
+    if (!context.env.HYPRLAND_INSTANCE_SIGNATURE) return false;
+    const executable = Bun.which("hyprctl", { PATH: context.env.PATH });
+    if (!executable)
+      throw new ApiError("COMMAND_FAILED", "Hyprctl is required to inspect this Hyprland session");
+    const { code, stdout, stderr } = await capture({
+      args: [executable, "-j", "locked"],
+      env: context.env,
+      timeout: 5000,
+    });
+    if (code !== 0)
+      throw new ApiError(
+        "COMMAND_FAILED",
+        `Screensaver command failed (${code}): ${(stderr || stdout).trim()}`,
+      );
+    try {
+      return desktopLockSchema.parse(JSON.parse(stdout.trim())).locked;
+    } catch (error) {
+      throw new ApiError("COMMAND_FAILED", `Cannot read the session lock state: ${String(error)}`);
+    }
+  }
+
+  private _theme(context: ScreensaverRenderer) {
+    return currentTheme(themeContext({ env: context.env }));
   }
 }
-/** A screensaver is presentation only; never place it over a secure Hyprland lock. */
-export async function sessionLocked(context: ScreensaverRenderer) {
-  if (!context.env.HYPRLAND_INSTANCE_SIGNATURE) return false;
-  const executable = Bun.which("hyprctl", { PATH: context.env.PATH });
-  if (!executable)
-    throw new ApiError("COMMAND_FAILED", "Hyprctl is required to inspect this Hyprland session");
-  const response = await execute(context, [executable, "-j", "locked"]);
-  try {
-    return desktopLockSchema.parse(JSON.parse(response.stdout)).locked;
-  } catch (error) {
-    throw new ApiError("COMMAND_FAILED", `Cannot read the session lock state: ${String(error)}`);
-  }
-}
+
+export const screensaverRuntime = new ScreensaverRuntime();
