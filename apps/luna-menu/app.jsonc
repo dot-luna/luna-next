@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "luna-menu",
   "source": "local",
   "alias": [["menu", ["luna", "menu"]]],

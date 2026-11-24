@@ -20,7 +20,6 @@ test("menu installs through the local app catalog, replaces only its QML export 
     const app = join(f.repository, "apps/luna-menu");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-menu/app.jsonc"), join(app, "app.jsonc"));
-    f.enableApp("luna-menu");
     cpSync(join(repo, "apps/luna-menu/scripts"), join(app, "scripts"), { recursive: true });
     cpSync(join(repo, "src/luna-menu/src/shell"), join(f.repository, "src/luna-menu/src/shell"), {
       recursive: true,

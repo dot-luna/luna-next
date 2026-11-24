@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 const appsDirectory = new URL("../../apps/", import.meta.url);
 
-test("the default installer includes the CLI tools, Luna Wallpaper, and T3 Code", async () => {
+test("the default installer includes the CLI tools, Luna Menu, Luna Wallpaper, and T3 Code", async () => {
   const catalog = Bun.JSONC.parse(await Bun.file(new URL("apps.jsonc", appsDirectory)).text()) as {
     packages: string[];
   };
@@ -14,6 +14,7 @@ test("the default installer includes the CLI tools, Luna Wallpaper, and T3 Code"
     "btop",
     "fastfetch",
     "claude",
+    "luna-menu",
     "luna-wallpaper",
     "t3code",
   ]) {
