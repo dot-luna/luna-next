@@ -1,5 +1,5 @@
 import type { GitIdentity } from "@luna/api";
-import { promptForm } from "../lib/prompts.ts";
+import { promptForm } from "@/lib/prompts.ts";
 
 /** Ask only for identity fields missing from global Git configuration. */
 export async function requestGitIdentity(current: Partial<GitIdentity>): Promise<GitIdentity> {

@@ -1,23 +1,9 @@
-import { Luna, type ApiResponse, type ScreensaverOptions } from "@luna/api";
-import { InvalidArgumentError, type Command } from "commander";
-import type { createOutput } from "../lib/output.ts";
+import { Luna, type ScreensaverOptions } from "@luna/api";
+import type { Command } from "commander";
+import { duration } from "@/lib/arguments.ts";
+import type { Output } from "@/lib/output.ts";
 
-function render(value: unknown): string {
-  return value === null ? "" : typeof value === "string" ? value : JSON.stringify(value, null, 2);
-}
-
-function seconds(value: string): number {
-  const duration = Number(value);
-  if (!value.trim() || !Number.isFinite(duration))
-    throw new InvalidArgumentError("Expected a duration in seconds");
-  return duration;
-}
-
-export function addScreensaverCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  setExitCode: (code: number) => void,
-) {
+export function addScreensaverCommands(program: Command, output: Output) {
   const group = program
     .command("screensaver")
     .description("Show Luna's screensaver and configure idle activation")
@@ -32,11 +18,13 @@ export function addScreensaverCommands(
       launcher: flags.launcher,
     };
   };
-  const done = <T>(response: ApiResponse<T>, format: (value: T) => string = render) =>
-    setExitCode(output.response(response, format));
   const run = async (
     action: "start" | "show" | "showIdle" | "hide" | "stop" | "restart" | "reload" | "status",
-  ) => done(await Luna.screensaver[action](options()), (state) => `Screensaver: ${state.status}`);
+  ) =>
+    output.response(
+      await Luna.screensaver[action](options()),
+      (state) => `Screensaver: ${state.status}`,
+    );
 
   group.action(() => run("show"));
   group.command("show-idle", { hidden: true }).action(() => run("showIdle"));
@@ -49,17 +37,17 @@ export function addScreensaverCommands(
   group
     .command("get [key]")
     .description("Read a setting or the saved settings")
-    .action(async (key?: string) => done(await Luna.screensaver.get(key, options())));
+    .action(async (key?: string) => output.response(await Luna.screensaver.get(key, options())));
   group
     .command("get-config-file")
     .description("Locate the screensaver JSONC file")
-    .action(async () => done(await Luna.screensaver.getConfigFile(options())));
+    .action(async () => output.response(await Luna.screensaver.getConfigFile(options())));
   group
     .command("set-idle")
     .description("Set idle activation in seconds; 0 disables it")
-    .argument("<seconds>", "Idle duration in seconds", seconds)
+    .argument("<seconds>", "Idle duration in seconds", duration("seconds"))
     .action(async (idle_seconds: number) =>
-      done(
+      output.response(
         await Luna.screensaver.configure({ idle_seconds }, options()),
         () => "Screensaver updated.",
       ),

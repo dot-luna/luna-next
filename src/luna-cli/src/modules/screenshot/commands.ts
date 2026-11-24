@@ -1,13 +1,8 @@
 import { Luna, type ScreenshotMode } from "@luna/api";
 import { Argument, InvalidArgumentError, type Command } from "commander";
-import type { createOutput } from "../lib/output.ts";
+import type { Output } from "@/lib/output.ts";
 
-export function addScreenshotCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  json: boolean,
-  setExitCode: (code: number) => void,
-) {
+export function addScreenshotCommands(program: Command, output: Output) {
   const command = program
     .command("screenshot")
     .description("Copy a screenshot or extract English text from a region")
@@ -26,11 +21,9 @@ export function addScreenshotCommands(
             "Text extraction does not save screenshots; omit --directory",
           );
         const response = await Luna.screenshot.extractText({ configFile: options.config });
-        if (response.succes && !response.data.text && !json) {
-          setExitCode(0);
-          return;
-        }
-        setExitCode(output.response(response, (result) => result.text ?? ""));
+        // Finding no text is successful and stays silent outside JSON mode.
+        if (response.succes && !response.data.text && !output.json) return;
+        output.response(response, (result) => result.text ?? "");
         return;
       }
       if (options.config !== undefined)
@@ -39,10 +32,7 @@ export function addScreenshotCommands(
         directory: options.directory,
       });
       // Cancelling the selector is successful and must stay silent outside JSON mode.
-      if (response.succes && response.data.cancelled && !json) {
-        setExitCode(0);
-        return;
-      }
-      setExitCode(output.response(response, (result) => result.path ?? ""));
+      if (response.succes && response.data.cancelled && !output.json) return;
+      output.response(response, (result) => result.path ?? "");
     });
 }

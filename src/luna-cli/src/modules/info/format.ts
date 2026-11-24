@@ -1,5 +1,5 @@
 import type { LunaInfo } from "@luna/api";
-import { version as cliVersion } from "../../package.json";
+import { version as cliVersion } from "../../../package.json";
 
 export function formatInfo(info: LunaInfo): string {
   return [

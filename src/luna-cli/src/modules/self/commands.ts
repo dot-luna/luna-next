@@ -1,7 +1,7 @@
 import { Luna } from "@luna/api";
 import type { Command } from "commander";
-import type { createOutput } from "../lib/output.ts";
-import { installReport } from "../lib/install-report.ts";
+import { installReport } from "@/lib/install-report.ts";
+import type { Output } from "@/lib/output.ts";
 import { requestGitIdentity } from "./identity.ts";
 
 interface SelfOptions {
@@ -14,14 +14,9 @@ interface SelfOptions {
   closeApps?: boolean;
 }
 
-export function addSelfCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  json: boolean,
-  setExitCode: (value: number) => void,
-) {
+export function addSelfCommands(program: Command, output: Output) {
   const self = program.command("self").description("Install or update Luna");
-  const install = self
+  self
     .command("install")
     .description("Install Luna, Git configuration, themes, apps and web apps")
     .option("--install-dir <path>", "Luna source checkout")
@@ -30,23 +25,23 @@ export function addSelfCommands(
     .option("--skip-failed", "Continue after app failures and report retries at the end")
     .option("--no-close-apps", "Do not automatically close apps for configuration")
     .option("--git-name <name>", "Set the global Git user name")
-    .option("--git-email <email>", "Set the global Git email");
-  install.action(async (options: SelfOptions) => {
-    const response = await Luna.self.install({
-      repository: options.installDir,
-      ref: options.ref,
-      fromBootstrap: options.fromBootstrap,
-      skipFailed: options.skipFailed,
-      closeApps: options.closeApps,
-      git: { name: options.gitName, email: options.gitEmail },
-      requestGitIdentity: json ? undefined : requestGitIdentity,
-      onProgress: output.progress,
+    .option("--git-email <email>", "Set the global Git email")
+    .action(async (options: SelfOptions) => {
+      const response = await Luna.self.install({
+        repository: options.installDir,
+        ref: options.ref,
+        fromBootstrap: options.fromBootstrap,
+        skipFailed: options.skipFailed,
+        closeApps: options.closeApps,
+        git: { name: options.gitName, email: options.gitEmail },
+        // JSON mode never prompts; missing identity values must come from flags or Git config.
+        requestGitIdentity: output.json ? undefined : requestGitIdentity,
+        onProgress: output.progress,
+      });
+      output.report(response, (data) =>
+        installReport(data.completed, data.installedApps, data.failed, data.logDirectory),
+      );
     });
-    const code = output.response(response, (data) =>
-      installReport(data.completed, data.installedApps, data.failed, data.logDirectory),
-    );
-    setExitCode(response.succes && !response.data.completed ? 1 : code);
-  });
   self
     .command("update")
     .description("Update Luna and apply pending release migrations")
@@ -58,6 +53,6 @@ export function addSelfCommands(
         ref: options.ref,
         onProgress: output.progress,
       });
-      setExitCode(output.response(response, (data) => `Luna updated: ${data.executable}`));
+      output.response(response, (data) => `Luna updated: ${data.executable}`);
     });
 }

@@ -1,12 +1,8 @@
 import { Luna, type BarOptions } from "@luna/api";
 import type { Command } from "commander";
-import type { createOutput } from "../lib/output.ts";
+import type { Output } from "@/lib/output.ts";
 
-export function addBarCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  setExitCode: (code: number) => void,
-) {
+export function addBarCommands(program: Command, output: Output) {
   const group = program
     .command("bar")
     .description("Control Luna's workspace bar")
@@ -15,11 +11,9 @@ export function addBarCommands(
     repository: group.opts<{ installDir?: string }>().installDir,
   });
   const run = async (action: keyof typeof Luna.bar) => {
-    setExitCode(
-      output.response(
-        await Luna.bar[action](options()),
-        (state) => `Bar: ${state.running ? "running" : "stopped"}`,
-      ),
+    output.response(
+      await Luna.bar[action](options()),
+      (state) => `Bar: ${state.running ? "running" : "stopped"}`,
     );
   };
   group.action(() => run("start"));

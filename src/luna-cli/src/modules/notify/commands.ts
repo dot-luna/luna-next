@@ -1,12 +1,8 @@
 import { Luna, type NotifyOptions } from "@luna/api";
 import type { Command } from "commander";
-import type { createOutput } from "../lib/output.ts";
+import type { Output } from "@/lib/output.ts";
 
-export function addNotifyCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  setExitCode: (code: number) => void,
-) {
+export function addNotifyCommands(program: Command, output: Output) {
   const group = program
     .command("notify")
     .description("Show application notification toasts")
@@ -17,25 +13,17 @@ export function addNotifyCommands(
     configFile: group.opts<{ config?: string }>().config,
   });
   const run = async (action: "start" | "stop" | "restart" | "status" | "focus" | "dismiss") => {
-    setExitCode(
-      output.response(
-        await Luna.notify[action](options()),
-        (state) => `Notifications: ${state.running ? "running" : "stopped"}`,
-      ),
+    output.response(
+      await Luna.notify[action](options()),
+      (state) => `Notifications: ${state.running ? "running" : "stopped"}`,
     );
   };
-  const render = (value: unknown) =>
-    value === null ? "" : typeof value === "string" ? value : JSON.stringify(value, null, 2);
   group
     .command("get [key]")
-    .action(async (key?: string) =>
-      setExitCode(output.response(await Luna.notify.get(key, options()), render)),
-    );
+    .action(async (key?: string) => output.response(await Luna.notify.get(key, options())));
   group
     .command("get-config-file")
-    .action(async () =>
-      setExitCode(output.response(await Luna.notify.getConfigFile(options()), render)),
-    );
+    .action(async () => output.response(await Luna.notify.getConfigFile(options())));
   group.action(() => run("status"));
   for (const action of ["start", "stop", "restart", "status", "focus", "dismiss"] as const)
     group.command(action).action(() => run(action));

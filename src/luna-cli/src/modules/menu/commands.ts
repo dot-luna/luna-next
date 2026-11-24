@@ -1,12 +1,8 @@
 import { Luna, type MenuOptions } from "@luna/api";
 import type { Command } from "commander";
-import type { createOutput } from "../lib/output.ts";
+import type { Output } from "@/lib/output.ts";
 
-export function addMenuCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  setExitCode: (code: number) => void,
-) {
+export function addMenuCommands(program: Command, output: Output) {
   const group = program
     .command("menu")
     .description("Open Luna's menu and installed applications")
@@ -15,11 +11,9 @@ export function addMenuCommands(
     repository: group.opts<{ installDir?: string }>().installDir,
   });
   const run = async (action: Exclude<keyof typeof Luna.menu, "stayAwake">) => {
-    setExitCode(
-      output.response(
-        await Luna.menu[action](options()),
-        (state) => `Menu: ${state.running ? "running" : "stopped"}`,
-      ),
+    output.response(
+      await Luna.menu[action](options()),
+      (state) => `Menu: ${state.running ? "running" : "stopped"}`,
     );
   };
   group.action(() => run("show"));
