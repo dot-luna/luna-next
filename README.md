@@ -10,11 +10,18 @@ curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/dev/install.sh |
 
 This installs Git, mise, and Bun, clones Luna into `~/.local/src/luna-next`,
 builds the CLI, and installs `luna` into `~/.local/bin`.
-After a five-second cancellation window, it runs `luna self install` with the
-same flags plus `--from-bootstrap`, skipping the checkout update and CLI rebuild.
-Cancelling prints the command to finish setup later. CLI setup installs shared
-prerequisites, configures Git, installs themes and their dependencies, then installs
-apps in catalog order, later packages, and web apps, then applies application defaults.
+It stops after installing the CLI. Run `luna self install` when you want the full
+Luna desktop, themes, and apps.
+
+For a fresh Arch installation, run the bootstrap as root in the official Arch
+live ISO, then run the separate script:
+
+```sh
+bash ~/.local/src/luna-next/arch-install.sh
+```
+
+It installs Arch with basic Hyprland, Kitty, Luna's login screen, and the CLI.
+See [Arch installation](src/arch-install/DOCS.md) for defaults and requirements.
 
 Use `--install-dir=PATH` for another checkout location. `--ref=latest` follows
 Git's default branch; a branch or tag name selects that ref instead.
