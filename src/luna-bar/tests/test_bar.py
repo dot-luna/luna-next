@@ -31,7 +31,7 @@ ShellRoot {
     Component.onCompleted: Quickshell.watchFiles = false
     Window {
         id: window
-        width: 400; height: 60; visible: true
+        width: 400; height: 300; visible: true
         Component.onCompleted: requestActivate()
         Tests.WorkspaceTests { anchors.fill: parent; when: window.active }
     }
@@ -45,6 +45,6 @@ ShellRoot {
             match = re.search(r"LUNA_BAR_TEST_RESULT (\{[^\n]+\})", output)
             self.assertIsNotNone(match, output)
             counts = json.loads(match.group(1))
-            self.assertEqual(counts, {"passed": 4, "failed": 0, "skipped": 0}, output)
+            self.assertEqual(counts, {"passed": 8, "failed": 0, "skipped": 0}, output)
             for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign"):
                 self.assertNotIn(error, output)

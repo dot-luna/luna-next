@@ -342,6 +342,7 @@ See [app behavior](../../apps/DOCS.md) and [web-app options](../../packages/luna
 
 ## Workspace bar
 
-`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, and
-`focus` control it. `Luna.bar` provides the same operations with `{repository?, env?}`.
+`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, `focus`,
+and `toggle` control it. `Luna.bar` provides the same operations with
+`{repository?, configFile?, env?}`, plus `get` and `getConfigFile` for settings.
 See [Luna Bar controls and checks](../luna-bar/DOCS.md).

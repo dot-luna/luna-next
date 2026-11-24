@@ -8,6 +8,12 @@
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
   },
-  "exports": [{ "source": "generated/shell/", "target": "bar/" }],
-  "cleanup": { "uninstall": [["$LUNA_CONFIG_HOME_DIR/bar"]] },
+  "exports": [
+    { "source": "generated/shell/", "target": "bar/" },
+    { "source": "config/bar.jsonc", "target": "bar.jsonc" },
+  ],
+  "cleanup": {
+    "purge": [["$LUNA_BAR_CONFIG", "$LUNA_CONFIG_HOME_DIR/bar.jsonc"]],
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/bar"]],
+  },
 }

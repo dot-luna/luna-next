@@ -537,6 +537,7 @@ are merged only in memory. Unknown source fields and comments are left intact. S
 
 ## Workspace bar
 
-`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, and
-`focus` control it. `Luna.bar` provides the same operations with `{repository?, env?}`.
+`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, `focus`,
+and `toggle` control it. `Luna.bar` provides the same operations with
+`{repository?, configFile?, env?}`, plus `get` and `getConfigFile` for settings.
 See [Luna Bar controls and checks](../../src/luna-bar/DOCS.md).

@@ -17,6 +17,7 @@ import { emoji } from "./modules/emoji/index.ts";
 export type { EmojiEntry } from "./modules/emoji/schema.ts";
 
 export type { BarOptions, BarState } from "./modules/bar/context.ts";
+export type { BarSettings } from "./modules/bar/schema.ts";
 
 export const Luna = {
   bar,
