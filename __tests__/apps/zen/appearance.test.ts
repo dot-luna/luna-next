@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderAppearance } from "../../../apps/zen/src/appearance.ts";
-import { resolveTheme } from "../../../packages/luna-api/src/theme/values.ts";
+import { resolveTheme } from "../../../packages/luna-api/src/modules/theme/values.ts";
 
 const zen = Bun.which("zen-browser");
 const python = Bun.which("python3");

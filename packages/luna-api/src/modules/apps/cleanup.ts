@@ -2,7 +2,7 @@ import { rm } from "node:fs/promises";
 import { join, resolve } from "pathe";
 import { ApiError } from "@/lib/response.ts";
 import { ordinaryParents, overlaps } from "@/lib/paths.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 import { appIntegration } from "./integration.ts";
 

@@ -3,7 +3,7 @@
 A theme folder contains `theme.jsonc` and optional media assets. Comments and
 trailing commas are supported. All fields are optional; `{}` uses Tokyo Night
 defaults. Unknown keys, invalid colors, and out-of-range values fail Zod validation
-in [the API schema](../packages/luna-api/src/theme/schema.ts).
+in [the API schema](../packages/luna-api/src/modules/theme/schema.ts).
 
 ```jsonc
 {

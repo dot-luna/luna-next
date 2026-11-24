@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { join, resolve } from "node:path";
-import { gtkCss } from "../src/theme/gtk-css.ts";
-import { resolveTheme } from "../src/theme/values.ts";
+import { gtkCss } from "../src/modules/theme/gtk-css.ts";
+import { resolveTheme } from "../src/modules/theme/values.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 const python = Bun.which("python3");

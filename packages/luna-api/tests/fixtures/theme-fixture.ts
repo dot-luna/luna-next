@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { ThemeOptions } from "../../src/theme/types.ts";
+import type { ThemeOptions } from "../../src/modules/theme/types.ts";
 
 const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
 export class ThemeFixture {

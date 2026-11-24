@@ -7,9 +7,9 @@ import {
   type ClipboardContext,
   type ClipboardOptions,
   type ClipboardPasteOptions,
-} from "../clipboard/context.ts";
-import { copyBytes } from "../clipboard/history.ts";
-import { pasteIntoWindow, pasteTarget } from "../clipboard/paste.ts";
+} from "@/modules/clipboard/context.ts";
+import { copyBytes } from "@/modules/clipboard/history.ts";
+import { pasteIntoWindow, pasteTarget } from "@/modules/clipboard/paste.ts";
 import { emojiCatalogSchema, emojiSelectionSchema } from "./schema.ts";
 
 // Embed licensed data in the compiled CLI so search works offline without a checkout.

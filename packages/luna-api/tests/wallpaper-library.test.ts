@@ -17,9 +17,9 @@ import {
   managedPath,
   validateMedia,
   type LibraryContext,
-} from "../src/wallpaper/library.ts";
-import { importWallpapers } from "../src/theme/wallpapers.ts";
-import { themeContext } from "../src/theme/context.ts";
+} from "../src/modules/wallpaper/library.ts";
+import { importWallpapers } from "../src/modules/theme/wallpapers.ts";
+import { themeContext } from "../src/modules/theme/context.ts";
 import { locked } from "../src/lib/files.ts";
 
 const svg = (color = "red") =>

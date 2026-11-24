@@ -99,7 +99,7 @@ Set changes active preferences without editing the manifest.
 Options accept `repository`, `env`, `configFile`, and `onProgress`. The manifest
 defaults to `installs/defaults.jsonc` in the checkout; relative explicit paths use
 the caller's working directory. `shellsFile` overrides `/etc/shells` when needed.
-Schema validation lives in `src/defaults/schema.ts`.
+Schema validation lives in `src/modules/defaults/schema.ts`.
 
 Keys are `terminal`, `shell`, exact MIME/URI-handler types, or `image/*`, `audio/*`,
 and `video/*`. Desktop choices require an installed `.desktop` ID. Wildcards
@@ -132,7 +132,7 @@ response. Missing dotted keys and an unset current name return null.
 Theme options accept `env`, `configFile`, `libraryDir`, and `wallpaperDir`.
 Install also accepts `name` and `force`; remove accepts `dryRun`; T3 application
 accepts an explicit `userdata` directory. `mode` accepts dark/light/toggle.
-Validation uses the feature-owned Zod schemas in `src/theme/schema.ts`.
+Validation uses the feature-owned Zod schemas in `src/modules/theme/schema.ts`.
 
 See [theme fields and storage](../../themes/DOCS.md). `set`, `mode`, and `toggle`
 publish GTK3 colors, UI/monospace fonts, and control rounding from the selected
@@ -248,7 +248,7 @@ playing media. Install/list/remove work without QML or Quickshell; install/list
 still validate the saved settings to mark the current entry.
 
 Reads parse JSONC with Bun and validate with the feature's Zod schema in
-`src/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
+`src/modules/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
 omitted values use renderer defaults without rewriting source. `get` returns sparse
 saved settings; missing dotted keys return null. Unknown fields are retained.
 See [wallpaper settings and dependencies](../../src/luna-wallpaper/DOCS.md).

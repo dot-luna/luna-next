@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { realpathSync, symlinkSync } from "node:fs";
 import { join } from "pathe";
-import { currentShell, prepareShell } from "../src/defaults/shell.ts";
-import type { InstallContext } from "../src/self/install/command.ts";
+import { currentShell, prepareShell } from "../src/modules/defaults/shell.ts";
+import type { InstallContext } from "../src/modules/self/install/command.ts";
 import { DefaultsNativeFixture } from "./fixtures/defaults-native-fixture.ts";
 
 let f: DefaultsNativeFixture;

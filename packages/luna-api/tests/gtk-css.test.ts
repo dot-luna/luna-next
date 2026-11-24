@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { gtkCss } from "../src/theme/gtk-css.ts";
-import { resolveTheme } from "../src/theme/values.ts";
+import { gtkCss } from "../src/modules/theme/gtk-css.ts";
+import { resolveTheme } from "../src/modules/theme/values.ts";
 
 test.each(["dark", "light"] as const)("GTK3 uses its bundled %s widget structure", (mode) => {
   const css = gtkCss(resolveTheme({}, "test"), mode);

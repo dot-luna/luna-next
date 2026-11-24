@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync, symlinkSync } from "node:fs";
 import { join } from "pathe";
 import { Luna } from "../src/index.ts";
-import { defaultsSchema } from "../src/defaults/schema.ts";
+import { defaultsSchema } from "../src/modules/defaults/schema.ts";
 import { DefaultsNativeFixture } from "./fixtures/defaults-native-fixture.ts";
 
 let f: DefaultsNativeFixture;

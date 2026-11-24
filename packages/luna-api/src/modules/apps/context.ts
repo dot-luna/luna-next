@@ -3,8 +3,8 @@ import { isAbsolute, join, resolve } from "pathe";
 import { repositoryPath, type RepositoryOptions } from "@/lib/repository.ts";
 import { ApiError } from "@/lib/response.ts";
 import { canonicalPath, overlaps } from "@/lib/paths.ts";
-import type { InstallLog } from "@/install/log.ts";
-import { InstallContext } from "@/self/install/command.ts";
+import type { InstallLog } from "@/modules/self/install/log.ts";
+import { InstallContext } from "@/modules/self/install/command.ts";
 
 /** Select the checkout, environment and per-call installation behavior. */
 export interface AppOptions extends RepositoryOptions {

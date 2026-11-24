@@ -1,6 +1,6 @@
 import { chmod, copyFile, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { migrateAfterBuild } from "../../../packages/luna-api/src/self/migrations/build.ts";
+import { migrateAfterBuild } from "../../../packages/luna-api/src/modules/self/migrations/build.ts";
 
 /** Build beside the checkout; publish atomically unless bootstrap/update owns publication. */
 async function build() {

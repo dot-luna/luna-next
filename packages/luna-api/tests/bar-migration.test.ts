@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { chmod, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { migrationPlan } from "../src/self/migrations/plan.ts";
+import { migrationPlan } from "../src/modules/self/migrations/plan.ts";
 
 test("bar upgrade stops on failure, retries safely, and only starts inside Hyprland", async () => {
   const root = await mkdtemp(join(tmpdir(), "luna-bar-migration-"));

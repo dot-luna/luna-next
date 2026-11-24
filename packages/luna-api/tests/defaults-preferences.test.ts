@@ -6,7 +6,7 @@ import {
   preparePreferenceWrites,
   readCurrent,
   writePreferences,
-} from "../src/defaults/preferences.ts";
+} from "../src/modules/defaults/preferences.ts";
 import { DefaultsNativeFixture } from "./fixtures/defaults-native-fixture.ts";
 
 let f: DefaultsNativeFixture;

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { ApiResponse, ResolvedTheme } from "../src/index.ts";
-import { themeContext } from "../src/theme/context.ts";
-import { gsettings } from "../src/theme/gsettings.ts";
+import { themeContext } from "../src/modules/theme/context.ts";
+import { gsettings } from "../src/modules/theme/gsettings.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 let f: ThemeFixture;

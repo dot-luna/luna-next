@@ -6,7 +6,7 @@ import {
   removeWhatlyDependencies,
   removablePackages,
   whatlyOwnedPackages,
-} from "../src/self/migrations/releases/whatly-dependencies.ts";
+} from "../src/modules/self/migrations/releases/whatly-dependencies.ts";
 
 const start = "2026-11-10T12:00:00.000Z";
 const end = "2026-11-10T12:00:10.000Z";

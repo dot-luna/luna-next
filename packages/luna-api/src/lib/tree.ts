@@ -13,7 +13,7 @@ import { dirname, join, relative } from "pathe";
 import { ApiError } from "./response.ts";
 import { metadata } from "./files.ts";
 import { canonicalPath, overlaps, ordinaryParents } from "./paths.ts";
-import type { InstallContext } from "../self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 
 export async function copyTree(
   source: string,

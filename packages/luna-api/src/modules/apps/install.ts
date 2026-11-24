@@ -2,9 +2,14 @@ import { join } from "pathe";
 import { ApiError } from "@/lib/response.ts";
 import { locked, parse, readOptional, writeFile } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
-import { InstallContext } from "@/self/install/command.ts";
-import { installPackages } from "@/self/install/packages.ts";
-import { attempt, quote, type AppInstallResult, type InstallFailure } from "@/install/report.ts";
+import { InstallContext } from "@/modules/self/install/command.ts";
+import { installPackages } from "@/modules/self/install/packages.ts";
+import {
+  attempt,
+  quote,
+  type AppInstallResult,
+  type InstallFailure,
+} from "@/modules/self/install/report.ts";
 import { appCatalog, type CatalogApp } from "./catalog.ts";
 import { appConfigurator } from "./configure.ts";
 import { appGitInstaller } from "./git.ts";

@@ -10,9 +10,9 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
-import { defaults } from "../src/theme/defaults.ts";
+import { defaults } from "../src/modules/theme/defaults.ts";
 import { locked } from "../src/lib/files.ts";
-import { themeContext } from "../src/theme/context.ts";
+import { themeContext } from "../src/modules/theme/context.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 let f: ThemeFixture;

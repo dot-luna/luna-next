@@ -3,7 +3,7 @@ import { dirname, join } from "pathe";
 import { ApiError } from "@/lib/response.ts";
 import { metadata, readOptional, writeFile } from "@/lib/files.ts";
 import { replaceExport } from "@/lib/tree.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 import { appHooks } from "./hooks.ts";
 

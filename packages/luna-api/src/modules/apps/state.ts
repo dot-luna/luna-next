@@ -2,7 +2,7 @@ import { join } from "pathe";
 import { parse, readOptional } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
 import { ApiError } from "@/lib/response.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 import { appStateSchema } from "./schema.ts";
 

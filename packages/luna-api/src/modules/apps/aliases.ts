@@ -1,9 +1,9 @@
 import { join } from "pathe";
-import { quote } from "@/install/report.ts";
+import { quote } from "@/modules/self/install/report.ts";
 import { metadata, readOptional, writeFile } from "@/lib/files.ts";
 import { ordinaryParents } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 
 class AppAliases {

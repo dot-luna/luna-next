@@ -6,8 +6,8 @@ import { appsIndexSchema } from "../src/modules/apps/schema.ts";
 import { appContext } from "../src/modules/apps/context.ts";
 import { appProcesses } from "../src/modules/apps/processes.ts";
 import { webappIcon } from "../src/modules/webapp/icon.ts";
-import { replaceWhatly } from "../src/self/migrations/releases/whatsapp.ts";
-import { whatlyPaths } from "../src/self/migrations/releases/whatly-paths.ts";
+import { replaceWhatly } from "../src/modules/self/migrations/releases/whatsapp.ts";
+import { whatlyPaths } from "../src/modules/self/migrations/releases/whatly-paths.ts";
 import { Luna } from "../src/index.ts";
 
 let f: AppFixture;

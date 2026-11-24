@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { symlinkSync } from "node:fs";
 import { join } from "pathe";
 import { desktopArgument } from "../src/lib/desktop.ts";
-import { desktopEntries } from "../src/defaults/desktop.ts";
+import { desktopEntries } from "../src/modules/defaults/desktop.ts";
 import { DefaultsNativeFixture } from "./fixtures/defaults-native-fixture.ts";
 
 let f: DefaultsNativeFixture;

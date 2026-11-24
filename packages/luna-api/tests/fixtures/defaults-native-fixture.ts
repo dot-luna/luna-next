@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
-import { InstallContext } from "../../src/self/install/command.ts";
+import { InstallContext } from "../../src/modules/self/install/command.ts";
 
 export class DefaultsNativeFixture {
   root = mkdtempSync(join(tmpdir(), "luna defaults native "));

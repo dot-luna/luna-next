@@ -1,6 +1,6 @@
 import { isAbsolute } from "pathe";
 import { z } from "zod";
-import { packageRecipeSchema } from "@/self/install/packages.ts";
+import { packageRecipeSchema } from "@/modules/self/install/packages.ts";
 
 // Commands and paths are displayed or passed to native tools; control bytes are invalid.
 // oxlint-disable-next-line no-control-regex

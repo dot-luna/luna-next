@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, readFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Luna } from "../src/index.ts";
-import { migrationPlan } from "../src/self/migrations/plan.ts";
-import { InstallContext } from "../src/self/install/command.ts";
-import { runMigrations } from "../src/self/migrations/run.ts";
-import { readState, selfLocked } from "../src/self/migrations/state.ts";
-import { releasedUpdater } from "../src/self/migrations/build.ts";
+import { migrationPlan } from "../src/modules/self/migrations/plan.ts";
+import { InstallContext } from "../src/modules/self/install/command.ts";
+import { runMigrations } from "../src/modules/self/migrations/run.ts";
+import { readState, selfLocked } from "../src/modules/self/migrations/state.ts";
+import { releasedUpdater } from "../src/modules/self/migrations/build.ts";
 import { SelfFixture } from "./fixtures/self-fixture.ts";
 
 const userTests = process.getuid?.() === 0 ? describe.skip : describe;
