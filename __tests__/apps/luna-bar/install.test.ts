@@ -20,6 +20,7 @@ test("bar installs through the local app catalog, replaces only its QML export a
     const app = join(f.repository, "apps/luna-bar");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-bar/app.jsonc"), join(app, "app.jsonc"));
+    f.enableApp("luna-bar");
     cpSync(join(repo, "apps/luna-bar/scripts"), join(app, "scripts"), { recursive: true });
     cpSync(join(repo, "src/luna-bar/src/shell"), join(f.repository, "src/luna-bar/src/shell"), {
       recursive: true,

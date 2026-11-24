@@ -220,6 +220,11 @@ class AppInstaller {
   }) {
     const catalog = await appCatalog.read(context);
     let selected = appCatalog.select({ apps: catalog, names });
+    if (operation === "install") {
+      for (const app of selected.filter((app) => app.manifest.enabled === false))
+        context.progress(`Skipping disabled app: ${app.id}`);
+      selected = selected.filter((app) => app.manifest.enabled !== false);
+    }
     if (operation === "update") {
       const installed: CatalogApp[] = [];
       for (const app of selected) {
@@ -240,6 +245,11 @@ class AppInstaller {
         throw new ApiError("INVALID_ENVIRONMENT", "Install yay before updating AUR apps");
       const provider = catalog.find((app) => app.manifest.name === "yay");
       if (!provider) throw new ApiError("INVALID_ENVIRONMENT", "AUR installation requires yay");
+      if (provider.manifest.enabled === false)
+        throw new ApiError(
+          "INVALID_ENVIRONMENT",
+          "AUR installation requires yay; its app is disabled",
+        );
       const ids = new Set([...selected.map((app) => app.id), provider.id]);
       selected = catalog.filter((app) => ids.has(app.id));
       if (

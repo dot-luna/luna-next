@@ -20,6 +20,7 @@ test("wallpaper installs its JSONC and QML exports, declares media dependencies,
     const app = join(f.repository, "apps/luna-wallpaper");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-wallpaper/app.jsonc"), join(app, "app.jsonc"));
+    f.enableApp("luna-wallpaper");
     for (const directory of ["scripts", "config"]) {
       cpSync(join(repo, "apps/luna-wallpaper", directory), join(app, directory), {
         recursive: true,

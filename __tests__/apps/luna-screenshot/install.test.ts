@@ -14,6 +14,7 @@ test("screenshot installs its capture tools through the catalog without changing
     const app = join(fixture.repository, "apps/luna-screenshot");
     mkdirSync(app, { recursive: true });
     cpSync(source, join(app, "app.jsonc"));
+    fixture.enableApp("luna-screenshot");
     cpSync(new URL("../../../apps/luna-screenshot/config/", import.meta.url), join(app, "config"), {
       recursive: true,
     });

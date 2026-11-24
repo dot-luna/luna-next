@@ -6,6 +6,9 @@ in `app.jsonc` and optional `config/` and executable `scripts/` folders.
 
 From an installed Luna checkout:
 
+Set `enabled` to `true` in the app's `app.jsonc` before installing it.
+All bundled apps currently have `enabled: false`.
+
 ```sh
 luna install kitty
 ```

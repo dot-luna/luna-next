@@ -1,4 +1,8 @@
 {
+  // Set false to skip this app's installation, dependencies, and configuration hooks.
+  // Omission means enabled. Explicit configure/update/uninstall remain available.
+  "enabled": true,
+
   // Package ID used by the selected package source.
   "name": "example-app",
 

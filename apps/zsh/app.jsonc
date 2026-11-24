@@ -1,4 +1,5 @@
 {
+  "enabled": false,
   "name": "zsh",
   "source": "pacman",
 

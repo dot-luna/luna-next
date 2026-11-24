@@ -20,6 +20,7 @@ test("lock exports replace owned paths, restart idle daemons, and refuse active 
     const app = join(f.repository, "apps/luna-lock");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-lock/app.jsonc"), join(app, "app.jsonc"));
+    f.enableApp("luna-lock");
     for (const directory of ["scripts", "config"])
       cpSync(join(repo, "apps/luna-lock", directory), join(app, directory), { recursive: true });
     cpSync(join(repo, "src/luna-lock/src/shell"), join(f.repository, "src/luna-lock/src/shell"), {

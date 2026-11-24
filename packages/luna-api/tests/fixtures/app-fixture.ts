@@ -1,5 +1,6 @@
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { appSchema } from "../../src/modules/apps/schema.ts";
 import { SelfFixture } from "./self-fixture.ts";
 
 /** Real local Git and filesystem exports; package commands and app hooks stay isolated. */
@@ -41,6 +42,12 @@ export class AppFixture extends SelfFixture {
     } catch {
       return [];
     }
+  }
+  /** Enable a copied bundled manifest only inside this fixture's checkout. */
+  enableApp(id: string) {
+    const path = join(this.repository, "apps", id, "app.jsonc");
+    const manifest = appSchema.parse(Bun.JSONC.parse(readFileSync(path, "utf8")));
+    writeFileSync(path, JSON.stringify({ ...manifest, enabled: true }));
   }
   browser() {
     this.write(this.home, ".config/chromium/Luna/Preferences", "{}");

@@ -25,6 +25,8 @@ commits. They never reset or autostash changes.
   web apps, and application defaults. A direct invocation also upgrades system packages before
   installing dependencies. `install.sh` installs only the CLI and prints a command
   for starting this setup manually.
+  Each app with `enabled: false` in its `app.jsonc` is skipped independently.
+  Other setup stages still run and report missing prerequisites when needed.
 - `luna self update`: update the checkout, build the CLI, run pending release
   migrations, then publish the CLI. Requires mise from setup. Migrations can install,
   remove, rebuild, or reconfigure apps. Successful steps are saved; rerun the same

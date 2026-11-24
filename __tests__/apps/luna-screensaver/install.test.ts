@@ -20,6 +20,7 @@ test("screensaver installs JSONC and shell exports, replaces owned paths, and re
     const app = join(f.repository, "apps/luna-screensaver");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-screensaver/app.jsonc"), join(app, "app.jsonc"));
+    f.enableApp("luna-screensaver");
     for (const directory of ["scripts", "config"])
       cpSync(join(repo, "apps/luna-screensaver", directory), join(app, directory), {
         recursive: true,

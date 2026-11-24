@@ -1,4 +1,5 @@
 {
+  "enabled": false,
   "name": "ungoogled-chromium-bin",
   "source": "aur",
   "processes": ["chromium"],

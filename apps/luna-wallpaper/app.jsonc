@@ -1,4 +1,5 @@
 {
+  "enabled": false,
   "name": "luna-wallpaper",
   "source": "local",
   "alias": [["wallpaper", ["luna", "wallpaper"]]],

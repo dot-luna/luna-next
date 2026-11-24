@@ -12,6 +12,7 @@ import { appProcesses } from "./processes.ts";
 class Apps {
   /**
    * Install and configure selected apps in catalog order; omitted names select all apps.
+   * Apps with enabled: false are skipped in both named and bulk installations.
    * Successful steps remain on failure. skipFailed records app failures and continues.
    */
   install(names: string[] = [], options: AppOptions = {}) {
