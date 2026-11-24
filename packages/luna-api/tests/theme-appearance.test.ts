@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
 import { themeContext } from "../src/modules/theme/context.ts";
 import { gsettings } from "../src/modules/theme/gsettings.ts";
-import type { ThemeMode } from "../src/modules/theme/types.ts";
+import type { ThemeMode } from "../src/modules/theme/schema.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 let f: ThemeFixture;
@@ -442,13 +442,16 @@ test.skipIf(!Bun.which("gsettings") || !Bun.which("dbus-run-session"))(
     const options = { ...f.options, env };
     for (const [index, mode] of modes.entries()) {
       expect(data(await Luna.theme.mode(mode, options))).toBe(mode);
-      const context = themeContext(options);
-      expect(await gsettings(context, ["get", "org.gnome.desktop.interface", "color-scheme"])).toBe(
-        `'prefer-${mode}'`,
-      );
-      expect(await gsettings(context, ["get", "org.gnome.desktop.interface", "gtk-theme"])).toBe(
-        index === 0 ? "'Luna'" : "'Luna-alt'",
-      );
+      const context = themeContext.resolve(options);
+      expect(
+        await gsettings.run({
+          context,
+          args: ["get", "org.gnome.desktop.interface", "color-scheme"],
+        }),
+      ).toBe(`'prefer-${mode}'`);
+      expect(
+        await gsettings.run({ context, args: ["get", "org.gnome.desktop.interface", "gtk-theme"] }),
+      ).toBe(index === 0 ? "'Luna'" : "'Luna-alt'");
       expect(existsSync(nativeCss(index === 0 ? "Luna" : "Luna-alt", env.XDG_DATA_HOME))).toBe(
         true,
       );

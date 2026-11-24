@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { join, resolve } from "node:path";
 import { gtkCss } from "../src/modules/theme/gtk-css.ts";
-import { resolveTheme } from "../src/modules/theme/values.ts";
+import { themeValues } from "../src/modules/theme/values.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 const python = Bun.which("python3");
@@ -30,8 +30,8 @@ interface Style {
 test.skipIf(!available).each(["dark", "light"] as const)(
   "native GTK3 %s circular and popover controls use Luna colors in every tested state",
   (mode) => {
-    const theme = resolveTheme(
-      {
+    const theme = themeValues.resolve({
+      source: {
         colors: {
           mode,
           foreground: "#223344",
@@ -42,10 +42,10 @@ test.skipIf(!available).each(["dark", "light"] as const)(
         },
         appearance: { rounding: 17 },
       },
-      "native",
-    );
+      name: "native",
+    });
     const path = join(f.root, "gtk.css");
-    f.write(path, gtkCss(theme, mode));
+    f.write(path, gtkCss.render({ theme, mode }));
     const child = Bun.spawnSync(
       [python!, resolve(import.meta.dir, "fixtures/gtk-style-probe.py"), path],
       {

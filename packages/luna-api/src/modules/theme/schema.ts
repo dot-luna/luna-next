@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { defaults } from "./defaults.ts";
-import { ApiError } from "@/lib/response.ts";
 
 export const themeNameSchema = z.string().regex(/^[a-z0-9][a-z0-9_-]*$/u);
 export const themeModeSchema = z.enum(["dark", "light"]);
@@ -71,11 +70,21 @@ export const themeSelectionSchema = z.strictObject({
     .optional(),
 });
 
-export function validateName(value: string) {
-  if (!themeNameSchema.safeParse(value).success)
-    throw new ApiError(
-      "INVALID_ARGUMENT",
-      "Theme names use lowercase letters, digits, underscores and hyphens",
-    );
-  return value;
+export type ThemeMode = "dark" | "light";
+
+/** An installed theme after defaults and derived color pairs are merged in memory. */
+export interface ResolvedTheme {
+  name: string;
+  packages?: { name: string; source: "pacman" | "aur" }[];
+  colors: Record<string, string> & { mode: ThemeMode };
+  fonts: { ui: string; mono: string };
+  wallpaper: { sources: string[] };
+  appearance: {
+    gaps: { inner: number; outer: number };
+    border_width: number;
+    rounding: number;
+    opacity: { active: number; inactive: number; fullscreen: number };
+    blur: { enabled: boolean; size: number; passes: number };
+    shadow: { enabled: boolean; range: number; falloff: number };
+  };
 }

@@ -243,7 +243,7 @@ test("failed application preserves external edits and mode changes", async () =>
 });
 
 test("concurrent writers are rejected by the selection lock", async () => {
-  await locked(themeContext(f.options), async () => {
+  await locked(themeContext.resolve(f.options), async () => {
     expect(await Luna.theme.install(f.source("custom"), f.options)).toMatchObject({
       succes: false,
       err: "CONFLICT",

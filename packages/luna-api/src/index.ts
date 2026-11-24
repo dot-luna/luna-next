@@ -75,13 +75,9 @@ export type {
   UpdateResult,
   UpdateResponse,
 } from "./modules/self/install/report.ts";
-export type {
-  ThemeMode,
-  ThemeOptions,
-  ThemeInstallOptions,
-  ThemeEntry,
-  ResolvedTheme,
-} from "./modules/theme/types.ts";
+export type { ThemeOptions, ThemeInstallOptions } from "./modules/theme/context.ts";
+export type { ThemeMode, ResolvedTheme } from "./modules/theme/schema.ts";
+export type { ThemeEntry } from "./modules/theme/store.ts";
 export type { AppOptions, AppUninstallOptions } from "./modules/apps/context.ts";
 export type { WebappOptions } from "./modules/webapp/context.ts";
 export type { WebappInstallOptions } from "./modules/webapp/context.ts";

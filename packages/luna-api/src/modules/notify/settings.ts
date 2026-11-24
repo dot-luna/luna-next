@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "pathe";
 import { readDocument } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
-import { currentTheme } from "@/modules/theme/selection.ts";
+import { themeSelection } from "@/modules/theme/selection.ts";
 import { themeContext } from "@/modules/theme/context.ts";
 import { notifySettingsSchema, resolveNotifySettings } from "./schema.ts";
 
@@ -18,7 +18,7 @@ export async function notifySnapshot(context: {
   env: Record<string, string>;
 }) {
   const settings = resolveNotifySettings(await readNotifySettings(context));
-  const theme = await currentTheme(themeContext({ env: context.env }));
+  const theme = await themeSelection.current(themeContext.resolve({ env: context.env }));
   const colors = theme.colors as Record<string, string>;
   const resolveColor = (value: string) => (value.startsWith("#") ? value : colors[value]!);
   settings.appearance.border_color = resolveColor(settings.appearance.border_color);

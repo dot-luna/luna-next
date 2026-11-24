@@ -3,13 +3,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderAppearance } from "../../../apps/zen/src/appearance.ts";
-import { resolveTheme } from "../../../packages/luna-api/src/modules/theme/values.ts";
+import { themeValues } from "../../../packages/luna-api/src/modules/theme/values.ts";
 
 const zen = Bun.which("zen-browser");
 const python = Bun.which("python3");
 
 test("browser rounding never changes website styles", async () => {
-  const theme = resolveTheme({}, "test");
+  const theme = themeValues.resolve({ source: {}, name: "test" });
   const square = await renderAppearance(theme, {});
   const rounded = await renderAppearance(
     { ...theme, appearance: { ...theme.appearance, rounding: 12 } },
@@ -38,23 +38,24 @@ test.skipIf(!zen || !python).each(["dark", "light"] as const)(
     });
     const url = `http://127.0.0.1:${server.port}/`;
     try {
-      const theme = resolveTheme(
-        mode === "dark"
-          ? {}
-          : {
-              colors: {
-                mode,
-                background: "#fafafa",
-                dark_background: "#ffffff",
-                lighter_background: "#eeeeee",
-                foreground: "#222222",
-                light_foreground: "#444444",
-                selection: "#ccddee",
-                selection_foreground: "#112233",
+      const theme = themeValues.resolve({
+        source:
+          mode === "dark"
+            ? {}
+            : {
+                colors: {
+                  mode,
+                  background: "#fafafa",
+                  dark_background: "#ffffff",
+                  lighter_background: "#eeeeee",
+                  foreground: "#222222",
+                  light_foreground: "#444444",
+                  selection: "#ccddee",
+                  selection_foreground: "#112233",
+                },
               },
-            },
-        "test",
-      );
+        name: "test",
+      });
       const rendered = await renderAppearance(theme, {
         "toolkit.legacyUserProfileCustomizations.stylesheets": true,
         "zen.welcome-screen.seen": true,

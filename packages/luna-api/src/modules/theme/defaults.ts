@@ -1,5 +1,5 @@
 import source from "../../../../../themes/bundled/tokyo-night/theme.jsonc" with { type: "text" };
-import type { ResolvedTheme } from "./types.ts";
+import type { ResolvedTheme } from "./schema.ts";
 
 export const defaults = Bun.JSONC.parse(source) as Omit<ResolvedTheme, "name">;
 // Only declared prerequisites install; partial themes inherit visual defaults alone.

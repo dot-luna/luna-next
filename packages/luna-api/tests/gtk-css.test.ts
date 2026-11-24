@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { gtkCss } from "../src/modules/theme/gtk-css.ts";
-import { resolveTheme } from "../src/modules/theme/values.ts";
+import { themeValues } from "../src/modules/theme/values.ts";
 
 test.each(["dark", "light"] as const)("GTK3 uses its bundled %s widget structure", (mode) => {
-  const css = gtkCss(resolveTheme({}, "test"), mode);
+  const css = gtkCss.render({ theme: themeValues.resolve({ source: {}, name: "test" }), mode });
   const suffix = mode === "dark" ? "-dark" : "";
   expect(css).toContain(
     `@import url("resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained${suffix}.css");`,
@@ -12,8 +12,8 @@ test.each(["dark", "light"] as const)("GTK3 uses its bundled %s widget structure
 });
 
 test("native GTK roles and explicit widget overrides use the resolved Luna palette", () => {
-  const theme = resolveTheme(
-    {
+  const theme = themeValues.resolve({
+    source: {
       colors: {
         background: "#101112",
         foreground: "#eeeeee",
@@ -26,9 +26,9 @@ test("native GTK roles and explicit widget overrides use the resolved Luna palet
         selection_foreground: "#fffefe",
       },
     },
-    "custom",
-  );
-  const css = gtkCss(theme, "dark");
+    name: "custom",
+  });
+  const css = gtkCss.render({ theme, mode: "dark" });
   expect(css).toContain("@define-color theme_bg_color #101112;");
   expect(css).toContain("@define-color theme_fg_color #eeeeee;");
   expect(css).toContain("@define-color theme_base_color #070809;");
@@ -51,9 +51,12 @@ test("native GTK roles and explicit widget overrides use the resolved Luna palet
 });
 
 test("explicit system mode changes structure without replacing authored palette colors", () => {
-  const theme = resolveTheme({ colors: { mode: "light", accent: "#123456" } }, "light");
-  const dark = gtkCss(theme, "dark");
-  const light = gtkCss(theme, "light");
+  const theme = themeValues.resolve({
+    source: { colors: { mode: "light", accent: "#123456" } },
+    name: "light",
+  });
+  const dark = gtkCss.render({ theme, mode: "dark" });
+  const light = gtkCss.render({ theme, mode: "light" });
   expect(dark.replace("gtk-contained-dark.css", "gtk-contained.css")).toBe(light);
   expect(dark).toContain(`@define-color theme_bg_color ${theme.colors.background};`);
   expect(dark).toContain("background-color: #123456;");
@@ -63,26 +66,35 @@ test("explicit system mode changes structure without replacing authored palette 
 test.each(["ui", "mono"] as const)(
   "%s font punctuation stays inside one escaped CSS string",
   (font) => {
-    const theme = resolveTheme(
-      { fonts: { [font]: 'Odd \\"; } button { color: red; } /*' } },
-      "font",
-    );
-    const css = gtkCss(theme, "dark");
+    const theme = themeValues.resolve({
+      source: { fonts: { [font]: 'Odd \\"; } button { color: red; } /*' } },
+      name: "font",
+    });
+    const css = gtkCss.render({ theme, mode: "dark" });
     expect(css).toContain('font-family: "Odd \\\\\\"; } button { color: red; } /*";');
     expect(css).not.toContain('font-family: "Odd \\";');
   },
 );
 
 test("explicitly monospace widgets and their text nodes use the mono font", () => {
-  const theme = resolveTheme({ fonts: { ui: "Luna UI", mono: "Luna Code" } }, "fonts");
-  const css = gtkCss(theme, "dark");
+  const theme = themeValues.resolve({
+    source: { fonts: { ui: "Luna UI", mono: "Luna Code" } },
+    name: "fonts",
+  });
+  const css = gtkCss.render({ theme, mode: "dark" });
   expect(css).toMatch(/\* \{\s*font-family: "Luna UI";/u);
   expect(css).toContain('.monospace, .monospace * { font-family: "Luna Code"; }');
 });
 
 test("GTK keeps Adwaita geometry regardless of Luna's window rounding", () => {
-  const square = gtkCss(resolveTheme({ appearance: { rounding: 0 } }, "square"), "dark");
-  const rounded = gtkCss(resolveTheme({ appearance: { rounding: 17 } }, "rounded"), "dark");
+  const square = gtkCss.render({
+    theme: themeValues.resolve({ source: { appearance: { rounding: 0 } }, name: "square" }),
+    mode: "dark",
+  });
+  const rounded = gtkCss.render({
+    theme: themeValues.resolve({ source: { appearance: { rounding: 17 } }, name: "rounded" }),
+    mode: "dark",
+  });
   expect(square).toBe(rounded);
   expect(square).not.toContain("border-radius:");
 });

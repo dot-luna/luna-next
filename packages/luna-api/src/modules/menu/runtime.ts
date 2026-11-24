@@ -1,6 +1,6 @@
 import { quickshell } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
-import { currentTheme } from "@/modules/theme/selection.ts";
+import { themeSelection } from "@/modules/theme/selection.ts";
 import { themeContext } from "@/modules/theme/context.ts";
 import type { MenuContext } from "./context.ts";
 
@@ -29,7 +29,7 @@ class MenuRuntime {
     if (await this.running(context)) return;
     // Resolve once per process start; the renderer never reads or watches theme sources.
     context.env.LUNA_MENU_THEME = JSON.stringify(
-      await currentTheme(themeContext({ env: context.env })),
+      await themeSelection.current(themeContext.resolve({ env: context.env })),
     );
     await quickshell.command({
       context,

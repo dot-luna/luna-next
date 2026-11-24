@@ -1,6 +1,6 @@
 import { quickshell } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
-import { currentTheme } from "@/modules/theme/selection.ts";
+import { themeSelection } from "@/modules/theme/selection.ts";
 import { themeContext } from "@/modules/theme/context.ts";
 import type { BarContext, BarState } from "./context.ts";
 
@@ -22,7 +22,7 @@ class BarRuntime {
    */
   async launch({ context, replace }: { context: BarContext; replace: boolean }) {
     context.env.LUNA_BAR_THEME = JSON.stringify(
-      await currentTheme(themeContext({ env: context.env })),
+      await themeSelection.current(themeContext.resolve({ env: context.env })),
     );
     if (replace) await this.kill(context);
     await this._command({

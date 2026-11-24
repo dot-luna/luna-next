@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { wallpaperLibrary, type LibraryContext } from "../src/modules/wallpaper/library.ts";
 import { wallpaperMedia } from "../src/modules/wallpaper/media.ts";
-import { importWallpapers } from "../src/modules/theme/wallpapers.ts";
+import { themeWallpapers } from "../src/modules/theme/wallpapers.ts";
 import { themeContext } from "../src/modules/theme/context.ts";
 import { locked } from "../src/lib/files.ts";
 
@@ -312,24 +312,30 @@ test("theme imports confine their sources and share the wallpaper library lock",
   const source = join(root, "theme");
   const inside = write(join(source, "image.svg"));
   const outside = write(join(root, "outside.svg"));
-  const theme = themeContext({
+  const theme = themeContext.resolve({
     env: { ...context.env, HOME: root },
     wallpaperDir: context.libraryDir,
   });
   symlinkSync(outside, join(source, "escape.svg"));
-  await expect(importWallpapers(theme, source, ["escape.svg"])).rejects.toMatchObject({
+  await expect(
+    themeWallpapers.import({ context: theme, root: source, sources: ["escape.svg"] }),
+  ).rejects.toMatchObject({
     code: "INVALID_PATH",
   });
-  await expect(importWallpapers(theme, source, [outside])).rejects.toMatchObject({
+  await expect(
+    themeWallpapers.import({ context: theme, root: source, sources: [outside] }),
+  ).rejects.toMatchObject({
     code: "INVALID_PATH",
   });
   await wallpaperLibrary.directory({ context, create: true });
   await locked({ env: context.env, configFile: join(context.libraryDir, ".library") }, async () => {
-    await expect(importWallpapers(theme, source, ["image.svg"])).rejects.toMatchObject({
+    await expect(
+      themeWallpapers.import({ context: theme, root: source, sources: ["image.svg"] }),
+    ).rejects.toMatchObject({
       code: "CONFLICT",
     });
   });
-  await importWallpapers(theme, source, ["image.svg"]);
+  await themeWallpapers.import({ context: theme, root: source, sources: ["image.svg"] });
   expect(readFileSync(join(context.libraryDir, "image.svg"), "utf8")).toBe(
     readFileSync(inside, "utf8"),
   );

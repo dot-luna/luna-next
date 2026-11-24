@@ -74,15 +74,17 @@ test
     expect(existsSync(join(env.XDG_CONFIG_HOME, "dconf/user"))).toBe(true);
 
     // Each helper starts a new process and private bus, reading the saved dconf database.
-    const context = themeContext({ ...f.options, env });
-    expect(await gsettings(context, ["get", "org.gnome.desktop.interface", "color-scheme"])).toBe(
-      `'prefer-${mode}'`,
-    );
-    const nativeName = await gsettings(context, [
-      "get",
-      "org.gnome.desktop.interface",
-      "gtk-theme",
-    ]);
+    const context = themeContext.resolve({ ...f.options, env });
+    expect(
+      await gsettings.run({
+        context,
+        args: ["get", "org.gnome.desktop.interface", "color-scheme"],
+      }),
+    ).toBe(`'prefer-${mode}'`);
+    const nativeName = await gsettings.run({
+      context,
+      args: ["get", "org.gnome.desktop.interface", "gtk-theme"],
+    });
     expect(nativeName).toBe("'Luna'");
     expect(join(env.XDG_DATA_HOME, "themes", nativeName.slice(1, -1), "gtk-3.0/gtk.css")).toBe(
       cssPath,
