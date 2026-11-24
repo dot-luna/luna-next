@@ -9,6 +9,12 @@ export async function canonicalPath(path: string): Promise<string> {
   return join(await canonicalPath(dirname(path)), basename(path));
 }
 
+/** Paths reach native includes and command arguments, where control characters are never valid. */
+export function hasControlCharacters(value: string) {
+  // oxlint-disable-next-line no-control-regex
+  return /[\x00-\x1f\x7f]/u.test(value);
+}
+
 export function overlaps(a: string, b: string) {
   return a === b || a.startsWith(b + "/") || b.startsWith(a + "/");
 }
