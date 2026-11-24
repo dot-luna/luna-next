@@ -37,8 +37,8 @@ part}"; fi ;;
         *" --output RO "*) echo "\${LUNA_TEST_RO:-0}" ;;
         *" --output MOUNTPOINTS "*) printf '%s' "\${LUNA_TEST_MOUNTS:-}" ;;
         *" --output PKNAME "*) echo "\${LUNA_TEST_PARENT:-/dev/test-disk}" ;;
-        *" --output SIZE,LOG-SEC,MAJ:MIN,SERIAL,WWN "*)
-            echo "\${LUNA_TEST_BYTES:-34359738368} \${LUNA_TEST_SECTOR:-512} 8:0 \${LUNA_TEST_SERIAL:-serial} wwn" ;;
+        *" --output SIZE,LOG-SEC,MAJ:MIN,SERIAL,WWN,MODEL "*)
+            echo "\${LUNA_TEST_BYTES:-34359738368} \${LUNA_TEST_SECTOR:-512} 8:0 \${LUNA_TEST_SERIAL:-serial} wwn \${LUNA_TEST_MODEL:-model}" ;;
         *) echo '/dev/test-disk 32G Test disk' ;;
     esac
 }
@@ -187,6 +187,11 @@ for (const [env, events] of [
 
 test("disk replacement blocks erasure", () => {
   expect(shell(operations + "LUNA_TEST_SERIAL=replaced; perform_installation").code).not.toBe(0);
+  expect(readFileSync(join(root, "events"), "utf8")).toBe("dry-run\n");
+});
+
+test("model-only replacement also blocks erasure", () => {
+  expect(shell(operations + "LUNA_TEST_MODEL=replaced; perform_installation").code).not.toBe(0);
   expect(readFileSync(join(root, "events"), "utf8")).toBe("dry-run\n");
 });
 

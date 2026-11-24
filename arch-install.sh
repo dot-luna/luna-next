@@ -3,7 +3,7 @@
 #
 # Boot the official x86_64 Arch ISO in UEFI mode and connect to the internet.
 # Run as root from a terminal:
-#   curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/dev/arch-install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/arch-install.sh | bash
 # Or download this file, inspect it, then run:
 #   bash arch-install.sh [--disk /dev/nvme0n1] [--username jrtilak]
 #
@@ -39,7 +39,7 @@ set +x
 
 fail() { printf 'arch-install: %s\n' "$*" >&2; exit 1; }
 # Keep lsblk output plain: include every child when checking mounts and mappings.
-disk_identity() { lsblk --nodeps --bytes --raw --noheadings --output SIZE,LOG-SEC,MAJ:MIN,SERIAL,WWN "$disk"; }
+disk_identity() { lsblk --nodeps --bytes --raw --noheadings --output SIZE,LOG-SEC,MAJ:MIN,SERIAL,WWN,MODEL "$disk"; }
 check_disk() {
     local types mounts readonly type
     [[ $disk =~ ^/dev/[a-zA-Z0-9_-]+$ ]] || fail 'Enter a whole-disk path such as /dev/nvme0n1.'
