@@ -1,4 +1,5 @@
 {
+  "enabled": false,
   "name": "luna-bar",
   "source": "local",
   "deps": [{ "name": "quickshell", "source": "pacman", "purpose": "Render Luna's workspace bar" }],

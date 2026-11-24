@@ -18,6 +18,7 @@ const hooks = z.array(relativePathSchema);
 export const appSchema = packageRecipeSchema
   .extend({
     name: appNameSchema,
+    enabled: z.boolean().optional(),
     source: z.enum(["pacman", "aur", "mise", "git", "local"]),
     version: z.string().min(1).regex(printable).nullable().optional(),
     url: z.string().min(1).regex(printable).nullable().optional(),

@@ -31,6 +31,10 @@ CLI, Git configuration, `after_cli` packages/mise tools, bundled themes and thei
 packages, apps in catalog order, later packages, web apps, then application defaults. Direct installation
 upgrades system packages before installing dependencies.
 
+App installation skips each manifest with `enabled: false` independently.
+Other setup stages still run and report missing prerequisites; disabled apps are
+never enabled automatically. See [app installation control](../../apps/DOCS.md).
+
 Use `git: { name?, email? }` to override global identity values. Otherwise existing
 values, including global include/includeIf files, are retained without new identity
 overrides. `requestGitIdentity(current)` may supply missing values;
@@ -351,6 +355,9 @@ Missing tools/English data, capture, OCR, and clipboard failures return
 | `Luna.apps.uninstall(names, options?)`  | Remove named apps, keeping settings/data by default. Requires at least one name.                                       |
 
 Names match directory IDs or package names; all operations follow catalog order.
+`enabled: false` in an app's `app.jsonc` skips that app in named and bulk installs,
+including its dependencies and hooks. It does not disable explicit configure,
+update, or uninstall commands. Omitted `enabled` defaults to `true`.
 Install/update/uninstall return `{ installed | updated | uninstalled, failed, completed, logDirectory }`
 with the corresponding result key. Configure returns selected IDs.
 Shared options: `repository`, `env`, `onProgress`, `closeApps` (default true).

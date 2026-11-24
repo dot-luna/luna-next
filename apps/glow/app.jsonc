@@ -1,4 +1,5 @@
 {
+  "enabled": false,
   "name": "glow",
   "source": "pacman",
   "alias": ["md"],
