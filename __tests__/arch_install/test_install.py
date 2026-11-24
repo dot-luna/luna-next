@@ -1,18 +1,21 @@
 """Use temporary files and shell command doubles; never run real disk operations."""
 
-import importlib.util
+import types
 import json
 import os
 from pathlib import Path
+import pty
+import select
 import subprocess
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[3]
-SOURCE = ROOT / "src/arch-install/src"
-spec = importlib.util.spec_from_file_location("preset", SOURCE / "config.py")
-preset = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(preset)
+ROOT = Path(__file__).resolve().parents[2]
+SOURCE = ROOT / "arch-install.sh"
+# Exercise the embedded native-JSON helper without executing the installer main.
+preset = types.ModuleType("preset")
+embedded = SOURCE.read_text().split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+exec(compile(embedded, str(SOURCE), "exec"), preset.__dict__)
 
 
 def disk(**values):
@@ -76,8 +79,8 @@ class ShellTests(unittest.TestCase):
         (self.root / "events").touch()
 
     def shell(self, code, input="", success=True):
-        result = subprocess.run(["bash", "-c", 'source "$TEST_SOURCE/install.sh"\n'
-                                 'staging=$TEST_ROOT\nhelper=$TEST_SOURCE/config.py\n' + code],
+        result = subprocess.run(["bash", "-c", 'source "$TEST_SOURCE"\n'
+                                 'staging=$TEST_ROOT\nexec 3<&0\n' + code],
                                 env=self.env, input=input, text=True, capture_output=True, timeout=15)
         if success:
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -97,6 +100,7 @@ class ShellTests(unittest.TestCase):
         self.assertNotIn("secret", result.stdout + result.stderr)
         password_hash = (self.root / "user.hash").read_text().strip()
         self.assertTrue(password_hash.startswith("$6$"))
+        self.assertEqual((self.root / "user.hash").stat().st_mode & 0o777, 0o600)
         expected = subprocess.check_output(["openssl", "passwd", "-6", "-salt",
                                             password_hash.split("$")[2], "-stdin"],
                                            input="secret-two\n", text=True).strip()
@@ -112,13 +116,19 @@ class ShellTests(unittest.TestCase):
         self.assertNotEqual(credentials["root_enc_password"], credentials["users"][0]["enc_password"])
         self.assertEqual((self.root / "credentials.json").stat().st_mode & 0o777, 0o600)
 
+    def test_system_username_rejected_before_password_or_disk_changes(self):
+        result = self.shell('disk=/dev/test-disk; username=sddm; '
+                            'inventory() { cat "$staging/inventory.json"; }; collect_details',
+                            success=False)
+        self.assertIn("system account", result.stderr)
+        self.assertFalse((self.root / "user.hash").exists())
+
     def install_attempt(self, inventory, fail_dry_run=False, fail_install=False):
         (self.root / "inventory.json").write_text(json.dumps({"blockdevices": [inventory]}))
-        (self.root / "target.sh").write_text('configure_target() { echo target >> "$staging/events"; }\n')
         self.env.update(DRY_FAILURE="1" if fail_dry_run else "0",
                         INSTALL_FAILURE="1" if fail_install else "0")
         return self.shell('''
-disk=/dev/test-disk; target=/mnt/luna; source_dir=$TEST_ROOT; log=$TEST_ROOT/log
+disk=/dev/test-disk; target=/mnt/luna; log=$TEST_ROOT/log
 inventory() { cat "$staging/inventory.json"; }
 install() { echo mirrors >> "$staging/events"; }
 archinstall() {
@@ -144,6 +154,19 @@ perform_installation
         self.install_attempt(disk(mountpoints=["/mnt/other"]))
         self.assertEqual((self.root / "events").read_text(), "dry-run\n")
 
+    def test_inventory_requests_tree_so_mounted_children_cannot_disappear(self):
+        node = disk(children=[{"type": "part", "mountpoints": ["/run/archiso/bootmnt"]}])
+        (self.root / "nested.json").write_text(json.dumps({"blockdevices": [node]}))
+        result = self.shell('''
+lsblk() {
+    if [[ " $* " == *" --tree "* ]]; then cat "$staging/nested.json"
+    else cat "$staging/inventory.json"; fi
+}
+inventory > "$staging/actual.json"
+native_config select /dev/test-disk "$staging/actual.json"
+''', success=False)
+        self.assertIn("unused whole disk", result.stderr)
+
     def test_failed_install_never_configures_target(self):
         self.install_attempt(disk(), fail_install=True)
         self.assertEqual((self.root / "events").read_text(), "dry-run\nmirrors\nerase\n")
@@ -156,9 +179,8 @@ perform_installation
         installed = disk(children=[{"type": "part", "mountpoints": ["/mnt/luna"]},
                                    {"type": "part", "mountpoints": ["/mnt/luna/boot"]}])
         (self.root / "mounted.json").write_text(json.dumps({"blockdevices": [installed]}))
-        (self.root / "target.sh").write_text('configure_target() { echo target >> "$staging/events"; }\n')
         self.shell('''
-disk=/dev/test-disk; target=/mnt/luna; source_dir=$TEST_ROOT; log=$TEST_ROOT/log
+disk=/dev/test-disk; target=/mnt/luna; log=$TEST_ROOT/log
 inventory() { cat "$staging/inventory.json"; }
 install() { echo mirrors >> "$staging/events"; }
 archinstall() {
@@ -169,52 +191,33 @@ archinstall() {
         cp "$staging/mounted.json" "$staging/inventory.json"
     fi
 }
+configure_target() { echo target >> "$staging/events"; }
 perform_installation
 ''')
         self.assertEqual((self.root / "events").read_text(), "dry-run\nmirrors\nerase\ntarget\n")
 
-    def test_target_keeps_cli_checkout_theme_and_enabled_services(self):
-        repository = self.root / "repository"
-        repository.mkdir()
-        (repository / "source").write_text("Luna checkout\n")
-        for args in (["init", "-q"], ["add", "source"],
-                     ["-c", "user.name=Test", "-c", "user.email=test@example.invalid",
-                      "commit", "-qm", "fixture"]):
-            subprocess.run(["git", "-C", str(repository), *args], check=True, capture_output=True)
-        (repository / "target").mkdir()
-        (repository / "target/luna").write_text("#!/bin/sh\necho fixture-version\n")
+    def test_target_enables_login_network_and_mirrors_without_luna(self):
         target = self.root / "target"
         for name in ("etc/arch-release", "etc/fstab", "boot/vmlinuz-linux", "boot/initramfs-linux.img",
                      "usr/share/wayland-sessions/hyprland.desktop"):
             path = target / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.touch()
-        (self.root / "greeter/screen").mkdir(parents=True)
-        (self.root / "greeter/Settings.js").write_text(".pragma library\nvar values = {};\n")
-        (self.root / "greeter/screen/Screen.qml").write_text("import QtQuick\nItem {}\n")
         (self.root / "config.json").write_text("{}")
         (self.root / "mirrorlist").write_text("Server = https://mirror.example/$repo/os/$arch\n")
         self.shell('''
-umask 077
-target=$TEST_ROOT/target; repository=$TEST_ROOT/repository; username=tester
+umask 022
+target=$TEST_ROOT/target; username=tester
 arch-chroot() {
     printf '%s\\n' "$*" >> "$staging/events"
     if [[ $2 == getent ]]; then printf 'tester:x:1000:1000::/home/tester:/bin/bash\\n'; fi
 }
-chown() { printf 'chown %s\\n' "$*" >> "$staging/events"; }
-source "$TEST_SOURCE/target.sh"
 configure_target
 ''')
-        installed_home = target / "home/tester"
-        self.assertTrue(os.access(installed_home / ".local/bin/luna", os.X_OK))
-        self.assertEqual((installed_home / ".local/src/luna-next/source").read_text(), "Luna checkout\n")
-        origin = subprocess.check_output(["git", "-C", str(installed_home / ".local/src/luna-next"),
-                                          "remote", "get-url", "origin"], text=True)
-        self.assertEqual(origin.strip(), "https://github.com/dot-luna/luna-next.git")
-        self.assertEqual((target / "etc/profile.d/luna.sh").stat().st_mode & 0o777, 0o644)
-        self.assertEqual((target / "etc/sddm.conf.d/luna.conf").read_text(), "[Theme]\nCurrent=luna\n")
+        self.assertFalse((target / "home/tester/.local/bin/luna").exists())
+        self.assertEqual((target / "etc/sddm.conf.d/arch-install.conf").read_text(), "[Theme]\nCurrent=\n")
         self.assertIn("Session=hyprland.desktop", (target / "var/lib/sddm/state.conf").read_text())
-        self.assertEqual((target / "usr/share/sddm/themes/luna/Settings.js").stat().st_mode & 0o777, 0o644)
+        self.assertEqual((target / "etc/sddm.conf.d/arch-install.conf").stat().st_mode & 0o777, 0o644)
         events = (self.root / "events").read_text()
         self.assertIn("systemctl enable NetworkManager sddm reflector.timer", events)
         self.assertIn("systemctl set-default graphical.target", events)
@@ -232,6 +235,51 @@ configure_target
         self.assertEqual(result.returncode, 0)
         self.assertIn("Usage:", result.stdout)
         self.shell('preflight', success=False)
+
+    def test_streamed_script_runs_without_checkout(self):
+        result = subprocess.run(["bash", "-s", "--", "--help"], input=SOURCE.read_text(),
+                                cwd=self.root, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Usage:", result.stdout)
+
+    def test_streamed_script_reads_confirmation_from_controlling_terminal(self):
+        # Script bytes arrive on stdin, while the answer arrives on /dev/tty.
+        # Only function definitions and confirmation run; no installer main or disk commands.
+        definitions = SOURCE.read_text().rsplit('\nif [[ -z ${BASH_SOURCE[0]:-}', 1)[0]
+        code = definitions + '''
+exec 3<>/dev/tty
+disk=/dev/test-disk; username=tester; sudo_access=yes
+confirm_install
+printf 'CONFIRMED\\n'
+'''
+        script_read, script_write = os.pipe()
+        pid, terminal = pty.fork()
+        if pid == 0:
+            os.close(script_write)
+            os.dup2(script_read, 0)
+            os.close(script_read)
+            os.execlp("bash", "bash")
+        os.close(script_read)
+        output = b""
+        try:
+            os.write(script_write, code.encode())
+            os.close(script_write)
+            while b"Type ERASE" not in output:
+                self.assertTrue(select.select([terminal], [], [], 10)[0], output)
+                output += os.read(terminal, 65536)
+            os.write(terminal, b"ERASE /dev/test-disk\n")
+            while b"CONFIRMED" not in output:
+                self.assertTrue(select.select([terminal], [], [], 10)[0], output)
+                output += os.read(terminal, 65536)
+            _, status = os.waitpid(pid, 0)
+            self.assertEqual(os.waitstatus_to_exitcode(status), 0, output)
+        finally:
+            os.close(terminal)
+            try:
+                os.kill(pid, 9)
+                os.waitpid(pid, 0)
+            except ProcessLookupError:
+                pass
 
 
 if __name__ == "__main__":
