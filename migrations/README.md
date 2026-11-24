@@ -104,3 +104,15 @@ the bar starts at the next login. Repeating the migration is safe.
 
 Refreshes Hyprland without duplicating the native config's workspace swipe gesture.
 Existing gesture bindings are retained, and a running Hyprland session reloads.
+
+## v0.0.11
+
+Refreshes only installed apps. Hyprland and Fastfetch get Super+Shift+F for the file
+explorer, Super+Shift+Space to toggle the bar and Super+Shift+A for About, and a
+running Hyprland session reloads. Luna Bar gains workspace icons, a clock with an
+AD/BS calendar and world clocks, and `bar.jsonc` settings; a running bar restarts.
+GTK styling is regenerated with native rounded controls. T3 Code applies Luna's
+theme without closing. Zen and Chromium close while they are reconfigured: Zen
+themes its popups and built-in pages, and Chromium removes Better WhatsApp Web and
+sends only links clicked in installed web apps to the default browser. Apps newly
+enabled by default are not installed on existing systems. Repeating it is safe.

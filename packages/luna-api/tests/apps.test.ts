@@ -79,6 +79,22 @@ test("mixed catalogs install only enabled apps in catalog order", async () => {
   expect(f.commands()).toEqual([]);
 });
 
+test("installed reports only installed catalog apps in catalog order without running hooks", async () => {
+  f.app("first", { name: "first", source: "local" }, ["build"]);
+  f.app("second", { name: "second", source: "local" }, ["build"]);
+  f.app("last", { name: "last", source: "local" }, ["build"]);
+  expect(data(await Luna.apps.installed([], options()))).toEqual([]);
+  data(await Luna.apps.install(["last", "first"], options()));
+  const hooks = f.hooks().length;
+  expect(data(await Luna.apps.installed([], options()))).toEqual(["first", "last"]);
+  expect(data(await Luna.apps.installed(["last", "second"], options()))).toEqual(["last"]);
+  expect(await Luna.apps.installed(["missing"], options())).toMatchObject({
+    succes: false,
+    err: "INVALID_ARGUMENT",
+  });
+  expect(f.hooks()).toHaveLength(hooks);
+});
+
 test("an enabled AUR app cannot implicitly install a disabled Yay provider", async () => {
   unlinkSync(join(f.bin, "yay"));
   f.app("yay", { name: "yay", source: "local", enabled: false }, ["build"]);

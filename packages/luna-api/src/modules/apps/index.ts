@@ -7,6 +7,7 @@ import { appConfigurator } from "./configure.ts";
 import { appUninstaller } from "./uninstall.ts";
 import { appInstaller } from "./install.ts";
 import { appProcesses } from "./processes.ts";
+import { appState } from "./state.ts";
 
 /** Public app operations resolve a fresh context and report failures through Luna's API response. */
 class Apps {
@@ -56,6 +57,25 @@ class Apps {
       }
     });
   }
+  /**
+   * Return the IDs of installed catalog apps in catalog order; omitted names select all apps.
+   * Read-only, so migrations can refresh only apps a system actually has.
+   */
+  installed(names: string[] = [], options: AppOptions = {}) {
+    return respond(async () => {
+      const context = await appContext.resolve(options);
+      try {
+        const installed: string[] = [];
+        for (const app of appCatalog.select({ apps: await appCatalog.read(context), names }))
+          if (await appState.installed({ context, app })) installed.push(app.id);
+        context.log.finish({ completed: true, installed, logDirectory: context.log.directory });
+        return installed;
+      } catch (error) {
+        throw context.failure(error);
+      }
+    });
+  }
+
   /** Update installed catalog apps; omitted names select all installed apps. */
   update(names: string[] = [], options: AppOptions = {}) {
     return respond(async () => {
