@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "luna-screensaver",
   "source": "local",
   "alias": [["screensaver", ["luna", "screensaver"]]],

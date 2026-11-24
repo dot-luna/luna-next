@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "luna-notify",
   "source": "local",
   "alias": [["notify", ["luna", "notify"]]],

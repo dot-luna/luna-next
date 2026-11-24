@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "yay",
   "source": "git",
   "version": null,
