@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, readFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Luna } from "../src/index.ts";
-import { migrationPlan } from "../src/modules/self/migrations/plan.ts";
+import { migrationPlanner } from "../src/modules/self/migrations/plan.ts";
 import { InstallContext } from "../src/modules/self/install/command.ts";
-import { runMigrations } from "../src/modules/self/migrations/run.ts";
-import { readState, selfLocked } from "../src/modules/self/migrations/state.ts";
-import { releasedUpdater } from "../src/modules/self/migrations/build.ts";
+import { migrationRunner } from "../src/modules/self/migrations/run.ts";
+import { migrationState } from "../src/modules/self/migrations/state.ts";
+import { buildMigrations } from "../src/modules/self/migrations/build.ts";
 import { SelfFixture } from "./fixtures/self-fixture.ts";
 
 const userTests = process.getuid?.() === 0 ? describe.skip : describe;
@@ -42,7 +42,7 @@ userTests("versioned migrations", () => {
     version("1.0.10");
     expect(await Luna.self.update({ env: f.env })).toMatchObject({ succes: true });
     expect(readFileSync(join(f.home, "migrated"), "utf8")).toBe("1.0.0>1.0.2\nsecond\n");
-    expect(await readState(context())).toMatchObject({ version: "1.0.10" });
+    expect(await migrationState.read(context())).toMatchObject({ version: "1.0.10" });
     expect(await Luna.self.update({ env: f.env })).toMatchObject({ succes: true });
     expect(readFileSync(join(f.home, "migrated"), "utf8")).toBe("1.0.0>1.0.2\nsecond\n");
   });
@@ -60,7 +60,7 @@ userTests("versioned migrations", () => {
     expect(failure.errMessage).toContain("Retry:");
     expect(failure.errMessage).toStartWith("Luna update incomplete.");
     expect(failure.errMessage).toContain("Completed migration steps are saved");
-    expect(await readState(context())).toMatchObject({ version: "1.0.1" });
+    expect(await migrationState.read(context())).toMatchObject({ version: "1.0.1" });
     expect(readFileSync(f.executable, "utf8")).toBe("previous CLI");
     f.write(f.home, "allow", "");
     expect(await Luna.self.update({ env: f.env })).toMatchObject({ succes: true });
@@ -93,7 +93,7 @@ userTests("versioned migrations", () => {
       "--ref",
       "master",
     ]);
-    expect(await readState(context())).toMatchObject({ version: "1.0.0" });
+    expect(await migrationState.read(context())).toMatchObject({ version: "1.0.0" });
     expect(await Luna.self.update({ env: f.env })).toMatchObject({ succes: true });
     expect(readFileSync(join(f.home, "migrated"), "utf8")).toBe("done");
   });
@@ -110,14 +110,16 @@ userTests("versioned migrations", () => {
   test("ambiguous edges, nonexecutable files, symlinks and backwards upgrades are rejected", async () => {
     script("1.0.0", "1.0.1", ":");
     script("1.0.0", "1.0.2", ":");
-    const plan = () => migrationPlan({ repository: f.upstream, from: "1.0.0", to: "1.0.2" });
+    const plan = () =>
+      migrationPlanner.plan({ repository: f.upstream, from: "1.0.0", to: "1.0.2" });
     await expect(plan()).rejects.toThrow("one forward successor");
     await expect(
-      migrationPlan({ repository: f.upstream, from: "1.0.2", to: "1.0.0" }),
+      migrationPlanner.plan({ repository: f.upstream, from: "1.0.2", to: "1.0.0" }),
     ).rejects.toThrow("backwards");
     const path = join(f.repository, "migrations/v1.0.0-v1.0.1.sh");
     f.write(f.repository, "migrations/v1.0.0-v1.0.1.sh", "#!/bin/bash\n:");
-    const own = () => migrationPlan({ repository: f.repository, from: "1.0.0", to: "1.0.1" });
+    const own = () =>
+      migrationPlanner.plan({ repository: f.repository, from: "1.0.0", to: "1.0.1" });
     await expect(own()).rejects.toThrow("executable");
     const { rmSync } = await import("node:fs");
     rmSync(path);
@@ -134,14 +136,17 @@ userTests("versioned migrations", () => {
         git: { name: "User", email: "user@example.test" },
       }),
     ).toMatchObject({ succes: true });
-    expect(await readState(context())).toMatchObject({ version: "1.0.0" });
+    expect(await migrationState.read(context())).toMatchObject({ version: "1.0.0" });
   });
   test("concurrent self updates cannot move the checkout", async () => {
-    await selfLocked(context(), async () => {
-      expect(await Luna.self.update({ env: f.env })).toMatchObject({
-        succes: false,
-        err: "CONFLICT",
-      });
+    await migrationState.selfLocked({
+      context: context(),
+      operation: async () => {
+        expect(await Luna.self.update({ env: f.env })).toMatchObject({
+          succes: false,
+          err: "CONFLICT",
+        });
+      },
     });
     expect(f.commands().some((command) => command.args.includes("fetch"))).toBe(false);
   });
@@ -153,16 +158,16 @@ userTests("versioned migrations", () => {
       `#!${process.execPath}\nawait Bun.write(process.env.HOME + '/typed', process.env.LUNA_ROOT + ':' + process.env.LUNA_MIGRATION_TO_VERSION);\n`,
     );
     chmodSync(join(f.repository, "migrations/v1.0.0-v1.0.1.ts"), 0o755);
-    await runMigrations(context(), "1.0.0");
+    await migrationRunner.run({ context: context(), baseline: "1.0.0" });
     expect(readFileSync(join(f.home, "typed"), "utf8")).toBe(f.repository + ":1.0.1");
   });
   test("the first-release build handoff only recognizes an installed self-update ancestor", async () => {
     const proc = join(f.root, "proc");
     f.write(proc, "123/cmdline", `${f.executable}\0self\0update\0`);
     symlinkSync(f.executable, join(proc, "123/exe"));
-    expect(await releasedUpdater({ home: f.home, parent: 123, proc })).toBe(true);
+    expect(await buildMigrations.releasedUpdater({ home: f.home, parent: 123, proc })).toBe(true);
     f.write(proc, "123/cmdline", `${f.executable}\0self\0install\0`);
     f.write(proc, "123/stat", "123 (luna) S 1 0");
-    expect(await releasedUpdater({ home: f.home, parent: 123, proc })).toBe(false);
+    expect(await buildMigrations.releasedUpdater({ home: f.home, parent: 123, proc })).toBe(false);
   });
 });

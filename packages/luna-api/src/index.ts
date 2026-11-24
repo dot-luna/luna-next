@@ -1,6 +1,5 @@
 import { info } from "./modules/info/index.ts";
-import { install } from "./modules/self/install/index.ts";
-import { update } from "./modules/self/update.ts";
+import { self } from "./modules/self/index.ts";
 import { theme } from "./modules/theme/index.ts";
 import { apps } from "./modules/apps/index.ts";
 import { webapp } from "./modules/webapp/index.ts";
@@ -22,7 +21,7 @@ export type { BarOptions, BarState } from "./modules/bar/context.ts";
 export const Luna = {
   bar,
   info,
-  self: { install, update },
+  self,
   theme,
   apps,
   webapp,
@@ -69,13 +68,13 @@ export type { StayAwakeAction } from "./modules/menu/schema.ts";
 
 export type { InfoOptions, LunaInfo, LunaInfoResponse } from "./modules/info/index.ts";
 export type { ApiErrorCode, ApiResponse, ErrorResponse, SuccessResponse } from "./lib/response.ts";
+export type { GitIdentity, InstallOptions, UpdateOptions } from "./modules/self/context.ts";
 export type {
-  GitIdentity,
-  InstallOptions,
   InstallResult,
   InstallResponse,
-} from "./modules/self/install/types.ts";
-export type { UpdateOptions, UpdateResult, UpdateResponse } from "./modules/self/update.ts";
+  UpdateResult,
+  UpdateResponse,
+} from "./modules/self/install/report.ts";
 export type {
   ThemeMode,
   ThemeOptions,

@@ -1,6 +1,6 @@
 import { open, readFile } from "node:fs/promises";
-import { InstallLog } from "./log.ts";
 import { ApiError } from "@/lib/response.ts";
+import { InstallLog } from "./log.ts";
 
 export interface CommandResult {
   exitCode: number;
@@ -8,7 +8,11 @@ export interface CommandResult {
   stderr: string;
 }
 
-/** Commands receive the installation environment without changing the caller's cwd or env. */
+/**
+ * Shared state for one self, app or defaults operation: the checkout, the resolved
+ * environment, progress and a durable log. Commands receive this environment without
+ * changing the caller's cwd or Bun.env; callers copy env when a step must not leak changes.
+ */
 export class InstallContext {
   readonly log: InstallLog;
   readonly progress: (message: string) => void;
@@ -26,6 +30,10 @@ export class InstallContext {
     };
   }
 
+  /**
+   * Convert any error to an ApiError that names the log directory, and write the failed summary.
+   * Safe to call again on an already converted error; the log location is appended only once.
+   */
   failure(error: unknown): ApiError {
     const original =
       error instanceof ApiError
@@ -43,6 +51,11 @@ export class InstallContext {
     return new ApiError(original.code, message);
   }
 
+  /**
+   * Run literal arguments with inherited stdin, logging output to per-command files.
+   * A nonzero exit throws COMMAND_FAILED unless allowFailure is set. tailOnly returns only
+   * the last 64 KiB of each stream, for commands whose output can be very large.
+   */
   async execute(
     args: string[],
     allowFailure = false,
@@ -60,19 +73,10 @@ export class InstallContext {
         stderr: Bun.file(entry.stderr),
       });
       const exitCode = await child.exited;
-      const output = async (path: string) => {
-        if (!tailOnly) return readFile(path, "utf8");
-        const file = await open(path, "r");
-        try {
-          const { size } = await file.stat();
-          const bytes = Buffer.alloc(Math.min(size, 65536));
-          const result = await file.read(bytes, 0, bytes.length, Math.max(0, size - bytes.length));
-          return bytes.subarray(0, result.bytesRead).toString("utf8");
-        } finally {
-          await file.close();
-        }
-      };
-      const [stdout, stderr] = await Promise.all([output(entry.stdout), output(entry.stderr)]);
+      const [stdout, stderr] = await Promise.all([
+        this._output(entry.stdout, tailOnly),
+        this._output(entry.stderr, tailOnly),
+      ]);
       this.log.event({ type: "exit", id: entry.id, exitCode });
       if (exitCode !== 0 && !allowFailure)
         throw new ApiError(
@@ -104,5 +108,18 @@ export class InstallContext {
 
   git(args: string[], allowFailure = false) {
     return this.execute(["git", "-C", this.repository, ...args], allowFailure);
+  }
+
+  private async _output(path: string, tailOnly: boolean) {
+    if (!tailOnly) return readFile(path, "utf8");
+    const file = await open(path, "r");
+    try {
+      const { size } = await file.stat();
+      const bytes = Buffer.alloc(Math.min(size, 65536));
+      const result = await file.read(bytes, 0, bytes.length, Math.max(0, size - bytes.length));
+      return bytes.subarray(0, result.bytesRead).toString("utf8");
+    } finally {
+      await file.close();
+    }
   }
 }

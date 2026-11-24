@@ -3,10 +3,9 @@ import { ApiError } from "@/lib/response.ts";
 import { locked, parse, readOptional, writeFile } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
 import { InstallContext } from "@/modules/self/install/command.ts";
-import { installPackages } from "@/modules/self/install/packages.ts";
+import { packageRecipes } from "@/modules/self/install/packages.ts";
 import {
-  attempt,
-  quote,
+  installReport,
   type AppInstallResult,
   type InstallFailure,
 } from "@/modules/self/install/report.ts";
@@ -58,7 +57,7 @@ class AppInstaller {
         context.log,
       );
       local.progress(`${operation === "update" ? "Updating" : "Installing"} ${app.id}...`);
-      await installPackages(local, app.manifest.deps ?? []);
+      await packageRecipes.install({ context: local, recipes: app.manifest.deps ?? [] });
       let revision: string | undefined;
       if (app.manifest.source === "git")
         revision = (
@@ -126,13 +125,18 @@ class AppInstaller {
       const installed: string[] = [];
       const failed: InstallFailure[] = [];
       for (const app of selected) {
-        let retry = `${quote(join(context.home, ".local/bin/luna"))} ${operation} ${quote(app.id)} --install-dir ${quote(context.repository)}`;
+        let retry = `${installReport.quote(join(context.home, ".local/bin/luna"))} ${operation} ${installReport.quote(app.id)} --install-dir ${installReport.quote(context.repository)}`;
         if (force) retry += " --force";
         if (!closeApps) retry += " --no-close-apps";
 
-        const completed = await attempt(context, app.id, retry, skipFailed, failed, () =>
-          this._installOne({ context, app, force, closeApps, operation }),
-        );
+        const completed = await installReport.attempt({
+          context,
+          app: app.id,
+          retry,
+          skipFailed,
+          failed,
+          operation: () => this._installOne({ context, app, force, closeApps, operation }),
+        });
         if (completed) installed.push(app.id);
       }
       const result = {
@@ -198,18 +202,22 @@ class AppInstaller {
         await appHooks.run({ context, app, stage: "build" });
         await appHooks.run({ context, app, stage: "after_build" });
       } else
-        await installPackages(context, [
-          {
-            name: app.manifest.name,
-            source: app.manifest.source as "pacman" | "aur" | "mise",
-            ...(app.manifest.version ? { version: app.manifest.version } : {}),
-          },
-        ]);
+        await packageRecipes.install({
+          context,
+          recipes: [
+            {
+              name: app.manifest.name,
+              source: app.manifest.source as "pacman" | "aur" | "mise",
+              ...(app.manifest.version ? { version: app.manifest.version } : {}),
+            },
+          ],
+        });
       await appHooks.run({ context, app, stage: "after_install" });
     } else if (app.manifest.source === "mise") {
-      await installPackages(context, [
-        { name: app.manifest.name, source: "mise", version: installedMiseVersion! },
-      ]);
+      await packageRecipes.install({
+        context,
+        recipes: [{ name: app.manifest.name, source: "mise", version: installedMiseVersion! }],
+      });
     }
   }
 

@@ -2,12 +2,12 @@ import { expect, test } from "bun:test";
 import { chmod, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { migrationPlan } from "../src/modules/self/migrations/plan.ts";
+import { migrationPlanner } from "../src/modules/self/migrations/plan.ts";
 
 test("gesture migration refreshes only Hyprland and propagates configuration/reload failures", async () => {
   const root = await mkdtemp(join(tmpdir(), "luna-gesture-migration-"));
   try {
-    const plan = await migrationPlan({
+    const plan = await migrationPlanner.plan({
       repository: new URL("../../../", import.meta.url).pathname,
       from: "0.0.9",
       to: "0.0.10",

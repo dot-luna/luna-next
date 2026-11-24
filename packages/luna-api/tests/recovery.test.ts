@@ -293,7 +293,7 @@ test.each([false, true])(
   "saved Mise data defaults precede integrated Zsh activation (custom ZDOTDIR: %s)",
   async (custom) => {
     const { cpSync, mkdirSync } = await import("node:fs");
-    const { setupMise } = await import("../src/modules/self/install/mise.ts");
+    const { miseShell } = await import("../src/modules/self/install/mise.ts");
     const { appIntegration } = await import("../src/modules/apps/integration.ts");
     const data = join(f.root, "custom mise data");
     f.env.MISE_DATA_DIR = data;
@@ -302,7 +302,7 @@ test.each([false, true])(
       f.env.ZDOTDIR = zshHome;
       mkdirSync(zshHome);
     }
-    await setupMise(context());
+    await miseShell.configure(context());
     const exported = join(f.home, ".config/luna/zsh/zshrc");
     mkdirSync(join(exported, ".."), { recursive: true });
     cpSync(new URL("../../../apps/zsh/config/tools.zsh", import.meta.url), exported);

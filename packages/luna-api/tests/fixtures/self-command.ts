@@ -107,7 +107,7 @@ if (name === "xdg-mime") {
   mkdirSync("target", { recursive: true });
   writeFileSync("target/luna", "#!/bin/sh\nprintf 'fixture CLI\\n'\n");
   chmodSync("target/luna", 0o755);
-  const { migrateAfterBuild } = await import("../../src/modules/self/migrations/build.ts");
-  await migrateAfterBuild(process.cwd());
+  const { buildMigrations } = await import("../../src/modules/self/migrations/build.ts");
+  await buildMigrations.run(process.cwd());
 }
 console.log("routine command output stays captured");

@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/response.ts";
 import { metadata, parse, readOptional, writeFile } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
 import type { InstallContext } from "@/modules/self/install/command.ts";
-import { quote } from "@/modules/self/install/report.ts";
+import { installReport } from "@/modules/self/install/report.ts";
 import { appConfigRecordSchema } from "./schema.ts";
 
 class AppIntegration {
@@ -116,7 +116,7 @@ class AppIntegration {
         ? `@import url(${JSON.stringify(Bun.pathToFileURL(source).href)});`
         : extension === ".conf"
           ? `include ${source}`
-          : `source ${quote(source)}`;
+          : `source ${installReport.quote(source)}`;
     return `${start}\n${line}\n${end}\n${body}`;
   }
 

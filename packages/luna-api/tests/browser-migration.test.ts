@@ -2,10 +2,10 @@ import { expect, test } from "bun:test";
 import { chmod, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { migrationPlan } from "../src/modules/self/migrations/plan.ts";
+import { migrationPlanner } from "../src/modules/self/migrations/plan.ts";
 
 test("v0.0.5 preserves the pending browser migration before its no-op step", async () => {
-  const plan = await migrationPlan({
+  const plan = await migrationPlanner.plan({
     repository: new URL("../../../", import.meta.url).pathname,
     from: "0.0.3",
     to: "0.0.5",

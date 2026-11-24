@@ -2,11 +2,7 @@ import { afterEach, expect, test, spyOn } from "bun:test";
 import { join } from "node:path";
 import { SelfFixture } from "./fixtures/self-fixture.ts";
 import { appContext } from "../src/modules/apps/context.ts";
-import {
-  removeWhatlyDependencies,
-  removablePackages,
-  whatlyOwnedPackages,
-} from "../src/modules/self/migrations/releases/whatly-dependencies.ts";
+import { whatlyDependencies } from "../src/modules/self/migrations/releases/whatly-dependencies.ts";
 
 const start = "2026-11-10T12:00:00.000Z";
 const end = "2026-11-10T12:00:10.000Z";
@@ -27,14 +23,14 @@ function details(name: string, required = "None", optional = "None") {
 }
 
 test("only newly installed packages in a proven Whatly transaction belong to Whatly", () => {
-  expect([...whatlyOwnedPackages({ source: transaction, installations: records })]).toEqual([
-    "qt6-webengine",
-    "qt6-webchannel",
-    "helper",
-  ]);
-  expect([...whatlyOwnedPackages({ source: transaction, installations: [] })]).toEqual([]);
   expect([
-    ...whatlyOwnedPackages({
+    ...whatlyDependencies.ownedPackages({ source: transaction, installations: records }),
+  ]).toEqual(["qt6-webengine", "qt6-webchannel", "helper"]);
+  expect([...whatlyDependencies.ownedPackages({ source: transaction, installations: [] })]).toEqual(
+    [],
+  );
+  expect([
+    ...whatlyDependencies.ownedPackages({
       source: transaction,
       installations: [
         { ...records[0]!, start: Date.parse(start) + 60000, end: Date.parse(end) + 60000 },
@@ -55,7 +51,9 @@ test("later explicit installs and removals revoke ownership while normal upgrade
       "[PACMAN] Running 'pacman -R qt6-webchannel'",
       "[ALPM] removed qt6-webchannel (1.0)",
     ]);
-  expect([...whatlyOwnedPackages({ source, installations: records })]).toEqual(["helper"]);
+  expect([...whatlyDependencies.ownedPackages({ source, installations: records })]).toEqual([
+    "helper",
+  ]);
 });
 
 test("other apps' hard and optional dependencies and Luna recipe dependencies stay installed", () => {
@@ -66,7 +64,7 @@ test("other apps' hard and optional dependencies and Luna recipe dependencies st
     details("optional-lib", "None", "another-app") +
     details("gcc");
   expect(
-    removablePackages({
+    whatlyDependencies.removablePackages({
       source,
       candidates: new Set(["qt6-webengine", "qt6-webchannel", "qt6-base", "optional-lib", "gcc"]),
       protected: new Set(["gcc"]),
@@ -76,14 +74,14 @@ test("other apps' hard and optional dependencies and Luna recipe dependencies st
 
 test("retaining a package also retains its dependencies through the entire chain", () => {
   expect(
-    removablePackages({
+    whatlyDependencies.removablePackages({
       source: details("a", "b") + details("b", "c") + details("c", "external"),
       candidates: new Set(["a", "b", "c"]),
       protected: new Set(),
     }),
   ).toEqual([]);
   expect(() =>
-    removablePackages({
+    whatlyDependencies.removablePackages({
       source: "Name : a\nRequired By : None\n",
       candidates: new Set(["a"]),
       protected: new Set(),
@@ -133,7 +131,7 @@ test("dependency cleanup uses retained installer evidence and only removes the c
     return { exitCode: 0, stdout, stderr: "" };
   });
   try {
-    await removeWhatlyDependencies(context);
+    await whatlyDependencies.remove(context);
     expect(calls.at(-1)).toEqual([
       "sudo",
       "pacman",
@@ -154,7 +152,7 @@ test("missing installer ownership evidence performs no package query or removal"
   const context = await appContext.resolve({ env: f.env });
   const command = spyOn(context, "execute").mockRejectedValue(new Error("Must not run pacman"));
   try {
-    await removeWhatlyDependencies(context);
+    await whatlyDependencies.remove(context);
     expect(command).not.toHaveBeenCalled();
   } finally {
     command.mockRestore();

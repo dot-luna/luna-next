@@ -3,7 +3,7 @@ import { join } from "pathe";
 import { ApiError } from "@/lib/response.ts";
 import { locked, metadata, readOptional } from "@/lib/files.ts";
 import { ordinaryParents } from "@/lib/paths.ts";
-import { attempt, quote, type InstallFailure } from "@/modules/self/install/report.ts";
+import { installReport, type InstallFailure } from "@/modules/self/install/report.ts";
 import { InstallContext } from "@/modules/self/install/command.ts";
 import { appCatalog, type CatalogApp } from "./catalog.ts";
 import { appCleanup } from "./cleanup.ts";
@@ -116,13 +116,18 @@ class AppUninstaller {
       const uninstalled: string[] = [];
       const failed: InstallFailure[] = [];
       for (const { app, paths } of plans) {
-        let retry = `${quote(join(context.home, ".local/bin/luna"))} uninstall ${quote(app.id)} --install-dir ${quote(context.repository)}`;
+        let retry = `${installReport.quote(join(context.home, ".local/bin/luna"))} uninstall ${installReport.quote(app.id)} --install-dir ${installReport.quote(context.repository)}`;
         if (purge) retry += " --purge";
         if (!closeApps) retry += " --no-close-apps";
 
-        const removed = await attempt(context, app.id, retry, skipFailed, failed, () =>
-          this._uninstallOne({ context, app, paths, closeApps }),
-        );
+        const removed = await installReport.attempt({
+          context,
+          app: app.id,
+          retry,
+          skipFailed,
+          failed,
+          operation: () => this._uninstallOne({ context, app, paths, closeApps }),
+        });
         if (removed) uninstalled.push(app.id);
       }
       const result = {

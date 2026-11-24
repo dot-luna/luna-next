@@ -83,7 +83,7 @@ test("migration installs WhatsApp and removes all owned Whatly files while retai
   expect(cleaned).toContain("x-scheme-handler/whatsapp=other.desktop;");
   expect(cleaned).toContain("text/plain=editor.desktop;");
   expect(cleaned).not.toContain("whatly");
-  expect(await whatlyPaths(context)).toMatchObject({ settings: new Map() });
+  expect(await whatlyPaths.collect(context)).toMatchObject({ settings: new Map() });
   await run();
   expect(await Luna.webapp.list({ env: f.env })).toMatchObject({
     succes: true,
