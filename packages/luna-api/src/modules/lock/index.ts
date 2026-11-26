@@ -1,15 +1,44 @@
-import { locked } from "@/lib/files.ts";
-import { respond } from "@/lib/response.ts";
+import { locked, metadata } from "@/lib/files.ts";
+import { capture } from "@/lib/process.ts";
+import { ApiError, respond } from "@/lib/response.ts";
+import { join } from "pathe";
 import { screensaver } from "@/modules/screensaver/index.ts";
 import { lockContext, type LockOptions } from "./context.ts";
 import { lockDisplay } from "./display.ts";
 import { lockRuntime } from "./runtime.ts";
 import { lockSettings } from "./settings.ts";
+import { lockPresentation } from "./presentation.ts";
 
 type LockAction = "start" | "lock" | "lockIdle" | "stop" | "restart" | "reload" | "status";
 
 /** Control the secure native lock without exposing authentication or an unlock operation over IPC. */
 class Lock {
+  /** Open an ordinary preview window with simulated responses; never acquire a lock or start PAM. */
+  preview(options: LockOptions = {}) {
+    return respond(async () => {
+      const context = await lockContext.renderer({ context: lockContext.resolve(options) });
+      const entry = join(context.shellDirectory, "preview.qml");
+      if (!(await metadata(entry))?.isFile())
+        throw new ApiError("INVALID_PATH", `Lock preview is missing: ${entry}`);
+      const settings = (await lockSettings.read(context)).value;
+      const result = await capture({
+        args: [context.executable, "--no-color", "-p", entry],
+        env: {
+          ...context.env,
+          LUNA_LOCK_SETTINGS: JSON.stringify(settings),
+          LUNA_LOCK_THEME: JSON.stringify(await lockPresentation.theme({ context, settings })),
+          ...(await lockPresentation.identity(context)),
+        },
+      });
+      if (result.code !== 0)
+        throw new ApiError(
+          "COMMAND_FAILED",
+          result.stderr || result.stdout || "Lock preview failed",
+        );
+      return { configFile: context.configFile };
+    });
+  }
+
   /** Read all settings, or one dot-separated key; missing keys return null. */
   get(key?: string, options: LockOptions = {}) {
     return respond(() => lockSettings.get({ context: lockContext.resolve(options), key }));

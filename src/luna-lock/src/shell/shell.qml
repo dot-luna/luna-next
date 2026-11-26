@@ -52,6 +52,16 @@ ShellRoot {
         return "ok";
     }
 
+    function ensureFocusedScreen() {
+        if (!Quickshell.screens.some(screen => screen.name === focusedScreen))
+            focusedScreen = Quickshell.screens[0]?.name || "";
+    }
+
+    Connections {
+        target: Quickshell
+        function onScreensChanged() { shell.ensureFocusedScreen(); }
+    }
+
     function maybeQuit() {
         if (stopping && displayPower.settled) {
             // Bindings may briefly settle while the queued wake starts. Check
@@ -76,6 +86,8 @@ ShellRoot {
         return "ok";
     }
 
+    // Menu's Stay Awake and application inhibitors pause automatic locking only.
+    // Manual lock() remains available, including while an inhibitor is active.
     IdleMonitor {
         id: autoLockIdle
         enabled: shell.idleArmed && !shell.stopping && !shell.lockRequested && !sessionLock.locked
@@ -129,6 +141,13 @@ ShellRoot {
         }
     }
 
+    SystemActions {
+        id: systemActions
+        secure: sessionLock.secure
+        authenticationBusy: authContext.busy
+        shutdownDelay: shell.configuration?.actions?.shutdown_delay ?? 3
+    }
+
     SystemClock {
         id: clock
         precision: SystemClock.Minutes
@@ -147,6 +166,9 @@ ShellRoot {
 
         LockSurface {
             theme: shell.theme
+            actions: systemActions
+            username: Quickshell.env("LUNA_LOCK_USER") || Quickshell.env("USER")
+            userIcon: Quickshell.env("LUNA_LOCK_USER_ICON")
             dateTime: clock.date
             authentication: authContext
             keyboardActive: screen?.name === shell.focusedScreen

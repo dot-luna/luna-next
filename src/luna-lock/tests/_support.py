@@ -15,8 +15,11 @@ SHELL = APP / "src/shell"
 QUICKSHELL = shutil.which("qs") or shutil.which("quickshell")
 THEME = {
     "colors": {"background": "#e1e2e7", "foreground": "#343b58",
-               "bright_foreground": "#1a1b26", "accent": "#34548a"},
+               "bright_foreground": "#1a1b26", "accent": "#34548a",
+               "lighter_background": "#f0f0f3", "selection": "#b7c1df",
+               "selection_foreground": "#1a1b26", "error": "#a52746"},
     "fonts": {"ui": "DejaVu Sans", "mono": "DejaVu Sans Mono"},
+    "appearance": {"rounding": 12, "blur": {"enabled": False, "size": 10, "passes": 3}},
 }
 
 

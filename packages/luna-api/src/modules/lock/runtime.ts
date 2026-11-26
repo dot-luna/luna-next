@@ -1,8 +1,7 @@
 import { metadata } from "@/lib/files.ts";
 import { quickshell } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
-import { themeSelection } from "@/modules/theme/selection.ts";
-import { themeContext } from "@/modules/theme/context.ts";
+import { lockPresentation } from "./presentation.ts";
 import { lockSettingsSchema, type LockSettings } from "./schema.ts";
 import type { LockRenderer, LockState } from "./context.ts";
 
@@ -47,8 +46,9 @@ class LockRuntime {
     const env = {
       ...context.env,
       LUNA_LOCK_SETTINGS: JSON.stringify(settings),
-      LUNA_LOCK_THEME: JSON.stringify(await this._theme(context)),
+      LUNA_LOCK_THEME: JSON.stringify(await lockPresentation.theme({ context, settings })),
       LUNA_LOCK_COMMAND: JSON.stringify(args),
+      ...(await lockPresentation.identity(context)),
     };
     await quickshell.command({
       context: { ...context, env },
@@ -106,7 +106,10 @@ class LockRuntime {
     const response = await this.ipc({
       context,
       method: "reload",
-      args: [JSON.stringify(settings), JSON.stringify(await this._theme(context))],
+      args: [
+        JSON.stringify(settings),
+        JSON.stringify(await lockPresentation.theme({ context, settings })),
+      ],
     });
     if (response.stdout !== "ok")
       throw new ApiError("COMMAND_FAILED", `Lock rejected settings: ${response.stdout}`);
@@ -121,10 +124,6 @@ class LockRuntime {
     } catch (error) {
       throw new ApiError("COMMAND_FAILED", `Invalid lock snapshot: ${String(error)}`);
     }
-  }
-
-  private _theme(context: LockRenderer) {
-    return themeSelection.current(themeContext.resolve({ env: context.env }));
   }
 }
 

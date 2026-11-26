@@ -31,6 +31,8 @@ class LockSettingsStore {
     return locked(context, async () => {
       const previous = await this.read(context);
       const next = { ...previous.value, ...patch.data };
+      for (const group of ["screen", "background", "actions"] as const)
+        if (patch.data[group]) next[group] = { ...previous.value[group], ...patch.data[group] };
       const renderer = await lockContext.renderer({ context, requireShell: false });
       const running = (await lockRuntime.state(renderer)).running;
       const active = running ? await lockRuntime.snapshot(renderer) : null;

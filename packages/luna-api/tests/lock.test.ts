@@ -96,7 +96,8 @@ else if(args[0]==='ipc') {
       console.log('error: rejected fixture reload');
     } else {state.settings=next;console.log('ok');}
   }else process.exit(3);
-}else process.exit(4);
+}else if(args.at(-1).endsWith("/preview.qml")) {console.log("preview");process.exit(0); }
+else process.exit(4);
 writeFileSync(file,JSON.stringify(state));
 `,
     true,
@@ -316,4 +317,103 @@ test("source shell, custom CLI and explicit paths survive idle command transport
     "--install-dir",
     repository,
   ]);
+});
+
+test("Lock snapshots theme assets and visual tokens without modifying theme or settings sources", async () => {
+  symlinkSync(Bun.which("file")!, join(env.PATH!, "file"));
+  const directory = join(root, ".local/share/luna/themes/lock-test");
+  const themeFile = join(directory, "theme.jsonc");
+  const themeSource =
+    '// authored theme\n{"colors":{"accent":"#123456"},"fonts":{"ui":"serif"},"appearance":{"rounding":18,"blur":{"enabled":false}},"wallpaper":{"sources":["background.png"]}}\n';
+  write(themeFile, themeSource);
+  write(join(root, "config/luna/theme.jsonc"), '{"theme":{"name":"lock-test"}}');
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(
+    join(directory, "background.png"),
+    Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7xkAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  );
+  const source = '// sparse lock\n{"screen":{"path":"./custom screen"},"idle_seconds":0}\n';
+  write(config, source);
+  expect(await Luna.lock.start(options())).toMatchObject({ succes: true });
+  const snapshot = JSON.parse(commands().find((item) => item.args.includes("--daemonize"))!.theme!);
+  expect(snapshot).toMatchObject({
+    colors: { accent: "#123456" },
+    fonts: { ui: "serif" },
+    appearance: { rounding: 18, blur: { enabled: false } },
+    background: { path: new URL("file://" + join(directory, "background.png")).href },
+    screen: { path: new URL("file://" + join(root, "config/luna/custom screen/Screen.qml")).href },
+  });
+  expect(readFileSync(config, "utf8")).toBe(source);
+  expect(readFileSync(themeFile, "utf8")).toBe(themeSource);
+  expect(await Luna.lock.configure({ screen: {} }, options())).toMatchObject({ succes: true });
+  expect(await Luna.lock.get("screen.path", options())).toEqual({
+    succes: true,
+    data: "./custom screen",
+  });
+});
+
+test("Lock background overrides accept images and fall back to a solid screen for unavailable decorations", async () => {
+  symlinkSync(Bun.which("file")!, join(env.PATH!, "file"));
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7xkAAAAASUVORK5CYII=",
+    "base64",
+  );
+  mkdirSync(join(root, "config/luna"), { recursive: true });
+  writeFileSync(join(root, "config/luna/image.png"), png);
+  write(config, '{"background":{"path":"./image.png"}}');
+  await Luna.lock.start(options());
+  let snapshot = JSON.parse(commands().find((item) => item.args.includes("--daemonize"))!.theme!);
+  expect(snapshot.background.path).toBe(
+    new URL("file://" + join(root, "config/luna/image.png")).href,
+  );
+  write(join(root, "config/luna/video.mp4"), "not an image");
+  expect(
+    await Luna.lock.configure({ background: { path: "./video.mp4" } }, options()),
+  ).toMatchObject({ succes: true });
+  const reload = commands()
+    .filter((item) => item.args.includes("reload"))
+    .at(-1)!;
+  snapshot = JSON.parse(reload.args[reload.args.indexOf("reload") + 2]!);
+  expect(snapshot.background.path).toBe("");
+  expect(
+    await Luna.lock.configure({ background: { path: "./missing.png" } }, options()),
+  ).toMatchObject({ succes: true });
+});
+
+test("Lock validates visual paths and countdown settings before writing or contacting the renderer", async () => {
+  const source = '{"idle_seconds":0}\n';
+  write(config, source);
+  for (const value of [
+    { screen: { path: "" } },
+    { screen: { path: "a\nb" } },
+    { background: { path: null } },
+    { actions: { shutdown_delay: -1 } },
+    { actions: { shutdown_delay: 1.5 } },
+    { actions: { shutdown_delay: 2147483648 } },
+  ]) {
+    expect(await Luna.lock.configure(value, options())).toMatchObject({
+      succes: false,
+      err: "INVALID_ARGUMENT",
+    });
+    expect(readFileSync(config, "utf8")).toBe(source);
+  }
+  expect(commands()).toEqual([]);
+});
+
+test("Lock preview uses its own window entry without acquiring, daemonizing, or requiring an idle launcher", async () => {
+  write(join(root, "config/luna/lock/preview.qml"), "// isolated preview fixture");
+  expect(await Luna.lock.preview({ ...options(), launcher: join(root, "missing") })).toEqual({
+    succes: true,
+    data: { configFile: config },
+  });
+  expect(commands()).toHaveLength(1);
+  expect(commands()[0]!.args).toEqual([
+    "--no-color",
+    "-p",
+    join(root, "config/luna/lock/preview.qml"),
+  ]);
+  expect(existsSync(env.LUNA_TEST_STATE!)).toBe(false);
 });
