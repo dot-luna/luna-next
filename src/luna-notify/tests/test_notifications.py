@@ -128,8 +128,8 @@ class NotificationTests(unittest.TestCase):
         self.wait_for(lambda: self.state()["entries"] == [])
 
     def settings_snapshot(self):
-        script = "import {notifySnapshot} from './packages/luna-api/src/notify/settings.ts'; " + \
-                 "console.log(JSON.stringify(await notifySnapshot({env:Bun.env,configFile:Bun.argv[1],shellDirectory:Bun.argv[2]})));"
+        script = "import {notifySettings} from './packages/luna-api/src/modules/notify/settings.ts'; " + \
+                 "console.log(JSON.stringify(await notifySettings.snapshot({env:Bun.env,configFile:Bun.argv[1],shellDirectory:Bun.argv[2]})));"
         result = subprocess.run(["bun", "-e", script, str(self.config), str(self.shell)],
                                 cwd=APP.parents[1], env=self.env, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)

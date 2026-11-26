@@ -56,7 +56,7 @@
   files as their features are implemented. Native application configuration keeps
   the format required by that application.
 - Parse JSONC with Bun and validate values with Zod. Keep each feature's Zod
-  schemas in its owning API module, such as `packages/luna-api/src/theme/schema.ts`.
+  schemas in its owning API module, such as `packages/luna-api/src/modules/theme/schema.ts`.
   Do not add JSON Schema files, Ajv, or duplicate validation rules in consumers.
 - Preserve author-written theme sources when installing them. Merge defaults
   only in memory; do not write resolved defaults over source files. Keep settings

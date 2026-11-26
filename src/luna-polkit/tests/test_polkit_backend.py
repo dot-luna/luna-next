@@ -35,7 +35,7 @@ class PolkitBackendTests(unittest.TestCase):
             raise unittest.SkipTest("The real PolkitAgent requires a logind session")
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="luna-next-polkit-backend-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="luna-polkit-backend-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.env = isolated_environment(self.root)
@@ -48,6 +48,7 @@ QtObject {
     property var flow
     property var screen
     property var theme
+    property var settings
 }
 """)
         self.events_path = self.root / "events.jsonl"
@@ -76,7 +77,7 @@ QtObject {
         address = self.bus.stdout.readline().strip()
         self.assertTrue(address.startswith("unix:"), "Private bus returned no Unix address")
         self.env.update(DBUS_SYSTEM_BUS_ADDRESS=address, DBUS_SESSION_BUS_ADDRESS=address,
-                        LUNA_NEXT_POLKIT_TEST_BUS=address)
+                        LUNA_POLKIT_TEST_BUS=address)
 
     @staticmethod
     def stop_process(process):
@@ -135,7 +136,7 @@ QtObject {
         event = self.events("registration")[0]
         self.assertEqual(event["subject"], "unix-session")
         self.assertTrue(event["session"])
-        self.assertEqual(event["path"], "/org/lunanext/Polkit")
+        self.assertEqual(event["path"], "/org/luna/Polkit")
         self.assertEqual(self.ipc("status").stdout.strip(), "running")
         self.assertEqual(self.ipc("ping").stdout.strip(), "true")
         self.assertEqual(self.ipc("stop").returncode, 0)
@@ -159,15 +160,15 @@ QtObject {
 
     def test_validation_exits_without_registering(self):
         self.start_authority()
-        self.env["LUNA_NEXT_POLKIT_VALIDATE"] = "1"
+        self.env["LUNA_POLKIT_VALIDATE"] = "1"
         self.start_shell()
         self.assertEqual(self.shell.wait(timeout=5), 0, self.shell_log_path.read_text())
-        self.assertIn("Luna Next polkit validation passed", self.shell_log_path.read_text())
+        self.assertIn("Luna polkit validation passed", self.shell_log_path.read_text())
         self.assertEqual(self.events("registration"), [])
 
     def test_invalid_theme_fails_before_registering(self):
         self.start_authority()
-        self.env["LUNA_NEXT_POLKIT_THEME"] = "{}"
+        self.env["LUNA_POLKIT_THEME"] = "{}"
         self.start_shell()
         self.assertNotEqual(self.shell.wait(timeout=5), 0)
         self.assertEqual(self.events("registration"), [])

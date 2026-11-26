@@ -1,17 +1,22 @@
 import { Luna, type InstallFailure } from "@luna/api";
-import { installReport } from "@/lib/install-report.ts";
 import type { Command } from "commander";
-import type { createOutput } from "@/lib/output.ts";
+import { installReport } from "@/lib/install-report.ts";
+import type { Output } from "@/lib/output.ts";
+
+/** Flags parsed by the app commands; each command declares only the ones it accepts. */
+interface AppFlags {
+  installDir?: string;
+  skipFailed?: boolean;
+  closeApps?: boolean;
+  force?: boolean;
+  purge?: boolean;
+}
 
 /**
  * Handle arguments and output; app operations stay in Luna API.
  * With --skip-failed, a successful response can contain failed apps. Those batches still exit 1.
  */
-export function addAppCommands(
-  program: Command,
-  output: ReturnType<typeof createOutput>,
-  setExitCode: (code: number) => void,
-) {
+export function addAppCommands(program: Command, output: Output) {
   program
     .command("install [names...]")
     .description("Install and configure indexed apps in catalog order")
@@ -19,29 +24,18 @@ export function addAppCommands(
     .option("--skip-failed", "Continue after app failures and report retries")
     .option("--no-close-apps", "Do not automatically close apps")
     .option("--force", "Rerun installation hooks and rebuild Git apps")
-    .action(
-      async (
-        names: string[],
-        options: {
-          installDir?: string;
-          force?: boolean;
-          skipFailed?: boolean;
-          closeApps?: boolean;
-        },
-      ) => {
-        const response = await Luna.apps.install(names, {
-          repository: options.installDir,
-          force: options.force,
-          skipFailed: options.skipFailed,
-          closeApps: options.closeApps,
-          onProgress: output.progress,
-        });
-        const code = output.response(response, (data) =>
-          installReport(data.completed, data.installed, data.failed, data.logDirectory),
-        );
-        setExitCode(response.succes && !response.data.completed ? 1 : code);
-      },
-    );
+    .action(async (names: string[], options: AppFlags) => {
+      const response = await Luna.apps.install(names, {
+        repository: options.installDir,
+        force: options.force,
+        skipFailed: options.skipFailed,
+        closeApps: options.closeApps,
+        onProgress: output.progress,
+      });
+      output.report(response, (data) =>
+        installReport(data.completed, data.installed, data.failed, data.logDirectory),
+      );
+    });
 
   program
     .command("configure [names...]")
@@ -49,13 +43,13 @@ export function addAppCommands(
     .description("Apply indexed app defaults without installing packages")
     .option("--install-dir <path>", "Luna source checkout")
     .option("--no-close-apps", "Do not automatically close apps")
-    .action(async (names: string[], options: { installDir?: string; closeApps?: boolean }) => {
+    .action(async (names: string[], options: AppFlags) => {
       const response = await Luna.apps.configure(names, {
         closeApps: options.closeApps,
         repository: options.installDir,
         onProgress: output.progress,
       });
-      setExitCode(output.response(response, (apps) => `Configured: ${apps.join(", ")}`));
+      output.response(response, (apps) => `Configured: ${apps.join(", ")}`);
     });
 
   program
@@ -65,34 +59,23 @@ export function addAppCommands(
     .option("--skip-failed", "Continue after app failures and report retries")
     .option("--no-close-apps", "Do not automatically close apps")
     .option("--force", "Rebuild unchanged Git apps")
-    .action(
-      async (
-        names: string[],
-        options: {
-          installDir?: string;
-          skipFailed?: boolean;
-          closeApps?: boolean;
-          force?: boolean;
-        },
-      ) => {
-        const response = await Luna.apps.update(names, {
-          repository: options.installDir,
-          skipFailed: options.skipFailed,
-          closeApps: options.closeApps,
-          force: options.force,
-          onProgress: output.progress,
-        });
-        const code = output.response(response, (data) =>
-          formatOperation({
-            label: "Updated",
-            names: data.updated,
-            failed: data.failed,
-            logDirectory: data.logDirectory,
-          }),
-        );
-        setExitCode(response.succes && !response.data.completed ? 1 : code);
-      },
-    );
+    .action(async (names: string[], options: AppFlags) => {
+      const response = await Luna.apps.update(names, {
+        repository: options.installDir,
+        skipFailed: options.skipFailed,
+        closeApps: options.closeApps,
+        force: options.force,
+        onProgress: output.progress,
+      });
+      output.report(response, (data) =>
+        formatOperation({
+          label: "Updated",
+          names: data.updated,
+          failed: data.failed,
+          logDirectory: data.logDirectory,
+        }),
+      );
+    });
 
   program
     .command("uninstall <names...>")
@@ -101,34 +84,23 @@ export function addAppCommands(
     .option("--skip-failed", "Continue after app failures and report retries")
     .option("--no-close-apps", "Do not automatically close apps")
     .option("--purge", "Also remove declared settings/data, even after uninstall")
-    .action(
-      async (
-        names: string[],
-        options: {
-          installDir?: string;
-          skipFailed?: boolean;
-          closeApps?: boolean;
-          purge?: boolean;
-        },
-      ) => {
-        const response = await Luna.apps.uninstall(names, {
-          repository: options.installDir,
-          skipFailed: options.skipFailed,
-          closeApps: options.closeApps,
-          purge: options.purge,
-          onProgress: output.progress,
-        });
-        const code = output.response(response, (data) =>
-          formatOperation({
-            label: "Uninstalled",
-            names: data.uninstalled,
-            failed: data.failed,
-            logDirectory: data.logDirectory,
-          }),
-        );
-        setExitCode(response.succes && !response.data.completed ? 1 : code);
-      },
-    );
+    .action(async (names: string[], options: AppFlags) => {
+      const response = await Luna.apps.uninstall(names, {
+        repository: options.installDir,
+        skipFailed: options.skipFailed,
+        closeApps: options.closeApps,
+        purge: options.purge,
+        onProgress: output.progress,
+      });
+      output.report(response, (data) =>
+        formatOperation({
+          label: "Uninstalled",
+          names: data.uninstalled,
+          failed: data.failed,
+          logDirectory: data.logDirectory,
+        }),
+      );
+    });
 }
 
 /** Human reports show completed apps and actionable retries; JSON retains the API response. */

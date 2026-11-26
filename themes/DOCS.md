@@ -3,7 +3,7 @@
 A theme folder contains `theme.jsonc` and optional media assets. Comments and
 trailing commas are supported. All fields are optional; `{}` uses Tokyo Night
 defaults. Unknown keys, invalid colors, and out-of-range values fail Zod validation
-in [the API schema](../packages/luna-api/src/theme/schema.ts).
+in [the API schema](../packages/luna-api/src/modules/theme/schema.ts).
 
 ```jsonc
 {
@@ -91,11 +91,10 @@ from TTY/SSH sessions. This requires the `dbus` package, installed during setup.
 `self install` installs all bundled themes after shared dependencies, before apps.
 It selects Tokyo Night only when no theme is selected. `theme set`, `theme mode`,
 and `theme toggle` apply the system light/dark preference and generate GTK3 styling
-from the selected Luna palette, fonts, and `appearance.rounding`. GTK keeps its
-built-in widget layout; Luna supplies colors for surfaces, text, controls, and
+from the selected Luna palette and fonts. GTK keeps Adwaita's built-in widget
+layout and rounded controls; Luna supplies colors for surfaces, text, controls, and
 selection. The UI font applies generally; widgets marked monospace use `fonts.mono`.
-Control and menu corners follow rounding where GTK's grouped or circular control
-geometry does not take precedence. Authored colors stay fixed when system mode
+GTK geometry does not follow Luna's window rounding. Authored colors stay fixed when system mode
 changes. Generated stylesheets live under
 `$XDG_DATA_HOME/themes/Luna/gtk-3.0/gtk.css` and `Luna-alt/gtk-3.0/gtk.css`, defaulting
 under `~/.local/share`. Luna switches native theme names when styling changes so

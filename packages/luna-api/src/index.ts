@@ -1,28 +1,49 @@
-import { info } from "@/info/index.ts";
-import { install } from "@/self/install/index.ts";
-import { update } from "@/self/update.ts";
-import { theme } from "@/theme/index.ts";
-import { apps } from "@/modules/apps/index.ts";
-import { webapp } from "@/modules/webapp/index.ts";
-import { notify } from "@/notify/index.ts";
-import { menu } from "@/menu/index.ts";
-import { bar } from "@/bar/index.ts";
-import { defaults } from "@/defaults/index.ts";
-import { wallpaper } from "@/wallpaper/index.ts";
-import { lock } from "@/lock/index.ts";
-import { screensaver } from "@/screensaver/index.ts";
-import { screenshot } from "@/screenshot/index.ts";
-import { clipboard } from "@/modules/clipboard/index.ts";
+import { polkit } from "./modules/polkit/index.ts";
+import { info } from "./modules/info/index.ts";
+import { self } from "./modules/self/index.ts";
+import { theme } from "./modules/theme/index.ts";
+import { apps } from "./modules/apps/index.ts";
+import { webapp } from "./modules/webapp/index.ts";
+import { notify } from "./modules/notify/index.ts";
+import { menu } from "./modules/menu/index.ts";
+import { bar } from "./modules/bar/index.ts";
+import { defaults } from "./modules/defaults/index.ts";
+import { wallpaper } from "./modules/wallpaper/index.ts";
+import { lock } from "./modules/lock/index.ts";
+import { login } from "./modules/login/index.ts";
+import { screensaver } from "./modules/screensaver/index.ts";
+import { screenshot } from "./modules/screenshot/index.ts";
+import { clipboard } from "./modules/clipboard/index.ts";
 
-import { emoji } from "@/modules/emoji/index.ts";
-export type { EmojiEntry } from "@/modules/emoji/schema.ts";
+import { emoji } from "./modules/emoji/index.ts";
+export type { EmojiEntry } from "./modules/emoji/schema.ts";
 
-export type { BarOptions, BarState } from "@/bar/context.ts";
+export type { BarOptions, BarState } from "./modules/bar/context.ts";
+export type { BarSettings } from "./modules/bar/schema.ts";
 
-export const Luna = {
+export const Luna: {
+  polkit: typeof polkit;
+  bar: typeof bar;
+  info: typeof info;
+  self: typeof self;
+  theme: typeof theme;
+  apps: typeof apps;
+  webapp: typeof webapp;
+  menu: typeof menu;
+  notify: typeof notify;
+  defaults: typeof defaults;
+  wallpaper: typeof wallpaper;
+  screensaver: typeof screensaver;
+  lock: typeof lock;
+  login: typeof login;
+  screenshot: typeof screenshot;
+  clipboard: typeof clipboard;
+  emoji: typeof emoji;
+} = {
+  polkit,
   bar,
   info,
-  self: { install, update },
+  self,
   theme,
   apps,
   webapp,
@@ -32,13 +53,14 @@ export const Luna = {
   wallpaper,
   screensaver,
   lock,
+  login,
   screenshot,
   clipboard,
   emoji,
 };
 
-export type { ClipboardOptions, ClipboardPasteOptions } from "@/modules/clipboard/context.ts";
-export type { ClipboardEntry, ClipboardPreview } from "@/modules/clipboard/schema.ts";
+export type { ClipboardOptions, ClipboardPasteOptions } from "./modules/clipboard/context.ts";
+export type { ClipboardEntry, ClipboardPreview } from "./modules/clipboard/schema.ts";
 
 export type {
   ScreenshotMode,
@@ -46,51 +68,53 @@ export type {
   ScreenshotResult,
   ScreenshotTextOptions,
   ScreenshotTextResult,
-} from "@/screenshot/context.ts";
+} from "./modules/screenshot/context.ts";
 
-export type { LockOptions, LockState } from "@/lock/context.ts";
-export type { LockSettings } from "@/lock/schema.ts";
+export type { LockOptions, LockState } from "./modules/lock/context.ts";
+export type { LockSettings } from "./modules/lock/schema.ts";
+export type { LoginOptions, LoginState } from "./modules/login/context.ts";
+export type { LoginSettings } from "./modules/login/schema.ts";
 
-export type { ScreensaverOptions, ScreensaverState } from "@/screensaver/context.ts";
-export type { ScreensaverSettings } from "@/screensaver/schema.ts";
+export type { ScreensaverOptions, ScreensaverState } from "./modules/screensaver/context.ts";
+export type { ScreensaverSettings } from "./modules/screensaver/schema.ts";
 
 export type {
   WallpaperOptions,
   WallpaperState,
   WallpaperInstallOptions,
+  WallpaperSetOptions,
   WallpaperEntry,
-} from "@/wallpaper/context.ts";
-export type { WallpaperSettings } from "@/wallpaper/schema.ts";
+} from "./modules/wallpaper/context.ts";
+export type { WallpaperSettings } from "./modules/wallpaper/schema.ts";
 
-export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "@/defaults/types.ts";
+export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./modules/defaults/context.ts";
 
-export type { MenuOptions, MenuState, StayAwakeState } from "@/menu/context.ts";
-export type { StayAwakeAction } from "@/menu/schema.ts";
+export type { MenuOptions, MenuState, StayAwakeState } from "./modules/menu/context.ts";
+export type { StayAwakeAction } from "./modules/menu/schema.ts";
 
-export type { InfoOptions, LunaInfo, LunaInfoResponse } from "@/info/types.ts";
-export type { ApiErrorCode, ApiResponse, ErrorResponse, SuccessResponse } from "@/lib/response.ts";
+export type { InfoOptions, LunaInfo, LunaInfoResponse } from "./modules/info/index.ts";
+export type { ApiErrorCode, ApiResponse, ErrorResponse, SuccessResponse } from "./lib/response.ts";
+export type { GitIdentity, InstallOptions, UpdateOptions } from "./modules/self/context.ts";
 export type {
-  GitIdentity,
-  InstallOptions,
   InstallResult,
   InstallResponse,
-} from "@/self/install/types.ts";
-export type { UpdateOptions, UpdateResult, UpdateResponse } from "@/self/update.ts";
-export type {
-  ThemeMode,
-  ThemeOptions,
-  ThemeInstallOptions,
-  ThemeEntry,
-  ResolvedTheme,
-} from "@/theme/types.ts";
-export type { AppOptions, AppUninstallOptions } from "@/modules/apps/context.ts";
-export type { WebappOptions } from "@/modules/webapp/context.ts";
-export type { WebappInstallOptions } from "@/modules/webapp/index.ts";
-export type { WebappLaunchOptions } from "@/modules/webapp/launch.ts";
-export type { WebappRecord } from "@/modules/webapp/schema.ts";
+  UpdateResult,
+  UpdateResponse,
+} from "./modules/self/install/report.ts";
+export type { ThemeOptions, ThemeInstallOptions } from "./modules/theme/context.ts";
+export type { ThemeMode, ResolvedTheme } from "./modules/theme/schema.ts";
+export type { ThemeEntry } from "./modules/theme/store.ts";
+export type { AppOptions, AppUninstallOptions } from "./modules/apps/context.ts";
+export type { WebappOptions } from "./modules/webapp/context.ts";
+export type { WebappInstallOptions } from "./modules/webapp/context.ts";
+export type { WebappLaunchOptions } from "./modules/webapp/context.ts";
+export type { WebappRecord } from "./modules/webapp/schema.ts";
 
-export type { AppInstallResult, InstallFailure } from "@/install/report.ts";
+export type { AppInstallResult, InstallFailure } from "./modules/self/install/report.ts";
 
-export type { NotifyOptions, NotifyState } from "@/notify/context.ts";
+export type { NotifyOptions, NotifyState } from "./modules/notify/context.ts";
 
-export type { NotifySettings } from "@/notify/schema.ts";
+export type { NotifySettings } from "./modules/notify/schema.ts";
+
+export type { PolkitOptions, PolkitState } from "./modules/polkit/context.ts";
+export type { PolkitSettings } from "./modules/polkit/schema.ts";

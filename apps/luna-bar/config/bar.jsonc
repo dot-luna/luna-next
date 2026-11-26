@@ -1,0 +1,41 @@
+{
+  "workspaces": {
+    // Workspace slots shown at once; the strip scrolls to keep the selection visible.
+    "visible": 4,
+    // The active workspace shows its icon instead of its number. Use a bundled icon
+    // name from the bar's icons/ directory or an absolute .svg path. 10 is Super+0.
+    "icons": {
+      "1": "code-xml",
+      "2": "terminal",
+      "3": "chrome",
+      "8": "video-01",
+      "9": "chat-01",
+      "10": "bot",
+    },
+  },
+  // Formats use Qt date/time syntax: https://doc.qt.io/qt-6/qml-qtqml-qt.html#formatDateTime-method
+  "clock": {
+    // Shown in the bar.
+    "format": "ddd d MMM  HH:mm",
+    // Used by the clocks beside the calendar.
+    "time_format": "HH:mm",
+    "date_format": "ddd d MMM",
+    // Extra clocks beside the calendar. timezone is an IANA name, so daylight saving applies.
+    "world": [
+      { "name": "CST", "timezone": "America/Chicago" },
+      { "name": "EST", "timezone": "America/New_York" },
+      { "name": "UTC", "timezone": "UTC" },
+    ],
+  },
+  // Calendar shown first: "ad" (Gregorian) or "bs" (Bikram Sambat).
+  "calendar": { "default": "ad" },
+  // Controls panel on the right; remove entries to hide them, reorder to move them.
+  "controls": {
+    "sliders": ["output", "input", "brightness"],
+    "tiles": ["network", "bluetooth", "dark_mode", "stay_awake"],
+    // Media controls appear while a player is playing or paused.
+    "media": true,
+  },
+  // A dropdown next to the controls for system tray apps.
+  "tray": { "enabled": true },
+}

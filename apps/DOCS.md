@@ -1,5 +1,13 @@
 # App manifests
 
+Each `app.jsonc` accepts `enabled` to control its installation independently.
+Disabled apps are skipped by bulk and named `luna install` commands, including
+their dependencies and hooks. Set an app to `true` to install it; omission also
+means enabled. A disabled Yay provider cannot be installed implicitly for an AUR app.
+Other self-install stages still run and report missing prerequisites when needed.
+Disabled prerequisite apps are never enabled automatically. Existing apps remain installed;
+explicit configure, update, and uninstall commands remain available.
+
 Apps can declare an optional `deps` array using the package objects shown in
 [`installs/example.jsonc`](../installs/example.jsonc): `name`, `source`, and optional
 `purpose` and mise `version`. Dependencies must be installed before the app and

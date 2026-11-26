@@ -1,4 +1,4 @@
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import { appCatalog, type CatalogApp } from "./catalog.ts";
 import type { HookStage } from "./schema.ts";
 

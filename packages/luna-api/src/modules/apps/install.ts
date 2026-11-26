@@ -2,9 +2,13 @@ import { join } from "pathe";
 import { ApiError } from "@/lib/response.ts";
 import { locked, parse, readOptional, writeFile } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
-import { InstallContext } from "@/self/install/command.ts";
-import { installPackages } from "@/self/install/packages.ts";
-import { attempt, quote, type AppInstallResult, type InstallFailure } from "@/install/report.ts";
+import { InstallContext } from "@/modules/self/install/command.ts";
+import { packageRecipes } from "@/modules/self/install/packages.ts";
+import {
+  installReport,
+  type AppInstallResult,
+  type InstallFailure,
+} from "@/modules/self/install/report.ts";
 import { appCatalog, type CatalogApp } from "./catalog.ts";
 import { appConfigurator } from "./configure.ts";
 import { appGitInstaller } from "./git.ts";
@@ -53,7 +57,7 @@ class AppInstaller {
         context.log,
       );
       local.progress(`${operation === "update" ? "Updating" : "Installing"} ${app.id}...`);
-      await installPackages(local, app.manifest.deps ?? []);
+      await packageRecipes.install({ context: local, recipes: app.manifest.deps ?? [] });
       let revision: string | undefined;
       if (app.manifest.source === "git")
         revision = (
@@ -121,13 +125,18 @@ class AppInstaller {
       const installed: string[] = [];
       const failed: InstallFailure[] = [];
       for (const app of selected) {
-        let retry = `${quote(join(context.home, ".local/bin/luna"))} ${operation} ${quote(app.id)} --install-dir ${quote(context.repository)}`;
+        let retry = `${installReport.quote(join(context.home, ".local/bin/luna"))} ${operation} ${installReport.quote(app.id)} --install-dir ${installReport.quote(context.repository)}`;
         if (force) retry += " --force";
         if (!closeApps) retry += " --no-close-apps";
 
-        const completed = await attempt(context, app.id, retry, skipFailed, failed, () =>
-          this._installOne({ context, app, force, closeApps, operation }),
-        );
+        const completed = await installReport.attempt({
+          context,
+          app: app.id,
+          retry,
+          skipFailed,
+          failed,
+          operation: () => this._installOne({ context, app, force, closeApps, operation }),
+        });
         if (completed) installed.push(app.id);
       }
       const result = {
@@ -193,18 +202,22 @@ class AppInstaller {
         await appHooks.run({ context, app, stage: "build" });
         await appHooks.run({ context, app, stage: "after_build" });
       } else
-        await installPackages(context, [
-          {
-            name: app.manifest.name,
-            source: app.manifest.source as "pacman" | "aur" | "mise",
-            ...(app.manifest.version ? { version: app.manifest.version } : {}),
-          },
-        ]);
+        await packageRecipes.install({
+          context,
+          recipes: [
+            {
+              name: app.manifest.name,
+              source: app.manifest.source as "pacman" | "aur" | "mise",
+              ...(app.manifest.version ? { version: app.manifest.version } : {}),
+            },
+          ],
+        });
       await appHooks.run({ context, app, stage: "after_install" });
     } else if (app.manifest.source === "mise") {
-      await installPackages(context, [
-        { name: app.manifest.name, source: "mise", version: installedMiseVersion! },
-      ]);
+      await packageRecipes.install({
+        context,
+        recipes: [{ name: app.manifest.name, source: "mise", version: installedMiseVersion! }],
+      });
     }
   }
 
@@ -220,6 +233,11 @@ class AppInstaller {
   }) {
     const catalog = await appCatalog.read(context);
     let selected = appCatalog.select({ apps: catalog, names });
+    if (operation === "install") {
+      for (const app of selected.filter((app) => app.manifest.enabled === false))
+        context.progress(`Skipping disabled app: ${app.id}`);
+      selected = selected.filter((app) => app.manifest.enabled !== false);
+    }
     if (operation === "update") {
       const installed: CatalogApp[] = [];
       for (const app of selected) {
@@ -240,6 +258,11 @@ class AppInstaller {
         throw new ApiError("INVALID_ENVIRONMENT", "Install yay before updating AUR apps");
       const provider = catalog.find((app) => app.manifest.name === "yay");
       if (!provider) throw new ApiError("INVALID_ENVIRONMENT", "AUR installation requires yay");
+      if (provider.manifest.enabled === false)
+        throw new ApiError(
+          "INVALID_ENVIRONMENT",
+          "AUR installation requires yay; its app is disabled",
+        );
       const ids = new Set([...selected.map((app) => app.id), provider.id]);
       selected = catalog.filter((app) => ids.has(app.id));
       if (

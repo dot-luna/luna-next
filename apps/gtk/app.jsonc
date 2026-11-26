@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "gtk4",
   "source": "pacman",
 

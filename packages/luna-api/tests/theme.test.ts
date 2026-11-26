@@ -10,9 +10,9 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
-import { defaults } from "../src/theme/defaults.ts";
+import { defaults } from "../src/modules/theme/defaults.ts";
 import { locked } from "../src/lib/files.ts";
-import { themeContext } from "../src/theme/context.ts";
+import { themeContext } from "../src/modules/theme/context.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 let f: ThemeFixture;
@@ -243,7 +243,7 @@ test("failed application preserves external edits and mode changes", async () =>
 });
 
 test("concurrent writers are rejected by the selection lock", async () => {
-  await locked(themeContext(f.options), async () => {
+  await locked(themeContext.resolve(f.options), async () => {
     expect(await Luna.theme.install(f.source("custom"), f.options)).toMatchObject({
       succes: false,
       err: "CONFLICT",

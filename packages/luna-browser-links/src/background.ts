@@ -1,50 +1,61 @@
-import { HOST, originRules } from "./rules.ts";
-
-let updating = Promise.resolve();
-function updateOrigins(origins: string[]) {
-  // Serialize replacement so concurrent tabs cannot leave overlapping rule IDs.
-  updating = updating
-    .catch(() => {})
-    .then(async () => {
-      const previous = await chrome.declarativeNetRequest.getDynamicRules();
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: previous.map((rule) => rule.id),
-        addRules: originRules(origins),
-      });
-    });
-  return updating;
-}
-
-async function refresh() {
-  const result = await chrome.runtime.sendNativeMessage(HOST, { type: "origins" });
-  if (result.error) throw new Error(result.error);
-  await updateOrigins(result.origins);
-}
-chrome.runtime.onInstalled.addListener(() => {
-  void refresh().catch(console.error);
-});
-chrome.runtime.onStartup.addListener(() => {
-  void refresh().catch(console.error);
-});
+import { HOST } from "./host.ts";
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
-  // Only our own routing page may ask the native host to open a URL.
-  if (
-    sender.id !== chrome.runtime.id ||
-    !sender.url?.startsWith(chrome.runtime.getURL("open.html") + "#") ||
-    sender.tab?.id === undefined
-  )
+  if (sender.id !== chrome.runtime.id || sender.tab?.id === undefined || sender.frameId !== 0)
     return;
+  if (message?.type === "origins" && /^https?:\/\//u.test(sender.url || "")) {
+    void chrome.runtime
+      .sendNativeMessage(HOST, { type: "origins" })
+      .then(respond)
+      .catch((error) => respond({ error: String(error.message || error) }));
+    return true;
+  }
+  if (
+    message?.type === "open" &&
+    typeof message.url === "string" &&
+    /^https?:\/\//u.test(sender.url || "")
+  ) {
+    const tabId = sender.tab.id;
+    const source = sender.url!;
+    void (async () => {
+      const result = await chrome.runtime.sendNativeMessage(HOST, {
+        type: "open",
+        url: message.url,
+        source,
+      });
+      if (result.error) throw new Error(result.error);
+      // Successful handoffs need no browser navigation or temporary tab.
+      if (!result.opened) {
+        if (message.newTab) await chrome.tabs.create({ url: message.url });
+        else await chrome.tabs.update(tabId, { url: message.url });
+      }
+      respond({ opened: result.opened });
+    })().catch(async (error) => {
+      const route = new URL(chrome.runtime.getURL("open.html"));
+      route.searchParams.set("source", source);
+      route.searchParams.set("error", String(error.message || error));
+      route.hash = message.url;
+      await chrome.tabs.create({ url: route.href });
+      respond({ opened: false });
+    });
+    return true;
+  }
+  // Retry and close requests belong only to the extension's error page.
+  if (!sender.url || !sender.url.startsWith(chrome.runtime.getURL("open.html") + "?")) return;
   if (message?.type === "close") {
     void chrome.tabs.remove(sender.tab.id);
     return;
   }
   if (message?.type !== "route" || typeof message.url !== "string") return;
   const tabId = sender.tab.id;
+  const source = new URL(sender.url).searchParams.get("source");
   void (async () => {
-    const result = await chrome.runtime.sendNativeMessage(HOST, { type: "open", url: message.url });
+    const result = await chrome.runtime.sendNativeMessage(HOST, {
+      type: "open",
+      url: message.url,
+      source,
+    });
     if (result.error) throw new Error(result.error);
-    await updateOrigins(result.origins);
     if (!result.opened) await chrome.tabs.update(tabId, { url: message.url });
     respond({ opened: result.opened });
   })().catch((error) => respond({ error: String(error.message || error) }));

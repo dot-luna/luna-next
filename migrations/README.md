@@ -99,3 +99,36 @@ running menu from the refresh hook. Clipboard history is retained.
 Installs Luna Bar, refreshes Hyprland's startup and Super+B binding, then reloads
 the current Hyprland session and starts the bar immediately. Outside Hyprland,
 the bar starts at the next login. Repeating the migration is safe.
+
+## v0.0.10
+
+Refreshes Hyprland without duplicating the native config's workspace swipe gesture.
+Existing gesture bindings are retained, and a running Hyprland session reloads.
+
+## v0.0.11
+
+Refreshes only installed apps. Hyprland and Fastfetch get Super+Shift+F for the file
+explorer, Super+Shift+Space to toggle the bar and Super+Shift+A for About, and a
+running Hyprland session reloads. Luna Bar gains workspace icons, a clock with an
+AD/BS calendar and world clocks, and `bar.jsonc` settings; a running bar restarts.
+GTK styling is regenerated with native rounded controls. T3 Code applies Luna's
+theme without closing. Zen and Chromium close while they are reconfigured: Zen
+themes its popups and built-in pages, and Chromium removes Better WhatsApp Web and
+sends only links clicked in installed web apps to the default browser. Apps newly
+enabled by default are not installed on existing systems. Repeating it is safe.
+
+## v0.0.12
+
+Refreshes Luna Bar only when installed, adding quick controls, a tray dropdown and
+the hidden-bar space fix. Installs brightnessctl, libpulse and Blueman for brightness,
+active audio routing and Bluetooth pairing. Replaces the owned bar settings and QML;
+a running bar restarts, and a stopped bar stays stopped. Repeating it is safe.
+
+## v0.0.13
+
+Installs Luna Polkit for systems with Luna's Hyprland or an installed Luna Polkit,
+including JSONC settings and the native authentication prompt. Refreshes installed
+Hyprland's login startup to use Luna instead of KDE's agent and removes the obsolete
+Luna polkit user service when present. KDE package removal remains a manual step. An explicitly disabled Polkit manifest skips
+this migration's changes. Log out and back in to switch agents; an existing KDE
+agent is left running until then. Repeating the migration is safe.

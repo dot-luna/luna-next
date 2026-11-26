@@ -1,7 +1,7 @@
 # Luna Browser Links
 
-Open external web links from Luna's Chromium profile in your default browser.
-Installed web-app origins stay in Chromium. Other Chromium profiles are untouched.
+Open links clicked in installed Luna web apps in your default browser.
+Installed app destinations and ordinary Chromium browsing stay in Chromium.
 
 Install with `luna configure chromium`, then open an external link from WhatsApp.
 

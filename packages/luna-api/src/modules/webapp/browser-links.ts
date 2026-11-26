@@ -1,3 +1,4 @@
+import { capture } from "@/lib/process.ts";
 import { webapp } from "./index.ts";
 import { browserLinkRequestSchema, type BrowserLinkConfig } from "./schema.ts";
 
@@ -22,25 +23,20 @@ class WebappBrowserLinks {
       profileRoot: config.profileRoot,
     });
     if (!apps.succes) throw new Error(apps.errMessage);
-    return [
-      ...new Set([...apps.data.map((app) => new URL(app.url).origin), ...config.extraOrigins]),
-    ].sort();
+    const appOrigins = [...new Set(apps.data.map((app) => new URL(app.url).origin))].sort();
+    return { appOrigins, origins: [...new Set([...appOrigins, ...config.extraOrigins])].sort() };
   }
 
   /** Run literal arguments without a shell; report command failures with their diagnostics. */
   private async _runCommand({ args, env }: BrowserLinkCommandOptions) {
-    const child = Bun.spawn(args, { env, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-    const [code, output, error] = await Promise.all([
-      child.exited,
-      new Response(child.stdout).text(),
-      new Response(child.stderr).text(),
-    ]);
-    if (code !== 0) throw new Error(error.trim() || `${args[0]} failed (${code})`);
-    return output.trim();
+    const { code, stdout, stderr } = await capture({ args, env });
+    if (code !== 0) throw new Error(stderr.trim() || `${args[0]} failed (${code})`);
+    return stdout.trim();
   }
 
   /**
-   * Validate a native request and return current origins, opening only URLs outside them.
+   * Validate a native request and return current origins. External URLs open only
+   * when the source belongs to an installed app.
    * The caller supplies validated config. GIO uses desktop MIME defaults without shell
    * interpolation; invalid requests, metadata, unsafe default handlers, and command failures throw.
    */
@@ -56,9 +52,13 @@ class WebappBrowserLinks {
     run?: (options: BrowserLinkCommandOptions) => Promise<string>;
   }) {
     const message = browserLinkRequestSchema.parse(request);
-    const origins = await this._getOrigins({ config, env });
-    if (message.type === "origins") return { origins, opened: false };
-    if (origins.includes(new URL(message.url).origin)) return { origins, opened: false };
+    const { origins, appOrigins } = await this._getOrigins({ config, env });
+    if (message.type === "origins") return { origins, appOrigins, opened: false };
+    if (
+      !appOrigins.includes(new URL(message.source).origin) ||
+      origins.includes(new URL(message.url).origin)
+    )
+      return { origins, appOrigins, opened: false };
     const cleanEnvironment = { ...env };
     // Do not carry Luna's Chromium-specific directory overrides into another browser.
     delete cleanEnvironment.CHROME_USER_DATA_DIR;
@@ -74,7 +74,7 @@ class WebappBrowserLinks {
         "Choose a default browser other than Luna's Chromium to open external links.",
       );
     await run({ args: ["gio", "open", message.url], env: cleanEnvironment });
-    return { origins, opened: true };
+    return { origins, appOrigins, opened: true };
   }
 }
 

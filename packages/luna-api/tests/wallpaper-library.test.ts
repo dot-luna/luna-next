@@ -10,16 +10,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import {
-  installMedia,
-  libraryDirectory,
-  listMedia,
-  managedPath,
-  validateMedia,
-  type LibraryContext,
-} from "../src/wallpaper/library.ts";
-import { importWallpapers } from "../src/theme/wallpapers.ts";
-import { themeContext } from "../src/theme/context.ts";
+import { wallpaperLibrary, type LibraryContext } from "../src/modules/wallpaper/library.ts";
+import { wallpaperMedia } from "../src/modules/wallpaper/media.ts";
+import { themeWallpapers } from "../src/modules/theme/wallpapers.ts";
+import { themeContext } from "../src/modules/theme/context.ts";
 import { locked } from "../src/lib/files.ts";
 
 const svg = (color = "red") =>
@@ -49,14 +43,14 @@ afterEach(() => {
 
 test("files use content validation, preserve names and sources, and install idempotently", async () => {
   const source = write(join(root, "a ' # ? $(image).svg"));
-  expect(await validateMedia(context, source)).toBe("image/svg+xml");
+  expect(await wallpaperMedia.validate({ context, path: source })).toBe("image/svg+xml");
   const path = join(context.libraryDir, "a ' # ? $(image).svg");
-  expect(await installMedia(context, [source])).toEqual([path]);
-  expect(await installMedia(context, [source])).toEqual([path]);
+  expect(await wallpaperLibrary.install({ context, sources: [source] })).toEqual([path]);
+  expect(await wallpaperLibrary.install({ context, sources: [source] })).toEqual([path]);
   expect(readFileSync(source, "utf8")).toBe(svg());
   expect(readFileSync(path, "utf8")).toBe(svg());
-  expect(await managedPath(context, "a ' # ? $(image).svg")).toBe(path);
-  expect(await listMedia(context)).toEqual([{ name: "a ' # ? $(image).svg", path }]);
+  expect(await wallpaperLibrary.path({ context, name: "a ' # ? $(image).svg" })).toBe(path);
+  expect(await wallpaperLibrary.list(context)).toEqual([{ name: "a ' # ? $(image).svg", path }]);
   expect(readdirSync(context.libraryDir)).toEqual(["a ' # ? $(image).svg"]);
 });
 
@@ -65,8 +59,8 @@ test("video containers are accepted independently of filename extensions", async
   // A minimal ISO media header exercises MIME detection; decoding belongs to the renderer.
   const contents = Buffer.from("000000186674797069736f6d0000020069736f6d69736f32", "hex");
   writeFileSync(source, contents);
-  expect(await validateMedia(context, source)).toBe("video/mp4");
-  expect(await installMedia(context, [source])).toEqual([
+  expect(await wallpaperMedia.validate({ context, path: source })).toBe("video/mp4");
+  expect(await wallpaperLibrary.install({ context, sources: [source] })).toEqual([
     join(context.libraryDir, "video-without-extension"),
   ]);
   expect(readFileSync(join(context.libraryDir, "video-without-extension"))).toEqual(contents);
@@ -79,25 +73,33 @@ test("folders skip unrelated files and links, and recursion flattens nested medi
   write(join(directory, "nested/deep.svg"), svg("blue"));
   symlinkSync(join(directory, "top.svg"), join(directory, "file-link.svg"));
   symlinkSync(join(directory, "nested"), join(directory, "folder-link"));
-  expect(await installMedia(context, [directory])).toEqual([join(context.libraryDir, "top.svg")]);
-  expect(names()).toEqual(["top.svg"]);
-  expect(await installMedia(context, [directory], { recursive: true })).toEqual([
-    join(context.libraryDir, "deep.svg"),
+  expect(await wallpaperLibrary.install({ context, sources: [directory] })).toEqual([
     join(context.libraryDir, "top.svg"),
   ]);
-  expect((await listMedia(context)).map((entry) => entry.name)).toEqual(["deep.svg", "top.svg"]);
+  expect(names()).toEqual(["top.svg"]);
+  expect(
+    await wallpaperLibrary.install({ context, sources: [directory], recursive: true }),
+  ).toEqual([join(context.libraryDir, "deep.svg"), join(context.libraryDir, "top.svg")]);
+  expect((await wallpaperLibrary.list(context)).map((entry) => entry.name)).toEqual([
+    "deep.svg",
+    "top.svg",
+  ]);
 });
 
 test("the complete batch validates before publishing explicit unsupported files or conflicts", async () => {
   const valid = write(join(root, "first.svg"));
   const invalid = write(join(root, "last.png"), "not media");
-  await expect(installMedia(context, [valid, invalid])).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [valid, invalid] }),
+  ).rejects.toMatchObject({
     code: "INVALID_METADATA",
   });
   expect(names()).toEqual([]);
   const existing = write(join(context.libraryDir, "last.svg"), svg("green"));
   const conflicting = write(join(root, "last.svg"), svg("blue"));
-  await expect(installMedia(context, [valid, conflicting])).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [valid, conflicting] }),
+  ).rejects.toMatchObject({
     code: "CONFLICT",
   });
   expect(names()).toEqual(["last.svg"]);
@@ -108,12 +110,14 @@ test("duplicate basenames coalesce identical bytes and reject differing nested f
   const source = join(root, "sources");
   write(join(source, "a/same.svg"));
   write(join(source, "b/same.svg"));
-  expect(await installMedia(context, [source], { recursive: true })).toEqual([
+  expect(await wallpaperLibrary.install({ context, sources: [source], recursive: true })).toEqual([
     join(context.libraryDir, "same.svg"),
   ]);
   rmSync(context.libraryDir, { recursive: true });
   write(join(source, "b/same.svg"), svg("blue"));
-  await expect(installMedia(context, [source], { recursive: true })).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [source], recursive: true }),
+  ).rejects.toMatchObject({
     code: "CONFLICT",
   });
   expect(names()).toEqual([]);
@@ -121,9 +125,9 @@ test("duplicate basenames coalesce identical bytes and reject differing nested f
 
 test("one explicit file can be named; folders, multiple inputs and unsafe names are refused", async () => {
   const source = write(join(root, "source.svg"));
-  expect(await installMedia(context, [source], { name: "personal name.svg" })).toEqual([
-    join(context.libraryDir, "personal name.svg"),
-  ]);
+  expect(
+    await wallpaperLibrary.install({ context, sources: [source], name: "personal name.svg" }),
+  ).toEqual([join(context.libraryDir, "personal name.svg")]);
   for (const name of [
     "",
     " ",
@@ -137,18 +141,26 @@ test("one explicit file can be named; folders, multiple inputs and unsafe names 
     ".library.lock",
     ".luna-media-owned",
   ])
-    await expect(installMedia(context, [source], { name })).rejects.toMatchObject({
+    await expect(
+      wallpaperLibrary.install({ context, sources: [source], name }),
+    ).rejects.toMatchObject({
       code: "INVALID_ARGUMENT",
     });
-  await expect(installMedia(context, [source, source], { name: "one.svg" })).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [source, source], name: "one.svg" }),
+  ).rejects.toMatchObject({
     code: "INVALID_ARGUMENT",
   });
   const directory = join(root, "folder");
   mkdirSync(directory);
-  await expect(installMedia(context, [directory], { name: "one.svg" })).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [directory], name: "one.svg" }),
+  ).rejects.toMatchObject({
     code: "INVALID_ARGUMENT",
   });
-  await expect(installMedia(context, [])).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+  await expect(wallpaperLibrary.install({ context, sources: [] })).rejects.toMatchObject({
+    code: "INVALID_ARGUMENT",
+  });
 });
 
 test("HTTP sources support redirects, encoded filenames and deterministic unnamed downloads", async () => {
@@ -162,12 +174,15 @@ test("HTTP sources support redirects, encoded filenames and deterministic unname
     },
   });
   const url = server.url.href;
-  const installed = await installMedia(context, [url + "my%20scene.svg", url + "redirect", url]);
+  const installed = await wallpaperLibrary.install({
+    context,
+    sources: [url + "my%20scene.svg", url + "redirect", url],
+  });
   expect(installed[0]).toBe(join(context.libraryDir, "my scene.svg"));
   expect(installed[1]).toBe(join(context.libraryDir, "redirect"));
   expect(installed[2]).toMatch(/\/wallpaper-[0-9a-f]{16}\.svg$/u);
-  expect(await installMedia(context, [url])).toEqual([installed[2]!]);
-  expect(await installMedia(context, [url], { name: "renamed.svg" })).toEqual([
+  expect(await wallpaperLibrary.install({ context, sources: [url] })).toEqual([installed[2]!]);
+  expect(await wallpaperLibrary.install({ context, sources: [url], name: "renamed.svg" })).toEqual([
     join(context.libraryDir, "renamed.svg"),
   ]);
   for (const path of installed) expect(readFileSync(path, "utf8")).toBe(svg());
@@ -187,7 +202,7 @@ test("failed URLs leave the batch unpublished and credentials, controls and unsa
   const source = write(join(root, "valid.svg"));
   for (const endpoint of ["missing", "loop", "file"])
     await expect(
-      installMedia(context, [source, new URL(endpoint, server.url).href]),
+      wallpaperLibrary.install({ context, sources: [source, new URL(endpoint, server.url).href] }),
     ).rejects.toMatchObject({ code: "COMMAND_FAILED" });
   expect(names()).toEqual([]);
   for (const url of [
@@ -198,12 +213,14 @@ test("failed URLs leave the batch unpublished and credentials, controls and unsa
     "https://example.com/%2Fescape.svg",
     "https://example.com/%ZZ",
   ])
-    await expect(installMedia(context, [url])).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+    await expect(wallpaperLibrary.install({ context, sources: [url] })).rejects.toMatchObject({
+      code: "INVALID_ARGUMENT",
+    });
   expect(names()).toEqual([]);
 });
 
 test("managed paths and listings exclude reserved files, links, directories and unrelated content", async () => {
-  expect(await listMedia(context)).toEqual([]);
+  expect(await wallpaperLibrary.list(context)).toEqual([]);
   write(join(context.libraryDir, "z.svg"));
   write(join(context.libraryDir, "a.svg"));
   write(join(context.libraryDir, ".library.lock"));
@@ -211,11 +228,18 @@ test("managed paths and listings exclude reserved files, links, directories and 
   write(join(context.libraryDir, "notes"), "not media");
   write(join(context.libraryDir, "nested/file.svg"));
   symlinkSync(join(context.libraryDir, "z.svg"), join(context.libraryDir, "linked.svg"));
-  expect((await listMedia(context)).map((entry) => entry.name)).toEqual(["a.svg", "z.svg"]);
+  expect((await wallpaperLibrary.list(context)).map((entry) => entry.name)).toEqual([
+    "a.svg",
+    "z.svg",
+  ]);
   for (const name of ["../z.svg", ".library.lock", ".luna-owned.svg"])
-    await expect(managedPath(context, name)).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+    await expect(wallpaperLibrary.path({ context, name })).rejects.toMatchObject({
+      code: "INVALID_ARGUMENT",
+    });
   for (const name of ["linked.svg", "nested", "missing.svg"])
-    await expect(managedPath(context, name)).rejects.toMatchObject({ code: "INVALID_PATH" });
+    await expect(wallpaperLibrary.path({ context, name })).rejects.toMatchObject({
+      code: "INVALID_PATH",
+    });
 });
 
 test("linked libraries, non-directory parents and source/library overlap fail without touching destinations", async () => {
@@ -223,30 +247,42 @@ test("linked libraries, non-directory parents and source/library overlap fail wi
   const outside = join(root, "outside");
   mkdirSync(outside);
   symlinkSync(outside, context.libraryDir);
-  await expect(installMedia(context, [source])).rejects.toMatchObject({ code: "INVALID_PATH" });
+  await expect(wallpaperLibrary.install({ context, sources: [source] })).rejects.toMatchObject({
+    code: "INVALID_PATH",
+  });
   expect(readdirSync(outside)).toEqual([]);
   rmSync(context.libraryDir);
   const linkedParent = join(root, "linked-parent");
   symlinkSync(outside, linkedParent);
   await expect(
-    libraryDirectory({ ...context, libraryDir: join(linkedParent, "child") }, true),
+    wallpaperLibrary.directory({
+      context: { ...context, libraryDir: join(linkedParent, "child") },
+      create: true,
+    }),
   ).rejects.toMatchObject({ code: "INVALID_PATH" });
   const fileParent = write(join(root, "not-directory"), "content");
   await expect(
-    libraryDirectory({ ...context, libraryDir: join(fileParent, "child") }, true),
+    wallpaperLibrary.directory({
+      context: { ...context, libraryDir: join(fileParent, "child") },
+      create: true,
+    }),
   ).rejects.toMatchObject({ code: "INVALID_PATH" });
-  await expect(installMedia(context, [root], { recursive: true })).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [root], recursive: true }),
+  ).rejects.toMatchObject({
     code: "INVALID_PATH",
   });
   write(join(context.libraryDir, "existing.svg"));
   await expect(
-    installMedia(context, [context.libraryDir], { recursive: true }),
+    wallpaperLibrary.install({ context, sources: [context.libraryDir], recursive: true }),
   ).rejects.toMatchObject({ code: "INVALID_PATH" });
   await expect(
-    installMedia(context, [join(context.libraryDir, "existing.svg")]),
+    wallpaperLibrary.install({ context, sources: [join(context.libraryDir, "existing.svg")] }),
   ).rejects.toMatchObject({ code: "INVALID_PATH" });
   symlinkSync(join(context.libraryDir, "existing.svg"), join(root, "alias.svg"));
-  await expect(installMedia(context, [join(root, "alias.svg")])).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context, sources: [join(root, "alias.svg")] }),
+  ).rejects.toMatchObject({
     code: "INVALID_PATH",
   });
   expect(names()).toEqual(["existing.svg"]);
@@ -256,13 +292,17 @@ test("a symlink destination cannot be overwritten even with matching content", a
   const source = write(join(root, "same.svg"));
   mkdirSync(context.libraryDir);
   symlinkSync(source, join(context.libraryDir, "same.svg"));
-  await expect(installMedia(context, [source])).rejects.toMatchObject({ code: "CONFLICT" });
+  await expect(wallpaperLibrary.install({ context, sources: [source] })).rejects.toMatchObject({
+    code: "CONFLICT",
+  });
   expect(readFileSync(source, "utf8")).toBe(svg());
 });
 
 test("media commands honor an explicitly empty caller PATH", async () => {
   const source = write(join(root, "source.svg"));
-  await expect(installMedia({ ...context, env: { PATH: "" } }, [source])).rejects.toMatchObject({
+  await expect(
+    wallpaperLibrary.install({ context: { ...context, env: { PATH: "" } }, sources: [source] }),
+  ).rejects.toMatchObject({
     code: "COMMAND_FAILED",
   });
   expect(names()).toEqual([]);
@@ -272,24 +312,30 @@ test("theme imports confine their sources and share the wallpaper library lock",
   const source = join(root, "theme");
   const inside = write(join(source, "image.svg"));
   const outside = write(join(root, "outside.svg"));
-  const theme = themeContext({
+  const theme = themeContext.resolve({
     env: { ...context.env, HOME: root },
     wallpaperDir: context.libraryDir,
   });
   symlinkSync(outside, join(source, "escape.svg"));
-  await expect(importWallpapers(theme, source, ["escape.svg"])).rejects.toMatchObject({
+  await expect(
+    themeWallpapers.import({ context: theme, root: source, sources: ["escape.svg"] }),
+  ).rejects.toMatchObject({
     code: "INVALID_PATH",
   });
-  await expect(importWallpapers(theme, source, [outside])).rejects.toMatchObject({
+  await expect(
+    themeWallpapers.import({ context: theme, root: source, sources: [outside] }),
+  ).rejects.toMatchObject({
     code: "INVALID_PATH",
   });
-  await libraryDirectory(context, true);
+  await wallpaperLibrary.directory({ context, create: true });
   await locked({ env: context.env, configFile: join(context.libraryDir, ".library") }, async () => {
-    await expect(importWallpapers(theme, source, ["image.svg"])).rejects.toMatchObject({
+    await expect(
+      themeWallpapers.import({ context: theme, root: source, sources: ["image.svg"] }),
+    ).rejects.toMatchObject({
       code: "CONFLICT",
     });
   });
-  await importWallpapers(theme, source, ["image.svg"]);
+  await themeWallpapers.import({ context: theme, root: source, sources: ["image.svg"] });
   expect(readFileSync(join(context.libraryDir, "image.svg"), "utf8")).toBe(
     readFileSync(inside, "utf8"),
   );

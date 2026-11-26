@@ -1,8 +1,8 @@
 import { realpath } from "node:fs/promises";
 import { dirname, join } from "pathe";
 import { ApiError } from "@/lib/response.ts";
-import { readPackages } from "@/self/install/packages.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import { packageRecipes } from "@/modules/self/install/packages.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import { parse, metadata } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
 import { appNameSchema, appSchema, appsIndexSchema, type AppManifest } from "./schema.ts";
@@ -34,7 +34,7 @@ class AppCatalog {
     const apps: CatalogApp[] = [];
     const selectors = new Map<string, string>();
     const aliases = new Set<string>();
-    const packages = await readPackages(context, false);
+    const packages = await packageRecipes.read({ context, checkTools: false });
     const dependencies = new Map(
       [...packages.before_cli, ...packages.after_cli, ...packages.later, ...packages.mise].map(
         (item) => [item.name, item],

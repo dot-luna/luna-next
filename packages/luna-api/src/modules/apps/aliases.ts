@@ -1,9 +1,9 @@
 import { join } from "pathe";
-import { quote } from "@/install/report.ts";
+import { installReport } from "@/modules/self/install/report.ts";
 import { metadata, readOptional, writeFile } from "@/lib/files.ts";
 import { ordinaryParents } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 
 class AppAliases {
@@ -22,10 +22,10 @@ class AppAliases {
     const contents = aliases
       .map((alias) => {
         const [name, argv] = typeof alias === "string" ? [alias, [app.manifest.name]] : alias;
-        const command = argv.map(quote).join(" ");
+        const command = argv.map((word) => installReport.quote(word)).join(" ");
         return (
           `if (( ! $+aliases[${name}] && ! $+functions[${name}] )); then\n` +
-          `    alias -- ${quote(`${name}=${command}`)}\n` +
+          `    alias -- ${installReport.quote(`${name}=${command}`)}\n` +
           "fi\n"
         );
       })

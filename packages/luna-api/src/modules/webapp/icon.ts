@@ -145,7 +145,8 @@ class WebappIcon {
           if (hasBaseUrl) return;
           hasBaseUrl = true;
           // An invalid first base falls back to the page URL; later base tags remain ignored.
-          baseUrl = this._resolveHttpUrl({ url: element.getAttribute("href")!, baseUrl: url }) || url;
+          baseUrl =
+            this._resolveHttpUrl({ url: element.getAttribute("href")!, baseUrl: url }) || url;
         },
       })
       .on("link[href][rel]", {
@@ -260,7 +261,10 @@ class WebappIcon {
         maxBytes: maxIconBytes,
       });
       if (!resource)
-        throw new ApiError("IO_ERROR", `Unable to download web app icon within 8 MiB: ${iconSource}`);
+        throw new ApiError(
+          "IO_ERROR",
+          `Unable to download web app icon within 8 MiB: ${iconSource}`,
+        );
       bytes = resource.bytes;
     } else {
       const sourceMetadata = await stat(iconSource);
@@ -269,13 +273,20 @@ class WebappIcon {
       if (sourceMetadata.size > maxIconBytes)
         throw new ApiError("INVALID_METADATA", "Web app icons must not exceed 8 MiB");
       // Bound the read too: the source can grow after its metadata was inspected.
-      bytes = Buffer.from(await Bun.file(iconSource).slice(0, maxIconBytes + 1).arrayBuffer());
+      bytes = Buffer.from(
+        await Bun.file(iconSource)
+          .slice(0, maxIconBytes + 1)
+          .arrayBuffer(),
+      );
       if (bytes.length > maxIconBytes)
         throw new ApiError("INVALID_METADATA", "Web app icons must not exceed 8 MiB");
     }
     const icon = await this._readIcon(bytes);
     if (!icon)
-      throw new ApiError("INVALID_METADATA", `Unsupported or malformed web app icon: ${iconSource}`);
+      throw new ApiError(
+        "INVALID_METADATA",
+        `Unsupported or malformed web app icon: ${iconSource}`,
+      );
     return icon;
   }
 
@@ -289,11 +300,15 @@ class WebappIcon {
     const deadline = AbortSignal.timeout(15000);
     const candidateUrls = await this._findIconUrls({ url, deadline });
     let bestIcon: WebsiteIcon | undefined;
-    for (let batchStart = 0; batchStart < candidateUrls.length && !deadline.aborted; batchStart += 4) {
+    for (
+      let batchStart = 0;
+      batchStart < candidateUrls.length && !deadline.aborted;
+      batchStart += 4
+    ) {
       const downloadedIcons = await Promise.all(
-        candidateUrls.slice(batchStart, batchStart + 4).map((candidateUrl) =>
-          this._downloadIcon({ url: candidateUrl, deadline }),
-        ),
+        candidateUrls
+          .slice(batchStart, batchStart + 4)
+          .map((candidateUrl) => this._downloadIcon({ url: candidateUrl, deadline })),
       );
       for (const icon of downloadedIcons)
         if (icon && (!bestIcon || icon.size > bestIcon.size)) bestIcon = icon;

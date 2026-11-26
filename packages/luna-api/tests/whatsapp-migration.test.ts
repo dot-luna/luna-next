@@ -6,8 +6,8 @@ import { appsIndexSchema } from "../src/modules/apps/schema.ts";
 import { appContext } from "../src/modules/apps/context.ts";
 import { appProcesses } from "../src/modules/apps/processes.ts";
 import { webappIcon } from "../src/modules/webapp/icon.ts";
-import { replaceWhatly } from "../src/self/migrations/releases/whatsapp.ts";
-import { whatlyPaths } from "../src/self/migrations/releases/whatly-paths.ts";
+import { replaceWhatly } from "../src/modules/self/migrations/releases/whatsapp.ts";
+import { whatlyPaths } from "../src/modules/self/migrations/releases/whatly-paths.ts";
 import { Luna } from "../src/index.ts";
 
 let f: AppFixture;
@@ -83,7 +83,7 @@ test("migration installs WhatsApp and removes all owned Whatly files while retai
   expect(cleaned).toContain("x-scheme-handler/whatsapp=other.desktop;");
   expect(cleaned).toContain("text/plain=editor.desktop;");
   expect(cleaned).not.toContain("whatly");
-  expect(await whatlyPaths(context)).toMatchObject({ settings: new Map() });
+  expect(await whatlyPaths.collect(context)).toMatchObject({ settings: new Map() });
   await run();
   expect(await Luna.webapp.list({ env: f.env })).toMatchObject({
     succes: true,

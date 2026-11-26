@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "bat",
   "source": "pacman",
 

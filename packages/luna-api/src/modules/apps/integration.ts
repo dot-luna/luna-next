@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { readdir, realpath } from "node:fs/promises";
 import { extname, isAbsolute, join, resolve } from "pathe";
+import { hasControlCharacters } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
 import { metadata, parse, readOptional, writeFile } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
-import type { InstallContext } from "@/self/install/command.ts";
-import { quote } from "@/install/report.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
+import { installReport } from "@/modules/self/install/report.ts";
 import { appConfigRecordSchema } from "./schema.ts";
 
 class AppIntegration {
@@ -75,8 +76,7 @@ class AppIntegration {
         if (value === "~" || value.startsWith("~/")) value = context.home + value.slice(1);
       }
       if (!value) continue;
-      // oxlint-disable-next-line no-control-regex
-      if (!isAbsolute(value) || /[\x00-\x1f\x7f]/u.test(value) || resolve(value) === "/")
+      if (!isAbsolute(value) || hasControlCharacters(value) || resolve(value) === "/")
         throw new ApiError("INVALID_PATH", `Invalid user configuration destination: ${value}`);
       return resolve(value);
     }
@@ -116,7 +116,7 @@ class AppIntegration {
         ? `@import url(${JSON.stringify(Bun.pathToFileURL(source).href)});`
         : extension === ".conf"
           ? `include ${source}`
-          : `source ${quote(source)}`;
+          : `source ${installReport.quote(source)}`;
     return `${start}\n${line}\n${end}\n${body}`;
   }
 

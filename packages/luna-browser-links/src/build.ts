@@ -1,12 +1,11 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { redirectRule } from "./rules.ts";
 
 /** Build browser code separately from the Bun host, whose install-time config stays local. */
-export async function buildBrowserLinks(directory: string, extensionId: string) {
+export async function buildBrowserLinks(directory: string) {
   await mkdir(directory, { recursive: true });
   for (const [entries, target, outdir] of [
-    [["background.ts", "open.ts"], "browser", directory],
+    [["background.ts", "open.ts", "content.ts"], "browser", directory],
     [["native.ts"], "bun", `${directory}/native`],
   ] as const) {
     const result = await Bun.build({
@@ -23,24 +22,20 @@ export async function buildBrowserLinks(directory: string, extensionId: string) 
       {
         manifest_version: 3,
         name: "Luna Browser Links",
-        version: "0.1.0",
+        version: "0.2.0",
         description:
           "Open external links in the default browser and keep Luna web apps in Chromium.",
-        permissions: ["nativeMessaging", "declarativeNetRequest"],
+        permissions: ["nativeMessaging"],
         host_permissions: ["http://*/*", "https://*/*"],
         background: { service_worker: "background.js", type: "module" },
-        declarative_net_request: {
-          rule_resources: [{ id: "external", enabled: true, path: "rules.json" }],
-        },
-        web_accessible_resources: [
-          { resources: ["open.html"], matches: ["http://*/*", "https://*/*"] },
+        content_scripts: [
+          { matches: ["http://*/*", "https://*/*"], js: ["content.js"], run_at: "document_start" },
         ],
       },
       null,
       2,
     ) + "\n",
   );
-  await Bun.write(`${directory}/rules.json`, JSON.stringify([redirectRule(extensionId)]) + "\n");
   await Bun.write(
     `${directory}/open.html`,
     `<!doctype html><html lang="en"><meta charset="utf-8"><title>Open link</title>
@@ -51,10 +46,5 @@ export async function buildBrowserLinks(directory: string, extensionId: string) 
 
 if (import.meta.main) {
   const directory = resolve(import.meta.dir, "../dist");
-  const id = new Bun.CryptoHasher("sha256")
-    .update(directory)
-    .digest("hex")
-    .slice(0, 32)
-    .replace(/[0-9a-f]/gu, (digit) => String.fromCharCode(97 + parseInt(digit, 16)));
-  await buildBrowserLinks(directory, id);
+  await buildBrowserLinks(directory);
 }

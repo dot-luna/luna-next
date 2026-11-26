@@ -4,6 +4,18 @@ import { dirname, join } from "node:path";
 import { Luna } from "../src/index.ts";
 import { SelfFixture } from "./fixtures/self-fixture.ts";
 
+test("the shipped installer installs XDG tools before building the CLI", async () => {
+  const manifest = Bun.file(join(import.meta.dir, "../../../installs/packages.jsonc"));
+  const packages = Bun.JSONC.parse(await manifest.text()) as {
+    before_cli: { name: string; source: string }[];
+  };
+  const pacmanPackages = packages.before_cli
+    .filter((item) => item.source === "pacman")
+    .map((item) => item.name);
+  expect(pacmanPackages).toContain("xdg-terminal-exec");
+  expect(pacmanPackages).toContain("xdg-utils");
+});
+
 const userTests = process.getuid?.() === 0 ? describe.skip : describe;
 userTests("self operations", () => {
   let value: SelfFixture;

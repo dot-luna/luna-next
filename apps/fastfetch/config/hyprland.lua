@@ -9,10 +9,10 @@ hl.window_rule({
 
 -- Kitty's --hold starts an interactive shell. Wait silently for one key instead.
 -- Printing without the trailing newline and hiding the cursor keeps the bottom margin even.
-hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd(
+hl.bind("SUPER + SHIFT + A", hl.dsp.exec_cmd(
   [[xdg-terminal-exec --app-id=luna-next-fastfetch --title=Fastfetch -- bash -c 'output=$(fastfetch --pipe false); status=$?; printf "\e[?25l%s" "$output"; read -r -s -n 1; exit "$status"']]
 ), {
-  description = "Open Fastfetch",
+  description = "About",
   non_consuming = false,
   dont_inhibit = true,
 })

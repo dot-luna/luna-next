@@ -20,6 +20,7 @@ test("notify installs through the local app catalog, replaces only its QML expor
     const app = join(f.repository, "apps/luna-notify");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-notify/app.jsonc"), join(app, "app.jsonc"));
+    f.enableApp("luna-notify");
     cpSync(join(repo, "apps/luna-notify/scripts"), join(app, "scripts"), { recursive: true });
     cpSync(join(repo, "apps/luna-notify/config"), join(app, "config"), { recursive: true });
     cpSync(

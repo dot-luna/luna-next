@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { ApiResponse, ResolvedTheme } from "../src/index.ts";
-import { themeContext } from "../src/theme/context.ts";
-import { gsettings } from "../src/theme/gsettings.ts";
+import { themeContext } from "../src/modules/theme/context.ts";
+import { gsettings } from "../src/modules/theme/gsettings.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 let f: ThemeFixture;
@@ -44,7 +44,7 @@ async function cli<T>(env: Record<string, string>, args: string[]): Promise<T> {
 test
   .skipIf(!Bun.which("gsettings") || !Bun.which("dbus-run-session"))
   .each(["dark", "light"] as const)(
-  "%s GTK colors, fonts, rounding and selection survive fresh CLI and D-Bus sessions",
+  "%s GTK colors, fonts and selection survive fresh CLI and D-Bus sessions",
   async (mode) => {
     // No inherited desktop bus, runtime directory, GTK override or mocked commands.
     const env = {
@@ -74,15 +74,17 @@ test
     expect(existsSync(join(env.XDG_CONFIG_HOME, "dconf/user"))).toBe(true);
 
     // Each helper starts a new process and private bus, reading the saved dconf database.
-    const context = themeContext({ ...f.options, env });
-    expect(await gsettings(context, ["get", "org.gnome.desktop.interface", "color-scheme"])).toBe(
-      `'prefer-${mode}'`,
-    );
-    const nativeName = await gsettings(context, [
-      "get",
-      "org.gnome.desktop.interface",
-      "gtk-theme",
-    ]);
+    const context = themeContext.resolve({ ...f.options, env });
+    expect(
+      await gsettings.run({
+        context,
+        args: ["get", "org.gnome.desktop.interface", "color-scheme"],
+      }),
+    ).toBe(`'prefer-${mode}'`);
+    const nativeName = await gsettings.run({
+      context,
+      args: ["get", "org.gnome.desktop.interface", "gtk-theme"],
+    });
     expect(nativeName).toBe("'Luna'");
     expect(join(env.XDG_DATA_HOME, "themes", nativeName.slice(1, -1), "gtk-3.0/gtk.css")).toBe(
       cssPath,
@@ -96,7 +98,7 @@ test
     expect(theme.appearance.rounding).toBe(17);
     for (const value of ["#172635", "#c78645", ...Object.values(theme.fonts)])
       expect(stylesheet).toContain(value);
-    expect(stylesheet).toMatch(/border-radius:\s*17px/u);
+    expect(stylesheet).not.toContain("border-radius:");
     expect(f.read(cssPath)).toBe(stylesheet);
     expect(f.read(f.configFile)).toBe(selection);
     expect(f.read(join(source, "theme.jsonc"))).toBe(authored);

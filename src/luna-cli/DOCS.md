@@ -23,9 +23,10 @@ commits. They never reset or autostash changes.
   rebuild/publish the CLI, configure Git, then install `after_cli` packages,
   the mise list, themes and their packages, apps in catalog order, later packages,
   web apps, and application defaults. A direct invocation also upgrades system packages before
-  installing dependencies. `install.sh` passes `--from-bootstrap` to skip the
-  repeated checkout update, system upgrade, and CLI build/publication; shared
-  package stages and Git configuration still run.
+  installing dependencies. `install.sh` installs only the CLI and prints a command
+  for starting this setup manually.
+  Each app with `enabled: false` in its `app.jsonc` is skipped independently.
+  Other setup stages still run and report missing prerequisites when needed.
 - `luna self update`: update the checkout, build the CLI, run pending release
   migrations, then publish the CLI. Requires mise from setup. Migrations can install,
   remove, rebuild, or reconfigure apps. Successful steps are saved; rerun the same
@@ -341,6 +342,14 @@ See [app behavior](../../apps/DOCS.md) and [web-app options](../../packages/luna
 
 ## Workspace bar
 
-`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, and
-`focus` control it. `Luna.bar` provides the same operations with `{repository?, env?}`.
+`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, `focus`,
+and `toggle` control it. `Luna.bar` provides the same operations with
+`{repository?, configFile?, env?}`, plus `get` and `getConfigFile` for settings.
 See [Luna Bar controls and checks](../luna-bar/DOCS.md).
+
+## Polkit
+
+`luna polkit start|stop|restart|status` controls the desktop authentication agent.
+`get [key]` reads source settings, and `get-config-file` prints their path.
+Use `--config <file>` for a JSONC path or `--install-dir <checkout>` for source QML.
+Luna's Hyprland starts the agent at login. See [setup and settings](../luna-polkit/DOCS.md).

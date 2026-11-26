@@ -1,7 +1,7 @@
 import { readdir, readFile, readlink, stat } from "node:fs/promises";
 import { basename, join } from "pathe";
 import { ApiError } from "@/lib/response.ts";
-import type { InstallContext } from "@/self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 import type { CatalogApp } from "./catalog.ts";
 
 export interface AppProcess {

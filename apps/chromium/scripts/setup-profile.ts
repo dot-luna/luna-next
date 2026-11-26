@@ -276,6 +276,7 @@ async function downloadExtensions(ids: string[], version: string, stage: string)
 
 /** Own a headless Chromium and a private CDP pipe, without opening a debugging TCP port. */
 export function startBrowser(binary: string, paths: Paths) {
+  const listeners = new Set<(event: { method: string; params: any; sessionId?: string }) => void>();
   const child = Bun.spawn([binary, `--user-data-dir=${paths.root}`, "--profile-directory=Luna",
     "--headless=new", "--no-first-run", "--no-default-browser-check", "--disable-background-networking",
     "--remote-debugging-pipe", "--enable-unsafe-extension-debugging", "about:blank"],
@@ -299,6 +300,7 @@ export function startBrowser(binary: string, paths: Paths) {
       while ((end = buffer.indexOf("\0")) !== -1) {
         const message = JSON.parse(buffer.slice(0, end));
         buffer = buffer.slice(end + 1);
+        if (message.method) for (const listener of listeners) listener(message);
         const entry = pending.get(message.id);
         if (!entry) continue;
         pending.delete(message.id);
@@ -326,7 +328,10 @@ export function startBrowser(binary: string, paths: Paths) {
       await child.exited;
     } finally { clearTimeout(terminate); clearTimeout(kill); await Promise.resolve(input.end()).catch(() => {}); }
   }
-  return { call, close };
+  return { call, close, onEvent(listener: (event: { method: string; params: any; sessionId?: string }) => void) {
+    listeners.add(listener);
+    return () => { listeners.delete(listener); };
+  } };
 }
 
 async function verifyProfile(browser: ReturnType<typeof startBrowser>, paths: Paths): Promise<void> {
@@ -347,15 +352,27 @@ async function verifyProfile(browser: ReturnType<typeof startBrowser>, paths: Pa
 }
 
 async function installExtensions(binary: string, paths: Paths, extensions: Extension[]) {
+  const retiredDirectory = `${paths.directory}/Luna/extensions/better-whatsapp-web`;
+  checkPath(retiredDirectory);
+  const retiredId = extensionId(retiredDirectory);
   const browser = startBrowser(binary, paths);
   try {
     await verifyProfile(browser, paths);
+    const existing = await browser.call("Extensions.getExtensions");
+    const retired = existing.extensions.find((item: Json) => item.id === retiredId);
+    if (retired) {
+      if (retired.path !== retiredDirectory) throw new Error("Unexpected Better WhatsApp extension path.");
+      // Chromium owns unregistering the extension and clearing its local storage.
+      await browser.call("Extensions.uninstall", { id: retiredId });
+    }
     for (const item of extensions) {
       const installed = await browser.call("Extensions.loadUnpacked", { path: item.directory });
       if (installed.id !== item.id) throw new Error(`Installed the wrong extension: ${item.id}`);
     }
   } finally { await browser.close(); }
   await requireIdle(paths.root);
+  checkPath(retiredDirectory);
+  if (test("-e", retiredDirectory)) run(["rm", "-r", "--", retiredDirectory]);
   const original = await Bun.file(paths.preferences).text();
   const preferences = await readObject(paths.preferences);
   for (const item of extensions) {

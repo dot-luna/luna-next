@@ -1,0 +1,28 @@
+@charset "UTF-8";
+/* Built-in browser pages only. Ordinary websites retain their colors, fonts and corners. */
+@-moz-document url-prefix("about:preferences"), url-prefix("about:addons"),
+url-prefix("about:downloads"), url-prefix("about:logins"), url-prefix("about:profiles"),
+url-prefix("about:config"), url-prefix("about:support"), url-prefix("about:protections"),
+url-prefix("about:sessionrestore"), url-prefix("about:welcome"), url-prefix("about:newtab"),
+url-prefix("about:home"), url-prefix("about:privatebrowsing"), url-prefix("about:zen"),
+url-prefix("chrome://browser/"), url-prefix("chrome://global/"), url-prefix("chrome://mozapps/") {
+{{theme_tokens}}
+    :root {
+        --newtab-background-color: {{colors.background}} !important;
+        --newtab-background-color-secondary: {{colors.lighter_background}} !important;
+        --newtab-text-primary-color: {{colors.foreground}} !important;
+        --newtab-text-secondary-color: {{colors.light_foreground}} !important;
+        --newtab-element-hover-color: {{colors.selection}} !important;
+        --newtab-primary-action-background: {{colors.accent}} !important;
+        --newtab-primary-element-text-color: {{colors.accent_foreground}} !important;
+    }
+    body, dialog {
+        background-color: {{colors.background}} !important;
+        color: {{colors.foreground}} !important;
+        font-family: {{ui_font}}, sans-serif !important;
+    }
+    ::selection {
+        background-color: {{colors.selection}} !important;
+        color: {{colors.selection_foreground}} !important;
+    }
+}

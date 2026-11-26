@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "zen-browser-bin",
   "source": "aur",
   "processes": ["zen", "zen-bin"],

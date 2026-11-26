@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { defaults } from "../../../packages/luna-api/src/theme/defaults.ts";
+import { defaults } from "../../../packages/luna-api/src/modules/theme/defaults.ts";
 
 test("generated Kitty colors are valid hex values with no template punctuation", () => {
   const root = mkdtempSync(join(tmpdir(), "luna-kitty "));

@@ -20,7 +20,9 @@ test("bar installs through the local app catalog, replaces only its QML export a
     const app = join(f.repository, "apps/luna-bar");
     mkdirSync(app, { recursive: true });
     cpSync(join(repo, "apps/luna-bar/app.jsonc"), join(app, "app.jsonc"));
+    f.enableApp("luna-bar");
     cpSync(join(repo, "apps/luna-bar/scripts"), join(app, "scripts"), { recursive: true });
+    cpSync(join(repo, "apps/luna-bar/config"), join(app, "config"), { recursive: true });
     cpSync(join(repo, "src/luna-bar/src/shell"), join(f.repository, "src/luna-bar/src/shell"), {
       recursive: true,
     });
@@ -58,6 +60,9 @@ else process.exit(2);
     });
     const destination = join(f.home, ".config/luna/bar");
     expect(readFileSync(join(destination, "shell.qml"), "utf8")).toContain("LUNA_BAR_THEME");
+    expect(readFileSync(join(f.home, ".config/luna/bar.jsonc"), "utf8")).toBe(
+      readFileSync(join(repo, "apps/luna-bar/config/bar.jsonc"), "utf8"),
+    );
     expect(readFileSync(qsLog, "utf8")).not.toContain("--daemonize");
     expect(f.commands().some((c) => c.name === "sudo" && c.args.includes("quickshell"))).toBe(true);
     f.write(f.home, ".config/luna/bar/stale.qml", "remove");

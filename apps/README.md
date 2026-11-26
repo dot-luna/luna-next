@@ -6,6 +6,9 @@ in `app.jsonc` and optional `config/` and executable `scripts/` folders.
 
 From an installed Luna checkout:
 
+Set `enabled` to `false` in an app's `app.jsonc` to skip its installation.
+An omitted flag or `true` enables it.
+
 ```sh
 luna install kitty
 ```

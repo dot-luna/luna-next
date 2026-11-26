@@ -1,0 +1,173 @@
+:root {
+    color-scheme: {{colors.mode}} !important;
+    --toolbar-color-scheme: {{colors.mode}} !important;
+    --luna-ui-font: {{ui_font}}, sans-serif !important;
+    --zen-primary-color: {{colors.accent}} !important;
+    --zen-colors-primary: {{colors.dark_background}} !important;
+    --zen-colors-secondary: {{colors.lighter_background}} !important;
+    --zen-colors-tertiary: {{colors.background}} !important;
+    --zen-colors-hover-bg: {{colors.selection}} !important;
+    --zen-colors-primary-foreground: {{colors.foreground}} !important;
+    --zen-colors-border: {{colors.muted}} !important;
+    --zen-colors-border-contrast: {{colors.muted}} !important;
+    --zen-colors-input-bg: {{colors.dark_background}} !important;
+    --zen-branding-bg: {{colors.background}} !important;
+    --zen-branding-bg-reverse: {{colors.foreground}} !important;
+    --zen-dialog-background: {{colors.lighter_background}} !important;
+    --zen-in-content-dialog-background: {{colors.lighter_background}} !important;
+    --zen-urlbar-background: {{colors.dark_background}} !important;
+    --zen-input-border-color: {{colors.muted}} !important;
+    --zen-toolbar-element-bg: {{colors.lighter_background}} !important;
+    --zen-toolbar-element-bg-hover: {{colors.selection}} !important;
+    --zen-sidebar-notification-bg: {{colors.lighter_background}} !important;
+    --zen-sidebar-themed-icon-fill: {{colors.foreground}} !important;
+    --toolbox-background-color: {{colors.background}} !important;
+    --toolbox-background-color-inactive: {{colors.background}} !important;
+    --toolbox-textcolor: {{colors.foreground}} !important;
+    --toolbar-background-color: {{colors.background}} !important;
+    --toolbar-color: {{colors.foreground}} !important;
+    --toolbar-field-background-color: {{colors.dark_background}} !important;
+    --toolbar-field-color: {{colors.foreground}} !important;
+    --toolbar-field-focus-background-color: {{colors.lighter_background}} !important;
+    --toolbar-field-focus-color: {{colors.foreground}} !important;
+    --toolbarbutton-background-color-hover: {{colors.selection}} !important;
+    --toolbarbutton-background-color-active: {{colors.muted}} !important;
+    --arrowpanel-background: {{colors.lighter_background}} !important;
+    --arrowpanel-color: {{colors.foreground}} !important;
+    --arrowpanel-border-color: {{colors.muted}} !important;
+    --panel-separator-color: {{colors.muted}} !important;
+    --input-color: {{colors.foreground}} !important;
+    --input-bgcolor: {{colors.dark_background}} !important;
+    --input-border-color: {{colors.muted}} !important;
+    --focus-outline-color: {{colors.accent}} !important;
+    --link-color: {{colors.link}} !important;
+    --link-color-hover: {{colors.link_emphasis}} !important;
+    --in-content-primary-button-background: {{colors.accent}} !important;
+    --in-content-primary-button-background-hover: {{colors.accent}} !important;
+    --in-content-primary-button-background-active: {{colors.accent}} !important;
+    --in-content-primary-button-text-color: {{colors.accent_foreground}} !important;
+}
+
+/* Current Gecko tokens and Zen's older aliases share complete foreground/background pairs. */
+:root {
+    --background-color-canvas: {{colors.background}} !important;
+    --background-color-box: {{colors.lighter_background}} !important;
+    --background-color-box-info: {{colors.lighter_background}} !important;
+    --background-color-critical: {{colors.error}} !important;
+    --background-color-information: {{colors.info}} !important;
+    --background-color-success: {{colors.success}} !important;
+    --background-color-warning: {{colors.warning}} !important;
+    --text-color: {{colors.foreground}} !important;
+    --text-color-deemphasized: {{colors.light_foreground}} !important;
+    --text-color-disabled: {{colors.light_foreground}} !important;
+    --text-color-error: {{colors.error}} !important;
+    --text-color-accent-primary-selected: {{colors.accent_foreground}} !important;
+    --background-color-list-item-hover: {{colors.selection}} !important;
+    --text-color-list-item-hover: {{colors.selection_foreground}} !important;
+    --border-color: {{colors.muted}} !important;
+    --border-color-deemphasized: {{colors.muted}} !important;
+    --border-color-interactive: {{colors.muted}} !important;
+    --border-color-interactive-hover: {{colors.accent}} !important;
+    --border-color-interactive-active: {{colors.accent}} !important;
+    --border-color-selected: {{colors.accent}} !important;
+    --border-color-error: {{colors.error}} !important;
+    --color-accent-primary: {{colors.accent}} !important;
+    --color-accent-primary-hover: {{colors.accent}} !important;
+    --color-accent-primary-active: {{colors.accent}} !important;
+    --color-accent-primary-selected: {{colors.accent}} !important;
+    --color-accent-attention: {{colors.info}} !important;
+    --button-background-color: {{colors.lighter_background}} !important;
+    --button-text-color: {{colors.foreground}} !important;
+    --button-background-color-hover: {{colors.selection}} !important;
+    --button-text-color-hover: {{colors.selection_foreground}} !important;
+    --button-background-color-active: {{colors.selection}} !important;
+    --button-text-color-active: {{colors.selection_foreground}} !important;
+    --button-background-color-primary: {{colors.accent}} !important;
+    --button-background-color-primary-hover: {{colors.accent}} !important;
+    --button-background-color-primary-active: {{colors.accent}} !important;
+    --button-primary-hover-bgcolor: {{colors.accent}} !important;
+    --button-primary-active-bgcolor: {{colors.accent}} !important;
+    --button-text-color-primary: {{colors.accent_foreground}} !important;
+    --button-primary-color: {{colors.accent_foreground}} !important;
+    --button-background-color-destructive: {{colors.error}} !important;
+    --button-background-color-destructive-hover: {{colors.error_emphasis}} !important;
+    --button-background-color-destructive-active: {{colors.error_emphasis}} !important;
+    --button-text-color-destructive: {{colors.error_foreground}} !important;
+    --input-background-color: {{colors.dark_background}} !important;
+    --input-text-color: {{colors.foreground}} !important;
+    --toolbox-text-color: {{colors.foreground}} !important;
+    --toolbox-text-color-inactive: {{colors.foreground}} !important;
+    --toolbar-text-color: {{colors.foreground}} !important;
+    --toolbar-field-text-color: {{colors.foreground}} !important;
+    --toolbar-field-background-color-focus: {{colors.dark_background}} !important;
+    --toolbar-field-text-color-focus: {{colors.foreground}} !important;
+    --toolbar-field-border-color: {{colors.muted}} !important;
+    --toolbar-field-border-color-focus: {{colors.accent}} !important;
+    --toolbarbutton-icon-fill: currentColor !important;
+    --toolbarbutton-icon-fill-attention: {{colors.info}} !important;
+    --lwt-toolbar-field-highlight: {{colors.selection}} !important;
+    --lwt-toolbar-field-highlight-text: {{colors.selection_foreground}} !important;
+    --chrome-content-separator-color: {{colors.muted}} !important;
+    --panel-background-color: {{colors.lighter_background}} !important;
+    --panel-text-color: {{colors.foreground}} !important;
+    --panel-border-color: {{colors.muted}} !important;
+    --panel-item-hover-bgcolor: {{colors.selection}} !important;
+    --panel-item-active-bgcolor: {{colors.selection}} !important;
+    --panel-item-hover-color: {{colors.selection_foreground}} !important;
+    --popup-background-color: {{colors.lighter_background}} !important;
+    --popup-border-color: {{colors.muted}} !important;
+    --urlbarView-highlight-background: {{colors.selection}} !important;
+    --urlbarView-highlight-color: {{colors.selection_foreground}} !important;
+    --urlbarView-hover-background: {{colors.selection}} !important;
+    --urlbarView-action-color: {{colors.light_foreground}} !important;
+    --urlbarView-url-color: {{colors.link}} !important;
+    --urlbar-box-bgcolor: {{colors.lighter_background}} !important;
+    --urlbar-box-text-color: {{colors.foreground}} !important;
+    --urlbar-box-hover-text-color: {{colors.selection_foreground}} !important;
+    --urlbar-box-active-text-color: {{colors.selection_foreground}} !important;
+    --in-content-page-background: {{colors.background}} !important;
+    --in-content-page-color: {{colors.foreground}} !important;
+    --in-content-box-background: {{colors.lighter_background}} !important;
+    --in-content-box-border-color: {{colors.muted}} !important;
+    --in-content-text-color: {{colors.foreground}} !important;
+    --in-content-deemphasized-text: {{colors.light_foreground}} !important;
+    --in-content-button-background: {{colors.lighter_background}} !important;
+    --in-content-button-text-color: {{colors.foreground}} !important;
+    --in-content-button-background-hover: {{colors.selection}} !important;
+    --in-content-button-background-active: {{colors.selection}} !important;
+    --in-content-item-selected: {{colors.selection}} !important;
+    --in-content-item-selected-text: {{colors.selection_foreground}} !important;
+    --in-content-accent-color: {{colors.accent}} !important;
+    --in-content-focus-outline-color: {{colors.accent}} !important;
+    --link-color-active: {{colors.link_emphasis}} !important;
+    --link-color-visited: {{colors.secondary_accent}} !important;
+    color: {{colors.foreground}} !important;
+    background-color: {{colors.background}} !important;
+    accent-color: {{colors.accent}} !important;
+}
+
+/* Message bars use local shadow-host tokens rather than inherited page text. */
+moz-message-bar[type="info"], notification-message[type="info"] {
+    --message-bar-background-color: {{colors.info}} !important;
+    --message-bar-text-color: {{colors.info_foreground}} !important;
+    --message-bar-icon-background-color: {{colors.info}} !important;
+    --message-bar-icon-color: {{colors.info_foreground}} !important;
+}
+moz-message-bar[type="warning"], notification-message[type="warning"] {
+    --message-bar-background-color: {{colors.warning}} !important;
+    --message-bar-text-color: {{colors.warning_foreground}} !important;
+    --message-bar-icon-background-color: {{colors.warning}} !important;
+    --message-bar-icon-color: {{colors.warning_foreground}} !important;
+}
+moz-message-bar[type="critical"], notification-message[type="critical"] {
+    --message-bar-background-color: {{colors.error}} !important;
+    --message-bar-text-color: {{colors.error_foreground}} !important;
+    --message-bar-icon-background-color: {{colors.error}} !important;
+    --message-bar-icon-color: {{colors.error_foreground}} !important;
+}
+moz-message-bar[type="success"], notification-message[type="success"] {
+    --message-bar-background-color: {{colors.success}} !important;
+    --message-bar-text-color: {{colors.success_foreground}} !important;
+    --message-bar-icon-background-color: {{colors.success}} !important;
+    --message-bar-icon-color: {{colors.success_foreground}} !important;
+}

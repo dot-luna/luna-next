@@ -8,7 +8,12 @@ Rectangle {
     id: card
 
     required property var theme
+    property var settings: ({ width: 420, dim_opacity: 0.5 })
     property var flow: null
+    // Optional per-request backend control: flow, available, minutes, remember, setRemember(bool).
+    // Only an authority-backed adapter may supply this; native Quickshell leaves it null.
+    property var retention: null
+    readonly property bool canRemember: flow !== null && retention !== null && retention.flow === flow && retention.available
     property bool submitted: false
     property string failure: ""
     readonly property bool responding: flow !== null && !flow.isCompleted && flow.isResponseRequired && !submitted
@@ -16,7 +21,7 @@ Rectangle {
     readonly property string feedback: flow && flow.supplementaryMessage ? flow.supplementaryMessage : failure
     signal focusMoved(Item control)
 
-    implicitWidth: 420
+    implicitWidth: settings.width
     implicitHeight: content.implicitHeight + 48
     color: card.theme.colors.background
     radius: Math.min(18, card.theme.appearance.rounding)
@@ -158,7 +163,7 @@ Rectangle {
         RowLayout {
             spacing: 10
             AuthIcon {
-                name: "lock"
+                name: "square-lock-02"
                 ink: card.theme.colors.accent
                 implicitWidth: 20
                 implicitHeight: 20
@@ -211,7 +216,7 @@ Rectangle {
                 palette.mid: card.theme.colors.muted
                 palette.dark: card.theme.colors.foreground
                 indicator: AuthIcon {
-                    name: "chevron-right"
+                    name: "arrow-right-01"
                     ink: card.theme.colors.foreground
                     implicitWidth: 14
                     implicitHeight: 14
@@ -314,11 +319,62 @@ Rectangle {
                     border.color: input.activeFocus ? card.theme.colors.accent : card.theme.colors.muted
                     Behavior on border.color { ColorAnimation { duration: 100 } }
                 }
-                KeyNavigation.tab: cancelButton
+                KeyNavigation.tab: rememberChoice.enabled ? rememberChoice : cancelButton
                 KeyNavigation.backtab: identitySelector.visible ? identitySelector : authenticateButton
                 Keys.onReturnPressed: card.submitResponse()
                 Keys.onEnterPressed: card.submitResponse()
             }
+        }
+
+        CheckBox {
+            id: rememberChoice
+            objectName: "rememberChoice"
+            Layout.fillWidth: true
+            visible: card.canRemember
+            enabled: visible && card.responding
+            checked: card.canRemember && card.retention.remember
+            text: card.canRemember ? "Remember for " + card.retention.minutes + " minutes" : ""
+            focusPolicy: Qt.StrongFocus
+            implicitHeight: 32
+            spacing: 10
+            Accessible.name: text
+            onToggled: card.retention.setRemember(checked)
+            onActiveFocusChanged: if (activeFocus) card.focusMoved(rememberChoice)
+            onVisibleChanged: if (!visible && activeFocus) card.focusInput()
+            indicator: Rectangle {
+                implicitWidth: 18
+                implicitHeight: 18
+                x: rememberChoice.leftPadding
+                y: (rememberChoice.height - height) / 2
+                radius: Math.min(4, card.theme.appearance.rounding)
+                color: rememberChoice.checked ? card.theme.colors.accent : card.theme.colors.lighter_background
+                border.width: rememberChoice.visualFocus ? 2 : 1
+                border.color: rememberChoice.visualFocus ? card.theme.colors.bright_foreground : card.theme.colors.muted
+                AuthIcon {
+                    anchors.centerIn: parent
+                    width: 14
+                    height: 14
+                    name: "tick-02"
+                    visible: rememberChoice.checked
+                    ink: card.theme.colors.accent_foreground
+                }
+                Behavior on color { ColorAnimation { duration: 100 } }
+            }
+            contentItem: Text {
+                text: rememberChoice.text
+                textFormat: Text.PlainText
+                leftPadding: rememberChoice.indicator.width + rememberChoice.spacing
+                color: card.theme.colors.foreground
+                font.family: card.theme.fonts.ui
+                font.pixelSize: 12
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.Wrap
+                opacity: rememberChoice.enabled ? 1 : 0.5
+            }
+            KeyNavigation.tab: cancelButton
+            KeyNavigation.backtab: input
+            Keys.onReturnPressed: card.submitResponse()
+            Keys.onEnterPressed: card.submitResponse()
         }
 
         Label {
@@ -345,7 +401,7 @@ Rectangle {
                 onClicked: card.cancel()
                 onActiveFocusChanged: if (activeFocus) card.focusMoved(cancelButton)
                 KeyNavigation.tab: authenticateButton.enabled ? authenticateButton : identitySelector.visible ? identitySelector : cancelButton
-                KeyNavigation.backtab: input.enabled ? input : identitySelector.visible ? identitySelector : cancelButton
+                KeyNavigation.backtab: rememberChoice.enabled ? rememberChoice : input.enabled ? input : identitySelector.visible ? identitySelector : cancelButton
             }
             AuthButton {
                 id: authenticateButton

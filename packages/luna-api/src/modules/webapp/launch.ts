@@ -1,12 +1,11 @@
+import { capture } from "@/lib/process.ts";
 import { ApiError } from "@/lib/response.ts";
-import { webappContext, type WebappContext, type WebappOptions } from "./context.ts";
-import { webappWindowsSchema, type WebappLaunchSettings, type WebappRecord } from "./schema.ts";
-
-export type WebappLaunchOptions = WebappOptions & WebappLaunchSettings;
+import { webappContext, type WebappContext } from "./context.ts";
+import { webappWindowsSchema, type WebappRecord } from "./schema.ts";
 
 /** Match app names and control browser windows without retaining session state. */
 class WebappLauncher {
-  /** Run a bounded command without a shell or terminal, retaining diagnostics for the caller. */
+  /** Run a bounded command without a shell or terminal, retaining trimmed diagnostics for the caller. */
   private async _runCommand({
     context,
     args,
@@ -16,19 +15,13 @@ class WebappLauncher {
     args: string[];
     input?: string;
   }) {
-    const child = Bun.spawn(args, {
+    const result = await capture({
+      args,
       env: context.env,
-      stdin: input === undefined ? "ignore" : new Blob([input]),
-      stdout: "pipe",
-      stderr: "pipe",
+      input: input === undefined ? undefined : Buffer.from(input),
       timeout: 5000,
     });
-    const [stdout, stderr, exitCode] = await Promise.all([
-      new Response(child.stdout).text(),
-      new Response(child.stderr).text(),
-      child.exited,
-    ]);
-    return { stdout: stdout.trim(), stderr: stderr.trim(), exitCode };
+    return { stdout: result.stdout.trim(), stderr: result.stderr.trim(), exitCode: result.code };
   }
 
   /**
@@ -56,13 +49,22 @@ class WebappLauncher {
     delete env.FZF_DEFAULT_COMMAND;
     const result = await this._runCommand({
       context: { ...context, env },
-      args: [executable, `--filter=${query}`, "--no-extended", "--ignore-case", "--tiebreak=length,index"],
+      args: [
+        executable,
+        `--filter=${query}`,
+        "--no-extended",
+        "--ignore-case",
+        "--tiebreak=length,index",
+      ],
       input: apps.map((app) => app.name).join("\n") + "\n",
     });
     if (result.exitCode === 1)
       throw new ApiError("INVALID_ARGUMENT", `No web app matches: ${query}`);
     if (result.exitCode !== 0)
-      throw new ApiError("COMMAND_FAILED", `Web app name matching failed: ${result.stderr || result.stdout}`);
+      throw new ApiError(
+        "COMMAND_FAILED",
+        `Web app name matching failed: ${result.stderr || result.stdout}`,
+      );
     const selectedName = result.stdout.split("\n")[0];
     const selectedApp = apps.find((app) => app.name === selectedName);
     if (!selectedApp) throw new ApiError("COMMAND_FAILED", "fzf returned an unknown web app name");
@@ -74,28 +76,38 @@ class WebappLauncher {
    * Return undefined outside Hyprland or when no window matches. Session errors fail
    * the request instead of opening a duplicate because the window state is unknown.
    */
-  private async _focusExistingWindow({ context, app }: { context: WebappContext; app: WebappRecord }) {
+  private async _focusExistingWindow({
+    context,
+    app,
+  }: {
+    context: WebappContext;
+    app: WebappRecord;
+  }) {
     if (!context.env.HYPRLAND_INSTANCE_SIGNATURE) return;
     const executable = Bun.which("hyprctl", { PATH: context.env.PATH ?? "" });
     if (!executable)
       throw new ApiError("INVALID_ENVIRONMENT", "Hyprctl is required to focus an existing web app");
     const result = await this._runCommand({ context, args: [executable, "-j", "clients"] });
     if (result.exitCode !== 0)
-      throw new ApiError("COMMAND_FAILED", `Cannot read app windows: ${result.stderr || result.stdout}`);
+      throw new ApiError(
+        "COMMAND_FAILED",
+        `Cannot read app windows: ${result.stderr || result.stdout}`,
+      );
     let windows: ReturnType<typeof webappWindowsSchema.parse>;
     try {
       windows = webappWindowsSchema.parse(JSON.parse(result.stdout));
     } catch {
       throw new ApiError("COMMAND_FAILED", "Hyprctl returned invalid window data");
     }
-    const matchingWindows = windows.filter((window) =>
-      window.mapped !== false && (window.class === app.id || window.initialClass === app.id),
+    const matchingWindows = windows.filter(
+      (window) =>
+        window.mapped !== false && (window.class === app.id || window.initialClass === app.id),
     );
     // Negative or missing history ranks mean the compositor has no focus ordering for that window.
     const focusRank = (rank: number | undefined) =>
       rank !== undefined && rank >= 0 ? rank : Infinity;
-    matchingWindows.sort((left, right) =>
-      focusRank(left.focusHistoryID) - focusRank(right.focusHistoryID),
+    matchingWindows.sort(
+      (left, right) => focusRank(left.focusHistoryID) - focusRank(right.focusHistoryID),
     );
     const window = matchingWindows[0];
     if (!window) return;
@@ -106,7 +118,10 @@ class WebappLauncher {
       args: [executable, "dispatch", `hl.dsp.focus({ window = "address:${window.address}" })`],
     });
     if (focused.exitCode !== 0 || focused.stdout !== "ok")
-      throw new ApiError("COMMAND_FAILED", `Cannot focus app window: ${focused.stderr || focused.stdout}`);
+      throw new ApiError(
+        "COMMAND_FAILED",
+        `Cannot focus app window: ${focused.stderr || focused.stdout}`,
+      );
     return { ...app, action: "focused" as const, pid: window.pid, windowAddress: window.address };
   }
 

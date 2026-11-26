@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
 import { appCatalog } from "../src/modules/apps/catalog.ts";
 import { appContext } from "../src/modules/apps/context.ts";
+import { appSchema } from "../src/modules/apps/schema.ts";
 import { AppFixture } from "./fixtures/app-fixture.ts";
 
 let f: AppFixture;
@@ -26,15 +27,162 @@ const stages = [
 ];
 const options = () => ({ env: f.env, repository: f.repository });
 
+test("disabled app installation skips named and bulk installs before privileges, dependencies, or hooks", async () => {
+  f.app("yay", { name: "yay", source: "local", enabled: false }, stages);
+  f.app(
+    "desktop",
+    {
+      name: "desktop",
+      source: "aur",
+      enabled: false,
+      deps: [{ name: "plugin", source: "pacman" }],
+      exports: [{ source: "config", target: "desktop" }],
+    },
+    stages,
+  );
+  unlinkSync(join(f.bin, "yay"));
+  for (const names of [[], ["desktop"], ["yay"]]) {
+    expect(data(await Luna.apps.install(names, { ...options(), force: true }))).toMatchObject({
+      installed: [],
+      failed: [],
+      completed: true,
+    });
+  }
+  expect(f.commands()).toEqual([]);
+  expect(f.hooks()).toEqual([]);
+  const context = await appContext.resolve(options());
+  expect(existsSync(join(context.env.LUNA_CONFIG_HOME_DIR!, "desktop"))).toBe(false);
+  const manifestPath = join(f.repository, "apps/yay/app.jsonc");
+  const manifest = appSchema.parse(Bun.JSONC.parse(await Bun.file(manifestPath).text()));
+  await Bun.write(manifestPath, JSON.stringify({ ...manifest, enabled: true }));
+  expect(data(await Luna.apps.install(["yay"], options())).installed).toEqual(["yay"]);
+  expect(f.hooks().map((hook) => hook.stage)).toEqual(stages);
+});
+
+test("app installation rejects non-boolean enabled values before commands", async () => {
+  f.app("desktop", { name: "desktop", source: "local", enabled: "false" });
+  expect(await Luna.apps.install([], options())).toMatchObject({
+    succes: false,
+    err: "INVALID_METADATA",
+  });
+  expect(f.commands()).toEqual([]);
+});
+
+test("mixed catalogs install only enabled apps in catalog order", async () => {
+  f.app("first", { name: "first", source: "local", enabled: true }, ["build"]);
+  f.app("disabled", { name: "disabled", source: "pacman", enabled: false }, ["before_install"]);
+  f.app("last", { name: "last", source: "local" }, ["build"]);
+  expect(data(await Luna.apps.install(["last", "disabled", "first"], options())).installed).toEqual(
+    ["first", "last"],
+  );
+  expect(f.hooks().map((hook) => hook.app)).toEqual(["first", "last"]);
+  expect(f.commands()).toEqual([]);
+});
+
+test("installed reports only installed catalog apps in catalog order without running hooks", async () => {
+  f.app("first", { name: "first", source: "local" }, ["build"]);
+  f.app("second", { name: "second", source: "local" }, ["build"]);
+  f.app("last", { name: "last", source: "local" }, ["build"]);
+  expect(data(await Luna.apps.installed([], options()))).toEqual([]);
+  data(await Luna.apps.install(["last", "first"], options()));
+  const hooks = f.hooks().length;
+  expect(data(await Luna.apps.installed([], options()))).toEqual(["first", "last"]);
+  expect(data(await Luna.apps.installed(["last", "second"], options()))).toEqual(["last"]);
+  expect(await Luna.apps.installed(["missing"], options())).toMatchObject({
+    succes: false,
+    err: "INVALID_ARGUMENT",
+  });
+  expect(f.hooks()).toHaveLength(hooks);
+});
+
+test("an enabled AUR app cannot implicitly install a disabled Yay provider", async () => {
+  unlinkSync(join(f.bin, "yay"));
+  f.app("yay", { name: "yay", source: "local", enabled: false }, ["build"]);
+  f.app("desktop", { name: "desktop", source: "aur", enabled: true });
+  expect(await Luna.apps.install(["desktop"], options())).toMatchObject({
+    succes: false,
+    err: "INVALID_ENVIRONMENT",
+    errMessage: expect.stringContaining("its app is disabled"),
+  });
+  expect(f.commands()).toEqual([]);
+  expect(f.hooks()).toEqual([]);
+});
+
+test("self install skips disabled apps while keeping independent setup stages", async () => {
+  unlinkSync(join(f.bin, "yay"));
+  f.browser();
+  f.env.LUNA_TEST_DESKTOP_PACKAGE = "zed";
+  f.app("yay", { name: "yay", source: "local", enabled: false }, ["build"]);
+  f.app("desktop", { name: "desktop", source: "pacman", enabled: false }, ["after_configure"]);
+  f.write(
+    f.repository,
+    "themes/bundled/tokyo-night/theme.jsonc",
+    '{"packages":[{"name":"theme-font","source":"pacman"}]}',
+  );
+  f.write(
+    f.repository,
+    "installs/packages.webapp.jsonc",
+    '[{"name":"Web App","url":"https://example.com"}]',
+  );
+  f.write(f.repository, "installs/defaults.jsonc", '{"application/pdf":"fixture-viewer.desktop"}');
+  const progress: string[] = [];
+  const result = data(
+    await Luna.self.install({
+      ...options(),
+      fromBootstrap: true,
+      git: { name: "Test", email: "test@example.test" },
+      onProgress: (message) => progress.push(message),
+    }),
+  );
+  expect(result).toMatchObject({
+    completed: true,
+    installedApps: [],
+    installedWebapps: ["Web App"],
+  });
+  expect(f.hooks()).toEqual([]);
+  const installed = JSON.parse(readFileSync(f.env.SELF_INSTALLED_JSON!, "utf8"));
+  expect(installed).toContain("zed");
+  expect(installed).toContain("gcc");
+  expect(installed).not.toContain("desktop");
+  expect(installed).toContain("theme-font");
+  expect(f.commands().some((command) => command.name === "yay")).toBe(false);
+  expect(progress).toContain("Installing bundled themes...");
+  expect(progress).toContain("Installing web apps...");
+  expect(progress).toContain("Applying application defaults...");
+  expect(readFileSync(join(f.env.XDG_CONFIG_HOME!, "mimeapps.list"), "utf8")).toContain(
+    "application/pdf=fixture-viewer.desktop;",
+  );
+});
+
+test("theme setup reports its missing prerequisite without installing disabled Yay", async () => {
+  unlinkSync(join(f.bin, "yay"));
+  f.app("yay", { name: "yay", source: "local", enabled: false }, ["build"]);
+  f.write(
+    f.repository,
+    "themes/bundled/tokyo-night/theme.jsonc",
+    '{"packages":[{"name":"aur-font","source":"aur"}]}',
+  );
+  expect(
+    await Luna.self.install({
+      ...options(),
+      fromBootstrap: true,
+      git: { name: "Test", email: "test@example.test" },
+    }),
+  ).toMatchObject({
+    succes: false,
+    err: "INVALID_ENVIRONMENT",
+    errMessage: expect.stringContaining("require yay"),
+  });
+  expect(f.hooks()).toEqual([]);
+  expect(f.commands().some((command) => command.name === "yay")).toBe(false);
+});
+
 test("actual app catalog validates against all package ownership declarations", async () => {
   const repo = resolve(import.meta.dir, "../../..");
-  expect(
-    (
-      await appCatalog.read(
-        await appContext.resolve({ repository: repo, env: { ...f.env, LUNA_ROOT: repo } }),
-      )
-    ).map((app) => app.id),
-  ).toContain("chromium");
+  const catalog = await appCatalog.read(
+    await appContext.resolve({ repository: repo, env: { ...f.env, LUNA_ROOT: repo } }),
+  );
+  expect(catalog.map((app) => app.id)).toContain("chromium");
 });
 
 test("selected apps follow catalog order; dependencies and installation precede configuration", async () => {

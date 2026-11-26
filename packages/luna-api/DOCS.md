@@ -31,6 +31,10 @@ CLI, Git configuration, `after_cli` packages/mise tools, bundled themes and thei
 packages, apps in catalog order, later packages, web apps, then application defaults. Direct installation
 upgrades system packages before installing dependencies.
 
+App installation skips each manifest with `enabled: false` independently.
+Other setup stages still run and report missing prerequisites; disabled apps are
+never enabled automatically. See [app installation control](../../apps/DOCS.md).
+
 Use `git: { name?, email? }` to override global identity values. Otherwise existing
 values, including global include/includeIf files, are retained without new identity
 overrides. `requestGitIdentity(current)` may supply missing values;
@@ -95,7 +99,7 @@ Set changes active preferences without editing the manifest.
 Options accept `repository`, `env`, `configFile`, and `onProgress`. The manifest
 defaults to `installs/defaults.jsonc` in the checkout; relative explicit paths use
 the caller's working directory. `shellsFile` overrides `/etc/shells` when needed.
-Schema validation lives in `src/defaults/schema.ts`.
+Schema validation lives in `src/modules/defaults/schema.ts`.
 
 Keys are `terminal`, `shell`, exact MIME/URI-handler types, or `image/*`, `audio/*`,
 and `video/*`. Desktop choices require an installed `.desktop` ID. Wildcards
@@ -128,7 +132,7 @@ response. Missing dotted keys and an unset current name return null.
 Theme options accept `env`, `configFile`, `libraryDir`, and `wallpaperDir`.
 Install also accepts `name` and `force`; remove accepts `dryRun`; T3 application
 accepts an explicit `userdata` directory. `mode` accepts dark/light/toggle.
-Validation uses the feature-owned Zod schemas in `src/theme/schema.ts`.
+Validation uses the feature-owned Zod schemas in `src/modules/theme/schema.ts`.
 
 See [theme fields and storage](../../themes/DOCS.md). `set`, `mode`, and `toggle`
 publish GTK3 colors, UI/monospace fonts, and control rounding from the selected
@@ -244,7 +248,7 @@ playing media. Install/list/remove work without QML or Quickshell; install/list
 still validate the saved settings to mark the current entry.
 
 Reads parse JSONC with Bun and validate with the feature's Zod schema in
-`src/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
+`src/modules/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
 omitted values use renderer defaults without rewriting source. `get` returns sparse
 saved settings; missing dotted keys return null. Unknown fields are retained.
 See [wallpaper settings and dependencies](../../src/luna-wallpaper/DOCS.md).
@@ -351,6 +355,9 @@ Missing tools/English data, capture, OCR, and clipboard failures return
 | `Luna.apps.uninstall(names, options?)`  | Remove named apps, keeping settings/data by default. Requires at least one name.                                       |
 
 Names match directory IDs or package names; all operations follow catalog order.
+`enabled: false` in an app's `app.jsonc` skips that app in named and bulk installs,
+including its dependencies and hooks. It does not disable explicit configure,
+update, or uninstall commands. Omitted `enabled` defaults to `true`.
 Install/update/uninstall return `{ installed | updated | uninstalled, failed, completed, logDirectory }`
 with the corresponding result key. Configure returns selected IDs.
 Shared options: `repository`, `env`, `onProgress`, `closeApps` (default true).
@@ -530,6 +537,21 @@ are merged only in memory. Unknown source fields and comments are left intact. S
 
 ## Workspace bar
 
-`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, and
-`focus` control it. `Luna.bar` provides the same operations with `{repository?, env?}`.
+`luna bar` starts the workspace bar; `start`, `stop`, `restart`, `status`, `focus`,
+and `toggle` control it. `Luna.bar` provides the same operations with
+`{repository?, configFile?, env?}`, plus `get` and `getConfigFile` for settings.
 See [Luna Bar controls and checks](../../src/luna-bar/DOCS.md).
+
+## Polkit
+
+`Luna.polkit.start/stop/restart/status(options?)` control the desktop authentication
+agent and return `{ running, status, shellDirectory, configFile }`. Status is
+`running`, `unavailable` (registration pending or rejected), or `stopped`.
+`start` keeps a registered instance; `restart` validates settings and QML before
+stopping it. Authentication stays in the native backend and is never exposed over IPC.
+
+`get(key?, options?)` reads sparse JSONC, creating `{}` when missing; missing keys
+return null. `getConfigFile(options?)` returns its path. Options accept `env`,
+`repository` for source QML, and `configFile` (before `LUNA_POLKIT_CONFIG` and
+`$LUNA_CONFIG_HOME_DIR/polkit.jsonc`). Settings are validated with Zod and merged
+in memory. See [Polkit settings and startup](../../src/luna-polkit/DOCS.md).

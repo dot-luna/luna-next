@@ -1,8 +1,7 @@
 import { chmod } from "node:fs/promises";
-import { buildExtension } from "../../../packages/better-whatsapp-web/src/build.ts";
 import { buildBrowserLinks } from "../../../packages/luna-browser-links/src/build.ts";
 import { browserLinkConfigSchema } from "../../../packages/luna-api/src/modules/webapp/schema.ts";
-import { HOST } from "../../../packages/luna-browser-links/src/rules.ts";
+import { HOST } from "../../../packages/luna-browser-links/src/host.ts";
 
 function idForPath(path: string) {
   return new Bun.CryptoHasher("sha256")
@@ -28,14 +27,12 @@ export async function prepareLocalExtensions({
   const home = Bun.env.HOME!;
   const data =
     Bun.env.LUNA_DATA_HOME_DIR || `${Bun.env.XDG_DATA_HOME || `${home}/.local/share`}/luna`;
-  const items = ["better-whatsapp-web", "browser-links"].map((name) => {
+  const items = ["browser-links"].map((name) => {
     const directory = `${profileRoot}/Luna/Luna/extensions/${name}`;
     return { name, source: `${stage}/${name}`, directory, id: idForPath(directory) };
   });
-  const whatsapp = items[0]!;
-  const links = items[1]!;
-  await buildExtension(whatsapp.source);
-  await buildBrowserLinks(links.source, links.id);
+  const links = items[0]!;
+  await buildBrowserLinks(links.source);
   const config = browserLinkConfigSchema.parse({
     dataDir: `${data}/webapps`,
     profileRoot,

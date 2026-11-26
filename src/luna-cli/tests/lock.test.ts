@@ -61,6 +61,7 @@ beforeEach(() => {
   write(configFile, '// Keep sparse settings\n{"idle_seconds":180,"dpms_seconds":20,}\n');
   write(join(env.XDG_CONFIG_HOME!, "luna/lock/shell.qml"), "import Quickshell\nShellRoot {}");
   write(join(repository, "src/luna-lock/src/shell/shell.qml"), "import Quickshell\nShellRoot {}");
+  write(join(repository, "src/luna-lock/src/shell/preview.qml"), "// isolated preview");
   write(
     join(env.PATH!, "qs"),
     `#!${process.execPath}\n` +
@@ -84,7 +85,7 @@ beforeEach(() => {
       `  writeFileSync(state, "idle");\n` +
       `  writeFileSync(snapshot, process.env.LUNA_LOCK_SETTINGS);\n` +
       `  writeFileSync(process.env.LUNA_LOCK_TEST_COMMAND, process.env.LUNA_LOCK_COMMAND);\n` +
-      `} else process.exit(9);\n`,
+      `} else if (args.at(-1).endsWith("/preview.qml")) process.exit(0); else process.exit(9);\n`,
     true,
   );
   write(
@@ -198,6 +199,7 @@ test("lock rejects malformed arguments and invalid durations before touching set
     ["set-dpms", "wat"],
     ["display", "maybe"],
     ["unlock"],
+    ["configure", "{bad"],
   ]) {
     const result = await cli([...args, "--json"]);
     expect(result.exitCode, result.stdout + result.stderr).toBe(2);
@@ -240,4 +242,22 @@ test("lock routes display events through the API, rechecks idle intent, and expo
   expect(help.stdout).not.toContain("lock-idle");
   expect(help.stdout).not.toContain("display <state>");
   expect(help.stdout).not.toContain("unlock");
+});
+
+test("lock configure patches appearance sources and preview does not start a secure session", async () => {
+  const patch = await cli([
+    "configure",
+    '{"actions":{"shutdown_delay":0},"screen":{"path":"./custom"}}',
+    "--json",
+  ]);
+  expect(patch.exitCode, patch.stdout + patch.stderr).toBe(0);
+  expect(JSON.parse(patch.stdout)).toMatchObject({
+    succes: true,
+    data: { idle_seconds: 180, actions: { shutdown_delay: 0 }, screen: { path: "./custom" } },
+  });
+  const result = await cli(["--install-dir", repository, "preview"]);
+  expect(result.exitCode, result.stdout + result.stderr).toBe(0);
+  expect(result.stdout).toBe("Preview closed.\n");
+  expect(commands().some((args) => args.includes("--daemonize"))).toBe(false);
+  expect(commands().at(-1)!.at(-1)).toBe(join(repository, "src/luna-lock/src/shell/preview.qml"));
 });

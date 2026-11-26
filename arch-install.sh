@@ -3,7 +3,7 @@
 #
 # Boot the official x86_64 Arch ISO in UEFI mode and connect to the internet.
 # Run as root from a terminal:
-#   curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/dev/arch-install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dot-luna/luna-next/master/arch-install.sh | bash
 # Or download this file, inspect it, then run:
 #   bash arch-install.sh [--disk /dev/nvme0n1] [--username jrtilak]
 #
@@ -33,13 +33,40 @@
 # Reference: github.com/archlinux/archinstall/tree/4.5 and Arch's Installation_guide.
 # Compared archfi and Omarchy ISO for coverage; their code is not copied.
 # Checks: bash -n arch-install.sh
-#         python3 -m unittest discover -s __tests__/arch_install -v
+#         bun test __tests__/arch-install.test.ts
 set -euo pipefail
 set +x
 
 fail() { printf 'arch-install: %s\n' "$*" >&2; exit 1; }
-inventory() {
-    lsblk --tree --json --bytes --paths --output PATH,TYPE,SIZE,MODEL,SERIAL,WWN,RO,MAJ:MIN,LOG-SEC,MOUNTPOINTS
+# Keep lsblk output plain: include every child when checking mounts and mappings.
+disk_identity() { lsblk --nodeps --bytes --raw --noheadings --output SIZE,LOG-SEC,MAJ:MIN,SERIAL,WWN,MODEL "$disk"; }
+check_disk() {
+    local types mounts readonly type
+    [[ $disk =~ ^/dev/[a-zA-Z0-9_-]+$ ]] || fail 'Enter a whole-disk path such as /dev/nvme0n1.'
+    [[ $(lsblk --nodeps --raw --noheadings --output TYPE "$disk") == disk ]] || fail 'Select a whole disk.'
+    readonly=$(lsblk --nodeps --raw --noheadings --output RO "$disk")
+    [[ $readonly == 0 ]] || fail 'The disk is read-only.'
+    types=$(lsblk --list --noheadings --output TYPE "$disk")
+    mounts=$(lsblk --list --noheadings --output MOUNTPOINTS "$disk")
+    [[ ! $mounts =~ [^[:space:]] ]] || fail 'The disk has mounted partitions or active swap.'
+    while read -r type; do
+        [[ $type == disk || $type == part ]] || fail 'The disk has active device mappings.'
+    done <<< "$types"
+    identity=$(disk_identity)
+    read -r bytes sector _ <<< "$identity"
+    [[ $bytes =~ ^[0-9]+$ && $sector =~ ^(512|4096)$ ]] || fail 'Unsupported disk geometry.'
+    (( bytes >= 16 * 1024 * 1024 * 1024 )) || fail 'The disk must be at least 16 GiB.'
+}
+
+verify_target() {
+    local mountpoint partition
+    [[ $(disk_identity) == "$selected_identity" ]] || fail 'Disk identity changed.'
+    for mountpoint in "$target" "$target/boot"; do
+        partition=$(findmnt --noheadings --raw --output SOURCE --mountpoint "$mountpoint")
+        [[ $(lsblk --nodeps --raw --noheadings --output TYPE "$partition") == part &&
+           $(lsblk --nodeps --raw --noheadings --paths --output PKNAME "$partition") == "$disk" ]] ||
+            fail 'archinstall did not mount partitions from the selected disk.'
+    done
 }
 
 preflight() {
@@ -47,7 +74,7 @@ preflight() {
     [[ $(uname -m) == x86_64 && -d /sys/firmware/efi/efivars ]] || fail 'Boot the x86_64 ISO in UEFI mode.'
     [[ -t 1 && -r /dev/tty ]] || fail 'An interactive terminal is required.'
     local command version
-    for command in archinstall python3 lsblk arch-chroot reflector openssl flock findmnt getent; do
+    for command in archinstall lsblk arch-chroot reflector openssl flock findmnt getent; do
         command -v "$command" >/dev/null || fail "Missing $command; use a current Arch ISO."
     done
     version=$(archinstall --version)
@@ -87,12 +114,12 @@ ask_yes_no() {
 }
 
 collect_details() {
-    inventory > "$staging/devices.json"
-    native_config list "$staging/devices.json"
+    lsblk --paths --output NAME,SIZE,MODEL,TYPE,MOUNTPOINTS
     if [[ -z $disk ]]; then
         IFS= read -r -u 3 -p 'Whole disk to erase (for example /dev/nvme0n1): ' disk
     fi
-    native_config select "$disk" "$staging/devices.json" > "$staging/disk.json"
+    check_disk
+    selected_identity=$identity
     if [[ -z $username ]]; then
         IFS= read -r -u 3 -p 'Username [jrtilak]: ' username
         username=${username:-jrtilak}
@@ -105,7 +132,7 @@ collect_details() {
     if ask_yes_no 'Allow this user to use sudo? [Y/n]: ' yes; then sudo_access=yes; fi
     password_hash "$username" "$staging/user.hash"
     if [[ $sudo_access == no ]]; then password_hash root "$staging/root.hash"; fi
-    (umask 077; native_config configure "$staging" "$username" "$sudo_access")
+    write_preset
 }
 
 prepare_mirrors() {
@@ -137,13 +164,11 @@ perform_installation() {
     local args=(--config "$staging/config.json" --creds "$staging/credentials.json"
         --mountpoint "$target" --silent --skip-version-check)
     archinstall "${args[@]}" --dry-run 2>&1 | tee -a "$log"
-    inventory > "$staging/devices.json"
-    native_config select "$disk" "$staging/devices.json" > "$staging/current-disk.json"
-    cmp -s "$staging/disk.json" "$staging/current-disk.json" || fail 'Disk identity changed; refusing to erase it.'
+    check_disk
+    [[ $identity == "$selected_identity" ]] || fail 'Disk identity changed; refusing to erase it.'
     install -m 644 "$staging/mirrorlist" /etc/pacman.d/mirrorlist
     archinstall "${args[@]}" 2>&1 | tee -a "$log"
-    inventory > "$staging/devices.json"
-    native_config verify "$staging/disk.json" "$target" "$staging/devices.json"
+    verify_target
     # Postflight must pass before copying anything into a target path.
     configure_target 2>&1 | tee -a "$log"
 }
@@ -177,121 +202,53 @@ configure_target() {
     install -m600 "$staging/config.json" "$target/var/log/luna-arch-install/preset.json"
 }
 
-# Python is supplied by archinstall; use it only for native JSON, not shell interpolation.
-native_config() {
-    python3 - "$@" <<'PY'
-"""Translate lsblk and the preset into archinstall 4.5's native JSON format."""
-
-import json
-from pathlib import Path
-import sys
-import uuid
-
-MIB = 1024 ** 2
-
-
-def unused_disk(disk):
-    """Reject live media, mounted partitions, swap, and active device mappings."""
-    def unused(node):
-        return (node["type"] in ("disk", "part")
-                and not any(node.get("mountpoints", []))
-                and all(unused(child) for child in node.get("children", [])))
-
-    return (disk["type"] == "disk" and not disk["ro"]
-            and disk["size"] >= 16 * 1024 ** 3
-            and disk["log-sec"] in (512, 4096) and unused(disk))
-
-
-def selected_disk(devices, path):
-    matches = [disk for disk in devices["blockdevices"]
-               if disk["path"] == path and unused_disk(disk)]
-    if len(matches) != 1:
-        raise ValueError("Select an unused whole disk of at least 16 GiB")
-    # Rechecked immediately before archinstall, including hotplug identity.
-    return {key: matches[0].get(key) for key in (
-        "path", "size", "log-sec", "maj:min", "serial", "wwn", "model")}
-
-
-def configuration(disk):
-    def size(value):
-        return {"value": value, "unit": "MiB",
-                "sector_size": {"value": disk["log-sec"], "unit": "B"}}
-
-    def partition(start, length, filesystem, mountpoint, flags):
-        return {"obj_id": str(uuid.uuid4()), "status": "create", "type": "primary",
-                "dev_path": None, "fs_type": filesystem, "mountpoint": mountpoint,
-                "mount_options": [], "flags": flags, "btrfs": [],
-                "start": size(start), "size": size(length)}
-
-    return {
-        "hostname": "luna", "timezone": "Asia/Kathmandu", "ntp": True,
-        "locale_config": {"kb_layout": "us", "sys_lang": "en_US", "sys_enc": "UTF-8"},
-        "kernels": ["linux"], "firmware_optdeps": ["sof-firmware"],
-        "bootloader_config": {"bootloader": "Systemd-boot", "uki": False, "removable": False},
-        "network_config": {"type": "nm"},
-        "swap": {"enabled": True, "algorithm": "zstd"},
-        "pacman_config": {"parallel_downloads": 5, "color": True},
-        "app_config": {"audio_config": {"audio": "pipewire"}},
-        "packages": ["hyprland", "kitty", "sddm", "xorg-server", "mesa",
-                     "qt6-declarative", "qt6-svg", "noto-fonts", "ttf-dejavu",
-                     "xdg-desktop-portal-hyprland", "xdg-desktop-portal-gtk",
-                     "git", "curl", "nano", "reflector"],
-        "disk_config": {
-            "config_type": "default_layout",
-            "device_modifications": [{"device": disk["path"], "wipe": True, "partitions": [
-                partition(1, 1024, "fat32", "/boot", ["boot", "esp"]),
-                # Leave space at both ends for GPT on 512-byte and 4K disks.
-                partition(1025, disk["size"] // MIB - 1026, "ext4", "/", []),
-            ]}],
-        },
-    }
-
-
-def verify_mounts(devices, disk, target):
-    matches = [item for item in devices["blockdevices"] if item["path"] == disk["path"]]
-    if len(matches) != 1 or any(matches[0].get(key) != value for key, value in disk.items()):
-        raise ValueError("The selected disk changed during installation")
-    partitions = matches[0].get("children", [])
-    for mountpoint in (target, target + "/boot"):
-        if not any(part["type"] == "part" and mountpoint in part.get("mountpoints", [])
-                   for part in partitions):
-            raise ValueError("archinstall did not mount the expected target partitions")
-
-
-def main():
-    action, *args = sys.argv[1:]
-    if action == "list":
-        for disk in json.loads(Path(args[0]).read_text())["blockdevices"]:
-            if unused_disk(disk):
-                print(f'{disk["path"]}  {disk["size"] / 1024**3:.1f} GiB  '
-                      f'{disk.get("model", "")}  {disk.get("serial", "")}')
-    elif action == "select":
-        print(json.dumps(selected_disk(json.loads(Path(args[1]).read_text()), args[0])))
-    elif action == "configure":
-        staging, username, sudo = Path(args[0]), args[1], args[2] == "yes"
-        disk = json.loads((staging / "disk.json").read_text())
-        credentials = {"users": [{"username": username, "sudo": sudo, "groups": [],
-                                  "enc_password": (staging / "user.hash").read_text().strip()}]}
-        if not sudo:
-            credentials["root_enc_password"] = (staging / "root.hash").read_text().strip()
-        (staging / "config.json").write_text(json.dumps(configuration(disk)))
-        (staging / "credentials.json").write_text(json.dumps(credentials))
-    elif action == "verify":
-        verify_mounts(json.loads(Path(args[2]).read_text()), json.loads(Path(args[0]).read_text()), args[1])
-    else:
-        raise ValueError("Unknown configuration action")
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except (ValueError, KeyError, OSError) as error:
-        sys.exit(f"arch-install: {error}")
-PY
+# This is the complete preset. Only validated disk geometry and credentials vary.
+write_preset() {
+    local root_size=$(( bytes / 1024 / 1024 - 1026 )) user_hash root_hash sudo=false
+    # Reserve one MiB at the end for backup GPT, including on 4K-sector disks.
+    cat > "$staging/config.json" <<JSON
+{
+  "hostname": "luna", "timezone": "Asia/Kathmandu", "ntp": true,
+  "locale_config": {"kb_layout": "us", "sys_lang": "en_US", "sys_enc": "UTF-8"},
+  "kernels": ["linux"], "firmware_optdeps": ["sof-firmware"],
+  "bootloader_config": {"bootloader": "Systemd-boot", "uki": false, "removable": false},
+  "network_config": {"type": "nm"},
+  "swap": {"enabled": true, "algorithm": "zstd"},
+  "pacman_config": {"parallel_downloads": 5, "color": true},
+  "app_config": {"audio_config": {"audio": "pipewire"}},
+  "packages": ["hyprland", "kitty", "sddm", "xorg-server", "mesa", "qt6-declarative",
+    "qt6-svg", "noto-fonts", "ttf-dejavu", "xdg-desktop-portal-hyprland",
+    "xdg-desktop-portal-gtk", "git", "curl", "nano", "reflector"],
+  "disk_config": {"config_type": "default_layout", "device_modifications": [{
+    "device": "$disk", "wipe": true, "partitions": [
+      {"obj_id": "ca49fdad-bab8-4bb8-b11e-000000000001", "status": "create", "type": "primary",
+       "dev_path": null, "fs_type": "fat32", "mountpoint": "/boot", "mount_options": [], "flags": ["boot", "esp"], "btrfs": [],
+       "start": {"value": 1, "unit": "MiB", "sector_size": {"value": $sector, "unit": "B"}},
+       "size": {"value": 1024, "unit": "MiB", "sector_size": {"value": $sector, "unit": "B"}}},
+      {"obj_id": "ca49fdad-bab8-4bb8-b11e-000000000002", "status": "create", "type": "primary",
+       "dev_path": null, "fs_type": "ext4", "mountpoint": "/", "mount_options": [], "flags": [], "btrfs": [],
+       "start": {"value": 1025, "unit": "MiB", "sector_size": {"value": $sector, "unit": "B"}},
+       "size": {"value": $root_size, "unit": "MiB", "sector_size": {"value": $sector, "unit": "B"}}}
+    ]
+  }]}
+}
+JSON
+    user_hash=$(< "$staging/user.hash")
+    [[ $user_hash =~ ^\$6\$[a-zA-Z0-9./$]+$ ]] || fail 'Could not hash the login password.'
+    [[ $sudo_access == no ]] || sudo=true
+    root_hash=
+    if [[ $sudo_access == no ]]; then
+        root_hash=$(< "$staging/root.hash")
+        [[ $root_hash =~ ^\$6\$[a-zA-Z0-9./$]+$ ]] || fail 'Could not hash the root password.'
+        root_hash=', "root_enc_password": "'"$root_hash"'"'
+    fi
+    # Usernames and hashes cannot contain JSON quotes or escapes; plaintext stays out of JSON.
+    (umask 077; printf '{"users":[{"username":"%s","sudo":%s,"groups":[],"enc_password":"%s"}]%s}\n' \
+        "$username" "$sudo" "$user_hash" "$root_hash" > "$staging/credentials.json")
 }
 
 main() {
-    local disk= username= sudo_access target=/mnt/luna
+    local disk= username= sudo_access identity selected_identity bytes sector target=/mnt/luna
     # EXIT runs after main returns, so cleanup state must outlive its local scope.
     staging= log=
     while (( $# )); do

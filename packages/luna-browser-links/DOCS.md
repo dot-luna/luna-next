@@ -1,48 +1,46 @@
 # Routing
 
-The Luna profile routes top-level HTTP(S) GET navigations to the system default
-browser, including normal links, new tabs, page-script popups and typed URLs.
-Installed Luna web-app origins stay in Chromium; scheme, host and port must match.
-Resources and frames inside those apps are unaffected. Existing page history is
-restored after opening a same-tab external link; a new routing tab closes itself.
+Links clicked in an installed Luna web app open in the system default browser
+unless the destination belongs to an installed app or an allowed sign-in origin.
+App membership matches the exact scheme, host and port, including when that app
+is visited in an ordinary Luna-profile tab. Other pages and profiles stay untouched.
+Mouse, middle-click, Ctrl/Meta-click, Shift-click, new-tab links and keyboard
+activation are supported. Successful handoffs leave the app in place without
+opening a Chromium tab or window.
 
-The local native helper reads installed web-app metadata and uses `gio open` with
-the URL as one literal argument. It validates HTTP(S), rejects credentials, and
-refuses Chromium/Luna web-app desktop IDs as default handlers to avoid routing loops.
-Choose another default browser before enabling this extension. A custom desktop
-wrapper must also launch outside Luna's profile.
+The native helper rechecks installed apps before each handoff, validates HTTP(S),
+rejects credentials, and invokes `gio open` with one literal URL argument. It refuses
+Chromium/Luna web-app default handlers to avoid loops. Choose another default browser;
+custom desktop wrappers must also launch outside Luna's profile.
 
-Failed handoffs show an error with Retry. A success means the desktop opener
-accepted the URL, not that the destination finished loading. The helper does not
-read messages or send data to a service.
+Failed handoffs open a separate Retry tab. Success means the desktop opener accepted the URL,
+not that the destination loaded. The helper does not read messages or send data
+to a service. If app discovery fails, links retain Chromium's normal behavior.
 
 # Setup
 
-`luna configure chromium` builds both local extensions and the native helper, then
-installs them only in the Luna profile. `luna self update` from v0.0.3 runs the same
-setup through the v0.0.4 migration. Bun, GIO (glib2), and xdg-utils are included in
-Luna setup. Custom Chromium user-data directories are supported.
+Run `luna configure chromium` to build and install the extension and native helper
+in the Luna profile. Configuration closes Chromium and removes Better WhatsApp Web.
+Custom Chromium user-data directories are supported.
 
 Additional sign-in origins go in `browserLinks.extraOrigins` in
 [`apps/chromium/config/settings.jsonc`](../../apps/chromium/config/settings.jsonc),
 then rerun configuration. Google Accounts is included for YouTube sign-in.
-Other external sign-in providers need their origins listed or will open in the
-default browser, where that sign-in cannot establish the app's Chromium session.
+These origins remain in Chromium but do not become sources of external-link routing.
 
-New web apps are recognized when first opened. Removed origins stop being allowed
-after Chromium restarts or the next external handoff refreshes the rules.
-Apps stored in a custom `--data-dir` need their origins added explicitly.
+App membership is read when each page loads. Reload an already-open page after
+installing a web app. The helper checks membership again before opening links from
+removed apps. Apps in a custom `--data-dir` are not recognized by this profile's helper.
 
 # Limits
 
-- This is profile-wide, not a setting for the whole Chromium installation.
-- POST navigations stay in Chromium because a request body cannot be handed to a
-  different browser. `mailto:`, custom schemes, local files and downloads generated
-  as blobs retain the browser's normal handling. External GET download links go to
-  the default browser.
-- Apps with a service worker may handle a navigation before Chromium's network
-  rules see it. Site-specific behavior still needs testing against live accounts.
-- It does not migrate existing tabs or cookies into another browser.
+- Typed/pasted URLs, bookmarks, manually opened tabs, page-script navigation,
+  context-menu commands, forms, downloads, named-frame links and links inside
+  embedded frames retain Chromium's normal behavior.
+- Only HTTP(S) anchor links are routed. Custom schemes and blob URLs stay local.
+- Links clicked before app discovery finishes stay in Chromium. Pages with custom
+  click handlers may need testing against live accounts.
+- Existing tabs and cookies are not migrated to another browser.
 
 # Checks
 
@@ -53,6 +51,5 @@ bun test packages/luna-browser-links/tests packages/luna-api/tests/browser-links
 bun test __tests__/apps/chromium/setup.test.ts
 ```
 
-The standalone build produces the browser files and Bun helper in `dist`. Use
-Chromium configuration for installation; it registers the native host and builds
-the routing rules for the installed extension's identity.
+The standalone build produces browser files and the Bun helper in `dist`.
+Use Chromium configuration to install them and register the native host.

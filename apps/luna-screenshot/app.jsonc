@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "luna-screenshot",
   "source": "local",
   "deps": [

@@ -1,6 +1,6 @@
 import { isAbsolute } from "pathe";
 import { z } from "zod";
-import { packageRecipeSchema } from "@/self/install/packages.ts";
+import { packageRecipeSchema } from "@/modules/self/schema.ts";
 
 // Commands and paths are displayed or passed to native tools; control bytes are invalid.
 // oxlint-disable-next-line no-control-regex
@@ -18,6 +18,7 @@ const hooks = z.array(relativePathSchema);
 export const appSchema = packageRecipeSchema
   .extend({
     name: appNameSchema,
+    enabled: z.boolean().optional(),
     source: z.enum(["pacman", "aur", "mise", "git", "local"]),
     version: z.string().min(1).regex(printable).nullable().optional(),
     url: z.string().min(1).regex(printable).nullable().optional(),

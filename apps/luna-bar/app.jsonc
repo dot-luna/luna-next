@@ -1,12 +1,32 @@
 {
+  "enabled": true,
   "name": "luna-bar",
   "source": "local",
-  "deps": [{ "name": "quickshell", "source": "pacman", "purpose": "Render Luna's workspace bar" }],
+  "deps": [
+    { "name": "quickshell", "source": "pacman", "purpose": "Render Luna's bar" },
+    { "name": "brightnessctl", "source": "pacman", "purpose": "Adjust display brightness" },
+    {
+      "name": "libpulse",
+      "source": "pacman",
+      "purpose": "Move active audio streams between devices",
+    },
+    {
+      "name": "blueman",
+      "source": "pacman",
+      "purpose": "Pair Bluetooth devices with PIN and confirmation prompts",
+    },
+  ],
   "hooks": {
     "before_uninstall": ["scripts/stop.ts"],
     "before_configure": ["scripts/configure.ts"],
     "after_configure": ["scripts/reload.ts"],
   },
-  "exports": [{ "source": "generated/shell/", "target": "bar/" }],
-  "cleanup": { "uninstall": [["$LUNA_CONFIG_HOME_DIR/bar"]] },
+  "exports": [
+    { "source": "generated/shell/", "target": "bar/" },
+    { "source": "config/bar.jsonc", "target": "bar.jsonc" },
+  ],
+  "cleanup": {
+    "purge": [["$LUNA_BAR_CONFIG", "$LUNA_CONFIG_HOME_DIR/bar.jsonc"]],
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/bar"]],
+  },
 }

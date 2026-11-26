@@ -22,4 +22,8 @@ async function route() {
 retry.addEventListener("click", () => {
   void route();
 });
-void route();
+const initialError = new URL(location.href).searchParams.get("error");
+if (initialError) {
+  status.textContent = initialError;
+  retry.hidden = false;
+} else void route();

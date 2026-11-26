@@ -13,8 +13,13 @@ import { dirname, join, relative } from "pathe";
 import { ApiError } from "./response.ts";
 import { metadata } from "./files.ts";
 import { canonicalPath, overlaps, ordinaryParents } from "./paths.ts";
-import type { InstallContext } from "../self/install/command.ts";
+import type { InstallContext } from "@/modules/self/install/command.ts";
 
+/**
+ * Copy regular files and directories, preserving modes. Every resolved source must stay
+ * beneath `root`; directory symlinks are rejected. `exclude` entries are relative to
+ * `excludeRoot`, and a trailing `/` is optional.
+ */
 export async function copyTree(
   source: string,
   destination: string,
