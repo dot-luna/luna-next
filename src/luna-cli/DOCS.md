@@ -346,3 +346,10 @@ See [app behavior](../../apps/DOCS.md) and [web-app options](../../packages/luna
 and `toggle` control it. `Luna.bar` provides the same operations with
 `{repository?, configFile?, env?}`, plus `get` and `getConfigFile` for settings.
 See [Luna Bar controls and checks](../luna-bar/DOCS.md).
+
+## Polkit
+
+`luna polkit start|stop|restart|status` controls the desktop authentication agent.
+`get [key]` reads source settings, and `get-config-file` prints their path.
+Use `--config <file>` for a JSONC path or `--install-dir <checkout>` for source QML.
+Luna's Hyprland starts the agent at login. See [setup and settings](../luna-polkit/DOCS.md).

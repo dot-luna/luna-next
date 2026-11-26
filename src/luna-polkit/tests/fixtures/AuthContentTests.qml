@@ -9,7 +9,7 @@ TestCase {
     name: "AuthenticationContent"
     visible: true
 
-    readonly property var theme: JSON.parse(Quickshell.env("LUNA_NEXT_POLKIT_THEME"))
+    readonly property var theme: JSON.parse(Quickshell.env("LUNA_POLKIT_THEME"))
     property var flow
     property var card
     property var input
@@ -25,7 +25,7 @@ TestCase {
         // QObject properties provide the same change notifications as native flows.
         QtObject {
             property string message: "Authentication is needed to change a setting."
-            property string actionId: "org.example.lunanext.test"
+            property string actionId: "org.example.luna.test"
             property var identities: [
                 {string: "alice", displayName: "Alice", isGroup: false, id: 1000},
                 {string: "root", displayName: "Administrator", isGroup: false, id: 0}
@@ -64,6 +64,18 @@ TestCase {
     }
 
     Component {
+        id: retentionComponent
+        QtObject {
+            property var flow
+            property bool available: true
+            property int minutes: 5
+            property bool remember: false
+            property int changes: 0
+            function setRemember(value) { remember = value; changes++; }
+        }
+    }
+
+    Component {
         id: contentComponent
 
         Polkit.AuthContent {
@@ -93,12 +105,17 @@ TestCase {
     }
 
     function cleanupTestCase() {
-        console.log("LUNA_NEXT_POLKIT_TEST_RESULT " + JSON.stringify({
+        console.log("LUNA_POLKIT_TEST_RESULT " + JSON.stringify({
             passed: qtest_results.passCount,
             failed: qtest_results.failCount,
             skipped: qtest_results.skipCount,
             failedTests: failedTests
         }));
+    }
+
+    function test_configured_width() {
+        card.settings = { width: 520, dim_opacity: 0.3 };
+        compare(card.implicitWidth, 520);
     }
 
     function typeSecret() {
@@ -455,6 +472,58 @@ TestCase {
         compare(flow.cancellations, 1);
         compare(input.text, "");
         compare(flow.responses.length, 1);
+    }
+
+    function test_remember_is_hidden_without_backend_support() {
+        const remember = findChild(card, "rememberChoice");
+        compare(remember.visible, false);
+        compare(remember.enabled, false);
+        card.retention = createTemporaryObject(retentionComponent, tests, {flow: flow, available: false});
+        compare(remember.visible, false);
+        verifyFocusCycle([input, cancelButton, authenticateButton, identitySelector]);
+    }
+
+    function test_remember_uses_backend_duration_and_mouse_toggle() {
+        const backend = createTemporaryObject(retentionComponent, tests, {flow: flow, minutes: 7});
+        card.retention = backend;
+        const remember = findChild(card, "rememberChoice");
+        compare(remember.visible, true);
+        compare(remember.text, "Remember for 7 minutes");
+        mouseClick(remember, remember.width / 2, remember.height / 2);
+        compare(backend.remember, true);
+        compare(backend.changes, 1);
+        compare(flow.responses.length, 0);
+        backend.remember = false;
+        compare(remember.checked, false);
+    }
+
+    function test_remember_keyboard_toggle_enter_and_escape() {
+        const backend = createTemporaryObject(retentionComponent, tests, {flow: flow});
+        card.retention = backend;
+        const remember = findChild(card, "rememberChoice");
+        verifyFocusCycle([input, remember, cancelButton, authenticateButton, identitySelector]);
+        remember.forceActiveFocus();
+        keyClick(Qt.Key_Space);
+        compare(backend.remember, true);
+        input.text = "test response";
+        keyClick(Qt.Key_Return);
+        compare(flow.responses.length, 1);
+        compare(input.text, "");
+        compare(remember.enabled, false);
+        flow.isResponseRequired = true;
+        remember.forceActiveFocus();
+        keyClick(Qt.Key_Escape);
+        compare(flow.cancellations, 1);
+        compare(flow.responses.length, 1);
+    }
+
+    function test_remember_cannot_leak_to_another_request() {
+        card.retention = createTemporaryObject(retentionComponent, tests, {flow: flow, remember: true});
+        const remember = findChild(card, "rememberChoice");
+        compare(remember.checked, true);
+        card.flow = createTemporaryObject(flowComponent, tests);
+        compare(remember.visible, false);
+        compare(remember.checked, false);
     }
 
     function test_keyboard_tab_traverses_accounts_and_actions() {

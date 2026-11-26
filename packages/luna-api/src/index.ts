@@ -1,3 +1,4 @@
+import { polkit } from "./modules/polkit/index.ts";
 import { info } from "./modules/info/index.ts";
 import { self } from "./modules/self/index.ts";
 import { theme } from "./modules/theme/index.ts";
@@ -20,6 +21,7 @@ export type { BarOptions, BarState } from "./modules/bar/context.ts";
 export type { BarSettings } from "./modules/bar/schema.ts";
 
 export const Luna = {
+  polkit,
   bar,
   info,
   self,
@@ -90,3 +92,6 @@ export type { AppInstallResult, InstallFailure } from "./modules/self/install/re
 export type { NotifyOptions, NotifyState } from "./modules/notify/context.ts";
 
 export type { NotifySettings } from "./modules/notify/schema.ts";
+
+export type { PolkitOptions, PolkitState } from "./modules/polkit/context.ts";
+export type { PolkitSettings } from "./modules/polkit/schema.ts";

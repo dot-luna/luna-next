@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "name": "luna-polkit",
+  "source": "local",
+  "alias": [["polkit", ["luna", "polkit"]]],
+  "deps": [
+    { "name": "quickshell", "source": "pacman", "purpose": "Show Luna authentication prompts" },
+    { "name": "polkit", "source": "pacman", "purpose": "Authorize desktop actions" },
+  ],
+  "hooks": {
+    "before_uninstall": ["scripts/stop.ts"],
+    "before_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/reload.ts"],
+  },
+  "exports": [
+    { "source": "generated/shell/", "target": "polkit/" },
+    { "source": "config/polkit.jsonc", "target": "polkit.jsonc" },
+  ],
+  "cleanup": {
+    "purge": [["$LUNA_POLKIT_CONFIG", "$LUNA_CONFIG_HOME_DIR/polkit.jsonc"]],
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/polkit"]],
+  },
+}

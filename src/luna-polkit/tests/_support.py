@@ -51,11 +51,12 @@ def isolated_environment(root):
                        XDG_CACHE_HOME=str(root / "cache"),
                        XDG_DATA_HOME=str(root / "data"),
                        XDG_STATE_HOME=str(root / "state"),
-                       LUNA_NEXT_POLKIT_THEME=json.dumps(THEME), QS_NO_RELOAD_POPUP="1",
-                       DBUS_SYSTEM_BUS_ADDRESS="unix:path=/nonexistent-luna-next-polkit-system-bus",
-                       DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent-luna-next-polkit-session-bus")
+                       LUNA_POLKIT_SETTINGS=json.dumps({"width":420,"dim_opacity":0.5}),
+                       LUNA_POLKIT_THEME=json.dumps(THEME), QS_NO_RELOAD_POPUP="1",
+                       DBUS_SYSTEM_BUS_ADDRESS="unix:path=/nonexistent-luna-polkit-system-bus",
+                       DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent-luna-polkit-session-bus")
     for name in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "QML_IMPORT_PATH",
-                 "QML2_IMPORT_PATH", "QT_LOGGING_RULES", "LUNA_NEXT_POLKIT_VALIDATE"):
+                 "QML2_IMPORT_PATH", "QT_LOGGING_RULES", "LUNA_POLKIT_VALIDATE"):
         environment.pop(name, None)
     return environment
 

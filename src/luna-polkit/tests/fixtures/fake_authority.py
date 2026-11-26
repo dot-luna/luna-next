@@ -11,7 +11,7 @@ AUTHORITY_PATH = "/org/freedesktop/PolicyKit1/Authority"
 
 
 def run_authority(mode, events_path):
-    address = os.environ.get("LUNA_NEXT_POLKIT_TEST_BUS")
+    address = os.environ.get("LUNA_POLKIT_TEST_BUS")
     if not address or os.environ.get("DBUS_SYSTEM_BUS_ADDRESS") != address:
         raise RuntimeError("The fake authority requires an explicitly isolated test bus")
     # Only this subprocess imports GI, so normal discovery also works in a venv.

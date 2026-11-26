@@ -15,7 +15,7 @@ from _support import QUICKSHELL, REPO, SHELL, isolated_environment
                      "Quickshell and dbus-run-session required")
 class AuthenticationContentTests(unittest.TestCase):
     def test_authentication_content(self):
-        with tempfile.TemporaryDirectory(prefix="luna-next-polkit-ui-") as directory:
+        with tempfile.TemporaryDirectory(prefix="luna-polkit-ui-") as directory:
             root = Path(directory)
             environment = isolated_environment(root)
             (root / "repo").symlink_to(REPO, target_is_directory=True)
@@ -67,7 +67,7 @@ ShellRoot {
                                     env=environment, capture_output=True, text=True, timeout=25)
             output = result.stdout + result.stderr
             self.assertEqual(result.returncode, 0, output)
-            summary = re.search(r"LUNA_NEXT_POLKIT_TEST_RESULT (\{[^\n]+\})", output)
+            summary = re.search(r"LUNA_POLKIT_TEST_RESULT (\{[^\n]+\})", output)
             self.assertIsNotNone(summary, output)
             counts = json.loads(summary.group(1))
             self.assertEqual(counts["failed"], 0, output)
