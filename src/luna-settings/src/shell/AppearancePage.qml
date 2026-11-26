@@ -9,18 +9,14 @@ import QtQuick.Layouts
 Column {
     id: page
     required property var backgrounds
-    required property MockState mockState
+    required property var themes
     required property UI.Theme theme
-    readonly property bool dialogOpen: repositoryDialog.visible || pictureDialog.visible || downloadDialog.visible
+    readonly property bool dialogOpen: themeSection.dialogOpen || pictureDialog.visible || downloadDialog.visible
     signal reveal(Item target)
     spacing: 24
 
     function focusSetting(key) {
-        if (key === "theme" && themeChoices.count) {
-            const index = Math.max(0, mockState.draft.appearance.themes.findIndex(entry => entry.name === mockState.draft.appearance.theme));
-            themeChoices.itemAt(index).forceActiveFocus();
-            return true;
-        }
+        if (key === "theme") { themeSection.focusSetting(); return true; }
         if (key === "background") {
             if (!backgroundChoices.count) { importTile.focusImport(); reveal(importTile); return true; }
             const index = Math.max(0, backgrounds.entries.findIndex(entry => entry.current));
@@ -32,42 +28,17 @@ Column {
         return false;
     }
 
-    RowLayout {
+    ThemeSection {
+        id: themeSection
         width: parent.width
-        UI.Subtitle { theme: page.theme; objectName: "styleTitle"; Layout.fillWidth: true; text: "Style"; color: page.theme.text }
-        UI.Button { objectName: "addThemeButton"; theme: page.theme; text: "Add Theme"; variant: UI.Button.Ghost; onClicked: repositoryDialog.open() }
-    }
-    GridLayout {
-        id: themeGrid
-        width: parent.width
-        columns: Math.max(1, Math.min(3, Math.floor((width + 12) / 170)))
-        columnSpacing: 12
-        rowSpacing: 12
-        Repeater {
-            id: themeChoices
-            model: page.mockState.draft.appearance.themes
-            ThemeChoice {
-                id: choice
-                required property var modelData
-                required property int index
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                Layout.preferredWidth: (themeGrid.width - (themeGrid.columns - 1) * 12) / themeGrid.columns
-                theme: page.theme
-                entry: modelData
-                selected: page.mockState.draft.appearance.theme === modelData.name
-                applied: page.mockState.saved.appearance.theme === modelData.name
-                onChosen: page.mockState.setValue("appearance", "theme", modelData.name)
-                onRemoved: { page.mockState.removeTheme(modelData.name); page.focusSetting("theme"); }
-                onReveal: target => page.reveal(target)
-                Keys.onRightPressed: if (index + 1 < themeChoices.count) themeChoices.itemAt(index + 1).forceActiveFocus()
-                Keys.onLeftPressed: if (index > 0) themeChoices.itemAt(index - 1).forceActiveFocus()
-                Keys.onDownPressed: if (index + themeGrid.columns < themeChoices.count) themeChoices.itemAt(index + themeGrid.columns).forceActiveFocus()
-                Keys.onUpPressed: if (index >= themeGrid.columns) themeChoices.itemAt(index - themeGrid.columns).forceActiveFocus()
-            }
-        }
+        theme: page.theme
+        themes: page.themes
+        enabled: !page.backgrounds.busy || page.backgrounds.operation === "list"
+        onReveal: target => page.reveal(target)
+        onChanged: page.backgrounds.run("list")
     }
     Column {
+        enabled: !page.themes.busy
         width: parent.width
         spacing: 12
         RowLayout {
@@ -75,6 +46,7 @@ Column {
             UI.Subtitle { theme: page.theme; objectName: "backgroundTitle"; Layout.fillWidth: true; text: "Background"; color: page.theme.text }
             UI.Button {
                 objectName: "randomBackground"
+                visible: page.backgrounds.entries.length > 3
                 theme: page.theme
                 variant: UI.Button.Ghost
                 implicitWidth: 36
@@ -95,7 +67,7 @@ Column {
             columns: Math.max(1, Math.min(3, Math.floor((width + 12) / 150)))
             columnSpacing: 12
             rowSpacing: 12
-            BackgroundImport {
+            ImportTile {
                 id: importTile
                 objectName: "backgroundImportTile"
                 Layout.fillWidth: true
@@ -163,13 +135,6 @@ Column {
             if (success && (action === "remove" || action === "select" || action === "random"))
                 Qt.callLater(() => page.focusSetting("background"));
         }
-    }
-    ThemeRepositoryDialog {
-        id: repositoryDialog
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        theme: page.theme
-        mockState: page.mockState
     }
     FileDialog {
         id: pictureDialog

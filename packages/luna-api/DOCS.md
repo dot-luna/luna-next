@@ -27,7 +27,7 @@ and commits, use fast-forward pulls, and do not replace local tags.
 Installation additionally accepts `fromBootstrap` to skip the checkout update,
 system upgrade, and CLI build already performed by `install.sh`; package stages
 still run. Order: validate, update checkout, `before_cli` packages, build/publish
-CLI, Git configuration, `after_cli` packages/mise tools, bundled themes and their
+CLI, Git configuration, `after_cli` packages/mise tools, preinstalled themes and their
 packages, apps in catalog order, later packages, web apps, then application defaults. Direct installation
 upgrades system packages before installing dependencies.
 
@@ -122,28 +122,48 @@ unknown reset keys return `INVALID_ARGUMENT`. Source JSONC is never rewritten.
 
 ## Theme API
 
-`Luna.theme` exposes `install(source, options?)`, `list(options?)`,
-`current(options?)`, `path(name?, options?)`, `get(key?, options?)`,
-`inspect(name, options?)`, `set(name, options?)`, `mode(mode?, options?)`,
-`toggle(options?)`, `getConfigFile(options?)`, `hyprland(options?)`,
-`applyT3code(options?)`, and `remove(names, options?)`. All return the usual API
-response. Missing dotted keys and an unset current name return null.
+`Luna.theme` provides `info(source, options?)`, `install(source, options?)`,
+`list`, `current`, `path`, `get`, `inspect`, `set`, `random`, `mode`, `toggle`,
+`getConfigFile`, `hyprland`, `applyT3code`, and `remove`. All return API responses.
+Missing dotted keys and an unset current name return null.
 
-Theme options accept `env`, `configFile`, `libraryDir`, and `wallpaperDir`.
-Install also accepts `name` and `force`; remove accepts `dryRun`; T3 application
-accepts an explicit `userdata` directory. `mode` accepts dark/light/toggle.
-Validation uses the feature-owned Zod schemas in `src/modules/theme/schema.ts`.
+Sources can be a JSON/JSONC file, local folder, HTTP(S) JSON/JSONC URL, or public
+GitHub folder URL. Folders need exactly one `theme.json` or `theme.jsonc`.
+`info` returns a suggested name, required-name flag, files, wallpapers, fonts,
+package installation status, and a fingerprint. It fetches remote metadata and the
+manifest only; it never installs packages or downloads wallpapers.
 
-See [theme fields and storage](../../themes/DOCS.md). `set`, `mode`, and `toggle`
-publish GTK3 colors, UI/monospace fonts, and control rounding from the selected
-theme, then synchronize GSettings `color-scheme` and `gtk-theme`, without restarting apps. System mode
-changes preserve the authored palette. Failed application attempts selection,
-stylesheet, and preference recovery while preserving detected external edits.
-Generated stylesheets and dconf preferences persist across app and session restarts.
-Headless shells use a private D-Bus session
-when no session address or runtime bus is supplied; setup installs `dbus` for this. Source JSONC stays intact; selection writes
-normalize its owned document. Mutations can return `CONFLICT` for locks, external
-edits, existing copies, or wallpaper filename conflicts.
+`install` accepts `name`, `force`, and the optional reviewed `fingerprint`.
+A standalone file named `theme`, `config`, or `settings` requires `name`;
+other names default to the filename or folder name in lowercase. Installation
+stages files temporarily, installs missing Pacman/AUR packages, imports wallpapers,
+and publishes the folder. A changed manifest or GitHub revision fails with
+`CONFLICT` when a fingerprint is supplied. Authored source bytes stay intact.
+GitHub imports use pinned revisions and reject symlinks/submodules; oversized
+file lists and GitHub rate limits produce errors. Other raw URLs support relative
+wallpaper files; use a GitHub folder or a local folder for wallpaper directories.
+
+Theme fields are optional `colors`, `fonts` (`ui`, `mono`), `appearance`,
+`wallpaper.sources`, and `packages` (`name`, `source`: `pacman` or `aur`).
+Defaults are merged only in memory. Relative wallpapers stay inside the theme;
+HTTP(S) wallpapers are also supported. Field validation lives in
+`src/modules/theme/schema.ts`.
+
+`set` and `random` check missing packages, publish GTK colors and UI/monospace
+fonts, save the theme's mode, and select its first available wallpaper.
+Already imported URL wallpapers are reused. Themes without wallpapers leave the
+current background alone. `random` avoids the selected theme when possible.
+`mode` and `toggle` change the desktop preference without rewriting the palette.
+Other apps are not reloaded. Failed application recovers the theme, GTK preferences
+and wallpaper where possible, preserving detected external edits.
+
+Options accept `env`, `configFile`, `libraryDir`, `wallpaperDir`,
+`wallpaperConfigFile`, and `authorization` (`sudo`, or `polkit` for desktop callers).
+Removal protects the selected theme and accepts `dryRun`; T3 application accepts
+`userdata`. Mutations can return `CONFLICT` for locks, external edits, existing
+copies, or wallpaper filename conflicts. Selection writes normalize their owned
+JSONC document. GTK preferences persist through dconf; headless calls use a private
+D-Bus session when no session address or runtime bus is supplied.
 
 ## Menu API
 

@@ -3,7 +3,7 @@ import { basename, isAbsolute, join } from "pathe";
 import { capture } from "@/lib/process.ts";
 import { ApiError } from "@/lib/response.ts";
 import type { ThemeContext } from "./context.ts";
-import type { ResolvedTheme } from "./schema.ts";
+import type { ResolvedTheme } from "../schema.ts";
 import { themeSelection } from "./selection.ts";
 
 class ThemeImages {

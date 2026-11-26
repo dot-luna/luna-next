@@ -1,9 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "pathe";
-import { parse } from "@/lib/files.ts";
+import { metadata, parse } from "@/lib/files.ts";
+import { ApiError } from "@/lib/response.ts";
 import { validate } from "@/lib/validation.ts";
 import { defaults, lightColors } from "./defaults.ts";
-import { themeSourceSchema, type ResolvedTheme } from "./schema.ts";
+import { themeSourceSchema, type ResolvedTheme } from "../schema.ts";
 import { valueAtKey } from "@/lib/keys.ts";
 
 /** Roles whose foreground is derived for contrast when a theme sets only the fill. */
@@ -21,11 +22,28 @@ const foregroundRoles = [
 const emphasisRoles = ["secondary_accent", "error", "warning", "success", "info", "link"];
 
 class ThemeValues {
-  /** Read and validate a folder's authored theme.jsonc without applying defaults. */
-  async read(directory: string) {
-    const path = join(directory, "theme.jsonc");
-    const source = await readFile(path, "utf8");
+  /** Locate the single JSON/JSONC manifest; ambiguous folders are rejected. */
+  async manifest(directory: string) {
+    const paths = [];
+    for (const name of ["theme.jsonc", "theme.json"])
+      if ((await metadata(join(directory, name)))?.isFile()) paths.push(join(directory, name));
+    if (paths.length !== 1)
+      throw new ApiError(
+        "INVALID_METADATA",
+        "Theme folders need exactly one theme.json or theme.jsonc",
+      );
+    return paths[0]!;
+  }
+
+  parse(source: string, path: string) {
     return validate(themeSourceSchema, parse(source, path), path);
+  }
+
+  /** Read the authored manifest without applying defaults or rewriting its bytes. */
+  async read(directory: string) {
+    const path = await this.manifest(directory);
+    const source = await readFile(path, "utf8");
+    return this.parse(source, path);
   }
 
   /** Defaults and derived pairs are resolved in memory; authored JSONC is never rewritten. */

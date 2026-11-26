@@ -2,6 +2,7 @@ import { Luna, type ThemeMode, type ThemeOptions } from "@luna/api";
 import { Argument, type Command } from "commander";
 import type { Output } from "@/lib/output.ts";
 import { confirmRemoval } from "@/lib/removal.ts";
+import { describeTheme, installTheme } from "./install.ts";
 
 /** Native Hyprland values contain only validated scalar settings and ASCII object keys. */
 function lua(value: unknown): string {
@@ -15,17 +16,34 @@ function lua(value: unknown): string {
 export function addThemeCommands(program: Command, output: Output) {
   const group = program
     .command("theme")
-    .description("Install and select JSONC themes")
+    .description("Install and select themes")
     .option("--config-file <path>", "Theme selection file")
     .option("--library-dir <path>", "Installed theme directory");
   const options = (): ThemeOptions => group.opts<ThemeOptions>();
   group
-    .command("install <folder>")
-    .description("Validate and copy a theme folder; import its wallpapers")
+    .command("info <source>")
+    .description("Inspect an uninstalled theme's files, fonts, wallpapers and packages")
+    .action(async (source: string) =>
+      output.response(await Luna.theme.info(source, options()), describeTheme),
+    );
+  group
+    .command("install <source>")
+    .description("Import a JSON/JSONC file, local folder, raw URL or GitHub folder")
     .option("--name <name>", "Installed theme name")
     .option("--force", "Replace an existing installed copy")
-    .action(async (folder: string, flags: { name?: string; force?: boolean }) =>
-      output.response(await Luna.theme.install(folder, { ...options(), ...flags })),
+    .option("--dry-run", "Preview files, fonts, wallpapers and packages")
+    .option("-y, --yes", "Approve remote downloads and package installation")
+    .action(
+      async (
+        source: string,
+        flags: { name?: string; force?: boolean; dryRun?: boolean; yes?: boolean },
+      ) => installTheme({ source, flags, options: options(), output }),
+    );
+  group
+    .command("random")
+    .description("Select another installed theme at random")
+    .action(async () =>
+      output.response(await Luna.theme.random(options()), (value) => `Theme: ${value.name}`),
     );
   group
     .command("list")

@@ -10,11 +10,17 @@ export interface ThemeOptions {
   configFile?: string;
   libraryDir?: string;
   wallpaperDir?: string;
+  /** Wallpaper selection file; defaults to the wallpaper API's own configuration path. */
+  wallpaperConfigFile?: string;
+  /** Desktop callers use Polkit authentication for package installation. */
+  authorization?: "sudo" | "polkit";
 }
 
 export interface ThemeInstallOptions extends ThemeOptions {
   name?: string;
   force?: boolean;
+  /** A preview fingerprint. Installation fails before assets/packages if the source changed. */
+  fingerprint?: string;
 }
 
 export interface ThemeContext {
@@ -27,6 +33,8 @@ export interface ThemeContext {
   libraryDir: string;
   /** Wallpaper library that receives a theme's declared media on install. */
   wallpaperDir: string;
+  wallpaperConfigFile?: string;
+  authorization: "sudo" | "polkit";
 }
 
 class ThemeContextResolver {
@@ -53,6 +61,8 @@ class ThemeContextResolver {
       configFile,
       libraryDir,
       wallpaperDir: this._path(options.wallpaperDir ?? join(dirname(libraryDir), "wallpapers")),
+      wallpaperConfigFile: options.wallpaperConfigFile,
+      authorization: options.authorization ?? "sudo",
     };
   }
 

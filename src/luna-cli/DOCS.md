@@ -84,17 +84,23 @@ that mode because they own executable publication.
 
 ## Themes
 
-`luna theme` supports `install <folder> [--name NAME] [--force]`, `list`,
-`current`, `path [name]`, `get [key]`, `inspect <name>`, `set <name>`,
-`mode [dark|light|toggle]`, `toggle`, `get-config-file`, `hyprland`,
-`apply t3code`, and `remove <names...> [--dry-run] [--yes]`.
+`luna theme info <source>` shows an uninstalled theme's files, fonts, wallpapers
+and package requirements. Add `--json` for the API response.
+
+`luna theme install <source> [--name NAME] [--force]` accepts JSON/JSONC files,
+local folders, raw URLs and GitHub folder URLs. Remote imports show their contents
+before confirmation. `--dry-run` returns that preview without installation;
+`--yes` approves remote installation without a prompt. Generic filenames such as
+`theme.jsonc` ask for a name; non-interactive callers provide `--name`.
+
+`list`, `current`, `path [name]`, `get [key]`, `inspect <name>`, `set <name>`,
+`random`, `mode [dark|light|toggle]`, `toggle`, `get-config-file`, `hyprland`,
+`apply t3code`, and `remove <names...> [--dry-run] [--yes]` are also available.
+Selecting a theme applies its fonts, mode and first wallpaper without reloading
+other apps. Removal protects the selected theme.
 
 Use `theme --config-file PATH --library-dir PATH` for explicit selection/library
-paths. JSON mode returns the same API response. Human `hyprland` output is a Lua
-table; other clients use `theme get --json`. Removal protects the selected theme
-and requires `--yes` or `--dry-run` without an interactive terminal.
-
-See [theme format and behavior](../../themes/DOCS.md).
+paths. See the [Theme API](../../packages/luna-api/DOCS.md#theme-api) for the format.
 
 ## Default applications
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { metadata, readOptional, writeFile } from "@/lib/files.ts";
 import { ApiError } from "@/lib/response.ts";
 import type { ThemeContext } from "./context.ts";
-import type { ResolvedTheme } from "./schema.ts";
+import type { ResolvedTheme } from "../schema.ts";
 import { themeSelection } from "./selection.ts";
 import { t3Colors } from "./t3-colors.ts";
 

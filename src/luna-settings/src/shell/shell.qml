@@ -14,6 +14,11 @@ ShellRoot {
         bridgeCommand: JSON.parse(Quickshell.env("LUNA_SETTINGS_BACKGROUND_COMMAND"))
     }
 
+    ThemeController {
+        id: themeService
+        bridgeCommand: JSON.parse(Quickshell.env("LUNA_SETTINGS_THEME_COMMAND"))
+    }
+
     Loader {
         active: shell.theme !== null
         sourceComponent: FloatingWindow {
@@ -32,6 +37,7 @@ ShellRoot {
                 id: view
                 anchors.fill: parent
                 backgrounds: backgroundService
+                themes: themeService
                 themeSnapshot: shell.theme
                 surfaceOpacity: window.fullscreen ? shell.theme.appearance.opacity.fullscreen
                     : window.contentItem.Window.active ? shell.theme.appearance.opacity.active : shell.theme.appearance.opacity.inactive

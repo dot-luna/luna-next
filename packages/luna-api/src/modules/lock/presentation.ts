@@ -2,9 +2,9 @@ import { dirname, join, resolve } from "pathe";
 import { pathToFileURL } from "node:url";
 import { userInfo } from "node:os";
 import { metadata } from "@/lib/files.ts";
-import { themeContext } from "@/modules/theme/context.ts";
-import { themeImages } from "@/modules/theme/images.ts";
-import { themeSelection } from "@/modules/theme/selection.ts";
+import { themeContext } from "@/modules/theme/lib/context.ts";
+import { themeImages } from "@/modules/theme/lib/images.ts";
+import { themeSelection } from "@/modules/theme/lib/selection.ts";
 import type { LockContext } from "./context.ts";
 import type { LockSettings } from "./schema.ts";
 

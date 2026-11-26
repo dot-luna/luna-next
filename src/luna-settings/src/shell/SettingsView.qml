@@ -9,8 +9,8 @@ import "MockData.js" as Data
 Rectangle {
     id: view
     required property var backgrounds
+    required property var themes
     required property var themeSnapshot
-    property var appearanceSnapshot: Data.appearanceLibrary(themeSnapshot)
     property real surfaceOpacity: 1
     readonly property MockState mockState: mock
     readonly property bool searching: mock.query.trim() !== ""
@@ -21,7 +21,7 @@ Rectangle {
     focus: true
 
     UI.Theme { id: colors; snapshot: view.themeSnapshot }
-    MockState { id: mock; theme: view.themeSnapshot; library: view.appearanceSnapshot }
+    MockState { id: mock; theme: view.themeSnapshot }
 
     function revealItem(item) {
         const position = item.mapToItem(pageColumn, 0, 0);
@@ -263,7 +263,7 @@ Rectangle {
                                 visible: mock.page === "appearance"
                                 width: pageColumn.width
                                 backgrounds: view.backgrounds
-                                mockState: mock
+                                themes: view.themes
                                 theme: colors
                                 onReveal: target => view.revealItem(target)
                             }

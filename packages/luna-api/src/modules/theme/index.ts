@@ -1,23 +1,27 @@
 import { locked } from "@/lib/files.ts";
-import { respond } from "@/lib/response.ts";
-import { themeAdapters } from "./adapters.ts";
-import { themeAppearance } from "./appearance.ts";
-import { themeContext, type ThemeInstallOptions, type ThemeOptions } from "./context.ts";
-import { themePackages } from "./packages.ts";
+import { ApiError, respond } from "@/lib/response.ts";
+import { activateTheme } from "./lib/activation.ts";
+import { themeAdapters } from "./lib/adapters.ts";
+import { themeAppearance } from "./lib/appearance.ts";
+import { themeContext, type ThemeInstallOptions, type ThemeOptions } from "./lib/context.ts";
+import { themeSource } from "./lib/source.ts";
 import type { ThemeMode } from "./schema.ts";
-import { themeSelection } from "./selection.ts";
-import { themeStore } from "./store.ts";
-import { themeValues } from "./values.ts";
+import { themeSelection } from "./lib/selection.ts";
+import { themeStore } from "./lib/store.ts";
+import { themeValues } from "./lib/values.ts";
 
-/** One-shot theme operations. Mutations lock the selection; reads resolve installed JSONC afresh. */
+/** One-shot theme operations. Mutations lock the selection; reads resolve installed JSON/JSONC afresh. */
 class Theme {
-  /** Copy a theme folder into the library and import its wallpapers; force replaces it. */
+  /** Inspect files, fonts, wallpapers and package prerequisites without installing them. */
+  info(source: string, options: ThemeOptions = {}) {
+    return respond(() => themeSource.preview({ context: themeContext.resolve(options), source }));
+  }
+
+  /** Import a JSON/JSONC file, local folder, raw URL or GitHub folder; force replaces it. */
   install(source: string, options: ThemeInstallOptions = {}) {
     return respond(() => {
       const context = themeContext.resolve(options);
-      return locked(context, () =>
-        themeStore.install({ context, source, name: options.name, force: options.force }),
-      );
+      return locked(context, () => themeSource.install({ context, source, options }));
     });
   }
 
@@ -57,15 +61,27 @@ class Theme {
     return respond(() => themeSelection.inspect({ context: themeContext.resolve(options), name }));
   }
 
-  /** Select an installed theme in its own mode after installing missing prerequisites. */
+  /** Select a theme in its own mode, apply GTK fonts and its first wallpaper, and install missing prerequisites. */
   set(name: string, options: ThemeOptions = {}) {
     return respond(() => {
       const context = themeContext.resolve(options);
+      return locked(context, () => activateTheme({ context, name }));
+    });
+  }
+
+  /** Select another installed theme at random; a single installed theme can be reselected. */
+  random(options: ThemeOptions = {}) {
+    return respond(() => {
+      const context = themeContext.resolve(options);
       return locked(context, async () => {
-        const value = await themeSelection.inspect({ context, name });
-        await themePackages.install({ context, packages: value.packages });
-        await themeAppearance.save({ context, mode: value.colors.mode, theme: value });
-        return value;
+        const entries = await themeStore.list(context);
+        if (!entries.length) throw new ApiError("INVALID_ARGUMENT", "Install a theme first");
+        const others = entries.filter((entry) => !entry.current);
+        const candidates = others.length ? others : entries;
+        return activateTheme({
+          context,
+          name: candidates[Math.floor(Math.random() * candidates.length)]!.name,
+        });
       });
     });
   }

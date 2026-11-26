@@ -1,7 +1,7 @@
 import { validate } from "@/lib/validation.ts";
-import { themeContext } from "@/modules/theme/context.ts";
-import { themeImages } from "@/modules/theme/images.ts";
-import { themeSelection } from "@/modules/theme/selection.ts";
+import { themeContext } from "@/modules/theme/lib/context.ts";
+import { themeImages } from "@/modules/theme/lib/images.ts";
+import { themeSelection } from "@/modules/theme/lib/selection.ts";
 import { loginDefaults } from "./defaults.ts";
 import { loginSettings } from "./settings.ts";
 import { loginSettingsSchema } from "./schema.ts";

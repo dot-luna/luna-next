@@ -3,27 +3,9 @@
 // Sample controls for the UI mock, independent of Luna's configuration contracts.
 var titles = { home: "Home", appearance: "Appearance", login: "Login screen", lock: "Lock screen", desktop: "Desktop" };
 
-function themeCard(theme) {
-    return { name: theme.name, mode: theme.colors.mode, background: theme.colors.background,
-             foreground: theme.colors.bright_foreground, accent: theme.colors.accent,
-             raised: theme.colors.lighter_background, dark: theme.colors.dark_background,
-             palette: [theme.colors.accent, theme.colors.secondary_accent, theme.colors.success,
-                       theme.colors.warning, theme.colors.error, theme.colors.foreground] };
-}
-
-function appearanceLibrary(theme) {
+function defaults(theme) {
     return {
-        themes: [
-            themeCard(theme),
-            { name: "Moonlight", mode: "dark", background: "#222436", foreground: "#c8d3f5", raised: "#2f334d", dark: "#1e2030", accent: "#82aaff", palette: ["#82aaff", "#c099ff", "#c3e88d", "#ffc777", "#ff757f", "#c8d3f5"] },
-            { name: "Daylight", mode: "light", background: "#e6e9ef", foreground: "#343b58", raised: "#ffffff", dark: "#d5d9e3", accent: "#6172b0", palette: ["#6172b0", "#9854b5", "#587b42", "#9a6b21", "#bc536c", "#343b58"] }
-        ].filter((entry, index, all) => all.findIndex(other => other.name === entry.name) === index)
-    };
-}
-
-function defaults(theme, library) {
-    return {
-        appearance: { theme: theme.name, themes: library.themes, font: theme.fonts.ui, scale: "100%" },
+        appearance: { font: theme.fonts.ui, scale: "100%" },
         login: { background: "Night", user: "Last signed-in user", session: "Hyprland", layout: "English (US)", showUsers: true },
         lock: { background: "Night", idle: "10 minutes", dpms: "30 seconds", clock: true, format: "24-hour" },
         desktop: { background: "Night", layout: "Tiling", inner: theme.appearance.gaps.inner, outer: theme.appearance.gaps.outer, rounding: theme.appearance.rounding, blur: theme.appearance.blur.enabled, bar: true }

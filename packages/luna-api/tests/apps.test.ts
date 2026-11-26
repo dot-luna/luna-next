@@ -116,7 +116,7 @@ test("self install skips disabled apps while keeping independent setup stages", 
   f.app("desktop", { name: "desktop", source: "pacman", enabled: false }, ["after_configure"]);
   f.write(
     f.repository,
-    "themes/bundled/tokyo-night/theme.jsonc",
+    "theme-fixtures/tokyo-night/theme.jsonc",
     '{"packages":[{"name":"theme-font","source":"pacman"}]}',
   );
   f.write(
@@ -146,7 +146,7 @@ test("self install skips disabled apps while keeping independent setup stages", 
   expect(installed).not.toContain("desktop");
   expect(installed).toContain("theme-font");
   expect(f.commands().some((command) => command.name === "yay")).toBe(false);
-  expect(progress).toContain("Installing bundled themes...");
+  expect(progress).toContain("Installing preinstalled themes...");
   expect(progress).toContain("Installing web apps...");
   expect(progress).toContain("Applying application defaults...");
   expect(readFileSync(join(f.env.XDG_CONFIG_HOME!, "mimeapps.list"), "utf8")).toContain(
@@ -159,7 +159,7 @@ test("theme setup reports its missing prerequisite without installing disabled Y
   f.app("yay", { name: "yay", source: "local", enabled: false }, ["build"]);
   f.write(
     f.repository,
-    "themes/bundled/tokyo-night/theme.jsonc",
+    "theme-fixtures/tokyo-night/theme.jsonc",
     '{"packages":[{"name":"aur-font","source":"aur"}]}',
   );
   expect(
@@ -550,7 +550,7 @@ test("self install applies defaults after themes, ordered apps, later packages a
   ]);
   f.write(
     f.repository,
-    "themes/bundled/tokyo-night/theme.jsonc",
+    "theme-fixtures/tokyo-night/theme.jsonc",
     '{"packages":[{"name":"theme-font","source":"pacman"}]}',
   );
   f.write(
@@ -587,7 +587,7 @@ test("self install applies defaults after themes, ordered apps, later packages a
   expect(JSON.parse(readFileSync(f.env.SELF_INSTALLED_JSON!, "utf8"))).toContain("theme-font");
   expect(JSON.parse(readFileSync(f.env.SELF_INSTALLED_JSON!, "utf8"))).toContain("zed");
   const index = (text: string) => progress.findIndex((line) => line.includes(text));
-  expect(index("bundled themes")).toBeLessThan(index("Installing desktop"));
+  expect(index("preinstalled themes")).toBeLessThan(index("Installing desktop"));
   expect(index("Configuring desktop")).toBeLessThan(index("later packages"));
   expect(index("later packages")).toBeLessThan(index("Installing web apps"));
   expect(index("Installing web apps")).toBeLessThan(index("Applying application defaults"));
@@ -686,7 +686,7 @@ test("self install bootstraps the Yay provider before installing AUR theme fonts
   chmodSync(join(f.repository, "apps/yay/hooks/build.ts"), 0o755);
   f.write(
     f.repository,
-    "themes/bundled/tokyo-night/theme.jsonc",
+    "theme-fixtures/tokyo-night/theme.jsonc",
     '{"packages":[{"name":"aur-font","source":"aur"}]}',
   );
   const progress: string[] = [];
@@ -730,7 +730,7 @@ test("self install does not bootstrap Yay for already installed theme fonts", as
   unlinkSync(join(f.bin, "yay"));
   f.write(
     f.repository,
-    "themes/bundled/tokyo-night/theme.jsonc",
+    "theme-fixtures/tokyo-night/theme.jsonc",
     '{"packages":[{"name":"existing-font","source":"aur"}]}',
   );
   f.write(f.root, "installed.json", '["existing-font"]');

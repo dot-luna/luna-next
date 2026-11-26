@@ -8,6 +8,8 @@ Rectangle {
     id: tile
     required property UI.Theme theme
     property bool busy: false
+    property string kind: "wallpaper"
+    property string namePrefix: "Background"
     function focusImport() { local.forceActiveFocus(); }
     signal chooseFile()
     signal chooseUrl()
@@ -21,17 +23,17 @@ Rectangle {
     Item {
         id: split
         anchors.fill: parent
-        anchors.margins: 6
         UI.Button {
             id: local
-            objectName: "importBackgroundFile"
+            objectName: "import" + tile.namePrefix + "File"
             anchors.fill: parent
             theme: tile.theme
             variant: UI.Button.Ghost
+            padding: 0
             horizontalPadding: 0
             verticalPadding: 0
             enabled: !tile.busy
-            Accessible.name: "Install wallpaper from file"
+            Accessible.name: "Install " + tile.kind + " from file"
             onClicked: tile.chooseFile()
             onActiveFocusChanged: if (activeFocus) tile.reveal(tile)
             // Bound the half-plane to the tile so it cannot intercept nearby controls.
@@ -60,14 +62,15 @@ Rectangle {
         }
         UI.Button {
             id: remote
-            objectName: "importBackgroundUrl"
+            objectName: "import" + tile.namePrefix + "Url"
             anchors.fill: parent
             theme: tile.theme
             variant: UI.Button.Ghost
+            padding: 0
             horizontalPadding: 0
             verticalPadding: 0
             enabled: !tile.busy
-            Accessible.name: "Download wallpaper from URL"
+            Accessible.name: "Download " + tile.kind + " from URL"
             onClicked: tile.chooseUrl()
             onActiveFocusChanged: if (activeFocus) tile.reveal(tile)
             containmentMask: QtObject {

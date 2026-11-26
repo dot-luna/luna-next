@@ -9,7 +9,7 @@ import {
   themeSelectionSchema,
   type ResolvedTheme,
   type ThemeMode,
-} from "./schema.ts";
+} from "../schema.ts";
 import { themeSelection } from "./selection.ts";
 
 interface PreferenceChange {
@@ -39,11 +39,14 @@ class ThemeAppearance {
     context,
     mode,
     theme,
+    apply,
   }: {
     context: ThemeContext;
     mode: ThemeMode;
     /** Newly selected theme; omitted to change only the mode of the current selection. */
     theme?: ResolvedTheme;
+    /** Final application step; a failure also recovers the selection and desktop preferences. */
+    apply?: () => Promise<void>;
   }) {
     if (!themeModeSchema.safeParse(mode).success)
       throw new ApiError("INVALID_ARGUMENT", "Theme mode must be dark or light");
@@ -77,6 +80,7 @@ class ThemeAppearance {
         attempted.push(change);
         await gsettings.set({ context, key: change.key, value: change.target });
       }
+      await apply?.();
     } catch (error) {
       const failures = [error instanceof Error ? error.message : String(error)];
       await this._recover({ context, attempted, gtk, failures });

@@ -2,8 +2,8 @@ import { metadata } from "@/lib/files.ts";
 import { capture } from "@/lib/process.ts";
 import { quickshell } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
-import { themeSelection } from "@/modules/theme/selection.ts";
-import { themeContext } from "@/modules/theme/context.ts";
+import { themeSelection } from "@/modules/theme/lib/selection.ts";
+import { themeContext } from "@/modules/theme/lib/context.ts";
 import {
   desktopLockSchema,
   screensaverSettingsSchema,

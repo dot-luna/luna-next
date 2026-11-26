@@ -4,14 +4,15 @@
 required `theme` property. Replacing the snapshot updates existing components.
 The library does not load configuration or call the API.
 
-| Component     | Defaults                                           |
-| ------------- | -------------------------------------------------- |
-| `Title`       | 24 px, semibold, foreground color                  |
-| `Subtitle`    | 18 px, medium, subdued foreground                  |
-| `Text`        | 13 px, normal, foreground color                    |
-| `Button`      | Primary variant, at least 80 × 36 px               |
-| `Badge`       | Primary variant, 11 px text                        |
-| `InputDialog` | Modal dialog with one input and Cancel/Add actions |
+| Component     | Defaults                                                  |
+| ------------- | --------------------------------------------------------- |
+| `Title`       | 24 px, semibold, foreground color                         |
+| `Subtitle`    | 18 px, medium, subdued foreground                         |
+| `Text`        | 13 px, normal, foreground color                           |
+| `Button`      | Primary variant, at least 80 × 36 px                      |
+| `Badge`       | Primary variant, 11 px text                               |
+| `Dialog`      | Modal surface with Luna styling and open/close animations |
+| `InputDialog` | Modal dialog with one input and Cancel/Add actions        |
 
 Typography renders plain text and wraps. Standard QML properties such as `text`,
 `font`, `color`, and `width` remain customizable.
@@ -25,6 +26,9 @@ and native Qt actions. Hover and press color animations do not delay activation.
 
 `Badge.variant` accepts `UI.Badge.Primary`, `Secondary`, `Outline`, or `Destructive`.
 Set its `text` and `theme`; it sizes to its label.
+
+`Dialog` supplies the shared themed modal surface. Put custom content in its
+`contentItem`; the caller owns focus and actions.
 
 `InputDialog` takes `theme`, `title`, `fieldLabel`, `placeholderText`, and `actionText`.
 Call `open()` to clear and immediately focus its input. Dialogs fade and scale when

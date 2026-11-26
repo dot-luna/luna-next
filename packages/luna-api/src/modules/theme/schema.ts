@@ -1,7 +1,34 @@
 import { z } from "zod";
-import { defaults } from "./defaults.ts";
+import { defaults } from "./lib/defaults.ts";
+
+// Validate the external metadata before it can become filesystem paths or download URLs.
+export const githubCommitSchema = z.object({ sha: z.string().regex(/^[a-f0-9]{40}$/u) });
+export const githubTreeSchema = z.object({
+  truncated: z.boolean(),
+  tree: z.array(
+    z.object({
+      path: z.string(),
+      mode: z.string(),
+      type: z.string(),
+      sha: z.string().regex(/^[a-f0-9]{40}$/u),
+      size: z.number().nonnegative().optional(),
+    }),
+  ),
+});
 
 export const themeNameSchema = z.string().regex(/^[a-z0-9][a-z0-9_-]*$/u);
+/** Preinstalled sources in installs/themes.jsonc; relative paths resolve from the checkout. */
+export const themeInstallListSchema = z
+  .array(
+    z.strictObject({
+      name: themeNameSchema,
+      source: z.string().min(1),
+    }),
+  )
+  .refine(
+    (items) => new Set(items.map((item) => item.name)).size === items.length,
+    "Duplicate theme name",
+  );
 export const themeModeSchema = z.enum(["dark", "light"]);
 // Names and file paths reach desktop clients; embedded terminal controls are invalid.
 // oxlint-disable-next-line no-control-regex

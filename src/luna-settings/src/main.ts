@@ -15,6 +15,10 @@ async function run() {
       LUNA_SETTINGS_THEME: JSON.stringify(theme.data),
       // Let the desktop portal choose the system file picker rather than Qt Quick's fallback.
       QT_QPA_PLATFORMTHEME: "xdgdesktopportal",
+      LUNA_SETTINGS_THEME_COMMAND: JSON.stringify([
+        process.execPath,
+        fileURLToPath(new URL("./themes.ts", import.meta.url)),
+      ]),
       LUNA_SETTINGS_BACKGROUND_COMMAND: JSON.stringify([
         process.execPath,
         fileURLToPath(new URL("./backgrounds.ts", import.meta.url)),

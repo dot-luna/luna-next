@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Luna.UI 1.0 as UI
-import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
 UI.Button {
@@ -140,12 +139,18 @@ UI.Button {
                 Layout.preferredWidth: 15
                 Layout.preferredHeight: 15
                 Accessible.ignored: true
-                ToolTip.visible: modeHover.hovered
-                ToolTip.text: choice.entry.mode === "light" ? "Light theme" : "Dark theme"
-                ToolTip.delay: 400
-                HoverHandler { id: modeHover }
             }
         }
+    }
+    UI.Badge {
+        objectName: "applied-theme-" + choice.entry.name
+        theme: choice.theme
+        visible: choice.applied
+        text: "Applied"
+        z: 2
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.margins: 12
     }
     ChoiceDeleteButton {
         id: remove

@@ -18,6 +18,7 @@ TestCase {
         property var entries: []
         property bool busy: false
         property string errorMessage: ""
+        readonly property string operation: lastOperation
         property string lastOperation: ""
         signal finished(string action, bool success)
         function reset() {
@@ -42,8 +43,40 @@ TestCase {
             finished(action, true);
         }
     }
-    function init() { backgroundService.reset(); }
-    Component { id: scene; Settings.SettingsView { backgrounds: backgroundService } }
+    QtObject {
+        id: themeService
+        property var entries: []
+        property var preview: null
+        property bool busy: false
+        property string errorMessage: ""
+        property string lastOperation: ""
+        property string installedName: ""
+        signal finished(string action, bool success)
+        function card(name, mode, accent, current) {
+            return { name: name, mode: mode, current: current, background: "#eeeeee", foreground: "#222222", raised: "#ffffff", dark: "#dddddd", accent: accent, palette: [accent, "#aa44dd", "#338844", "#bb9922", "#cc2222", "#444444"] };
+        }
+        function reset() {
+            entries = [card("custom", "light", "#cc6622", true), card("Moonlight", "dark", "#82aaff", false), card("Daylight", "light", "#6172b0", false)];
+            busy = false; errorMessage = ""; preview = null; lastOperation = ""; installedName = "";
+        }
+        function run(action, value, name, fingerprint) {
+            lastOperation = action;
+            errorMessage = "";
+            if (action === "preview") {
+                if (value === "invalid") { errorMessage = "Invalid theme URL"; finished(action, false); return; }
+                preview = { suggestedName: "sample", needsName: true, remote: true, fingerprint: "reviewed", files: [{path: "theme.jsonc"}, {path: "wallpapers/night.jpg"}], wallpapers: ["wallpapers"], fonts: {ui: "Outfit", mono: "Iosevka"}, packages: [{name: "ttf-outfit", source: "aur", installed: false}] };
+            } else if (action === "install") {
+                installedName = name;
+                entries = entries.concat([card(name, "dark", "#55aaff", false)]);
+            } else if (action === "select" || action === "random") {
+                const chosen = action === "random" ? entries.find(entry => !entry.current).name : value;
+                entries = entries.map(entry => Object.assign({}, entry, {current: entry.name === chosen}));
+            } else if (action === "remove") entries = entries.filter(entry => entry.name !== value);
+            finished(action, true);
+        }
+    }
+    function init() { backgroundService.reset(); themeService.reset(); }
+    Component { id: scene; Settings.SettingsView { backgrounds: backgroundService; themes: themeService } }
 
     function snapshot(rounding, borderWidth) {
         return {
@@ -90,7 +123,7 @@ TestCase {
         compare(control(view, "palette-custom-0").color, "#cc6622");
         compare(control(view, "palette-custom-1").color, "#aa44dd");
         compare(control(view, "palette-custom-2").color, "#338844");
-        verify(control(view, "styleTitle").font.pixelSize > 13);
+        verify(control(view, "themeTitle").font.pixelSize > 13);
         compare(control(view, "backgroundTitle").font.pixelSize, 18);
         const random = control(view, "randomBackground");
         compare(random.variant, UI.Button.Ghost);
@@ -101,7 +134,8 @@ TestCase {
         verify(randomPoint.x > titlePoint.x && Math.abs(randomPoint.y - titlePoint.y) < 20);
         verify(control(view, "section-Text").font.pixelSize > 13);
         verify(control(view, "section-More").font.pixelSize > 13);
-        compare(control(view, "addThemeButton").variant, UI.Button.Ghost);
+        compare(control(view, "randomTheme").variant, UI.Button.Ghost);
+        verify(control(view, "themeImportTile").visible);
         compare(findChild(view, "addBackgroundButton"), null);
         verify(control(view, "headerDivider").visible);
         verify(control(view, "pageTitle").visible);
@@ -164,7 +198,7 @@ TestCase {
         mouseMove(moon, moon.width / 2, moon.height / 2);
         tryCompare(removeMoon, "opacity", 1);
         compare(moon.selected, false);
-        compare(view.mockState.draft.appearance.theme, "custom");
+        compare(themeService.entries.find(entry => entry.current).name, "custom");
         mouseMove(view, 1, 1);
         tryCompare(removeMoon, "opacity", 0);
         moon.forceActiveFocus(Qt.TabFocusReason);
@@ -173,7 +207,7 @@ TestCase {
         tryCompare(removeMoon, "activeFocus", true);
         keyClick(Qt.Key_Return);
         compare(findChild(view, "theme-Moonlight"), null);
-        compare(view.mockState.saved.appearance.theme, "custom");
+        compare(themeService.entries.find(entry => entry.current).name, "custom");
         const active = control(view, "theme-custom");
         mouseMove(active, active.width / 2, active.height / 2);
         verify(!control(view, "delete-theme-custom").visible);
@@ -208,26 +242,82 @@ TestCase {
     function test_repository_dialog() {
         const view = createView();
         view.forceActiveFocus();
-        click(control(view, "addThemeButton"));
-        const dialog = control(view, "themeRepositoryDialog");
+        const importer = control(view, "importThemeUrl");
+        importer.forceActiveFocus();
+        keyClick(Qt.Key_Return);
+        const dialog = control(view, "themeImportDialog");
         tryCompare(dialog, "opened", true);
-        const field = control(dialog, "dialogInput");
+        const field = control(dialog, "themeSourceInput");
         verify(field.activeFocus);
         field.text = "invalid";
         keyClick(Qt.Key_Return);
         verify(dialog.errorMessage.length > 0);
         compare(dialog.visible, true);
-        field.text = "https://github.com/example/sample.git";
+        field.text = "https://github.com/example/sample";
+        keyClick(Qt.Key_Return);
+        compare(dialog.visible, true);
+        compare(themeService.lastOperation, "preview");
+        verify(findChild(view, "theme-sample") === null);
+        const preview = control(dialog, "themeDownloadPreview");
+        verify(preview.text.includes("wallpapers/night.jpg"));
+        verify(preview.text.includes("ttf-outfit · aur · will install"));
+        const name = control(dialog, "themeNameInput");
+        verify(name.activeFocus);
+        compare(name.text, "sample");
+        name.text = "my-theme";
         keyClick(Qt.Key_Return);
         tryCompare(dialog, "visible", false);
-        verify(findChild(view, "theme-sample") !== null);
-        compare(view.mockState.draft.appearance.themes.length, 4);
-        click(control(view, "addThemeButton"));
+        verify(findChild(view, "theme-my-theme") !== null);
+        compare(themeService.installedName, "my-theme");
+        importer.forceActiveFocus();
+        keyClick(Qt.Key_Return);
         tryCompare(dialog, "opened", true);
         keyClick(Qt.Key_Escape);
         tryCompare(dialog, "visible", false);
         compare(view.mockState.page, "appearance");
         verify(view.visible);
+    }
+    function test_theme_selection_and_shuffle_apply_immediately() {
+        themeService.entries = themeService.entries.concat([themeService.card("Fourth", "dark", "#55aaff", false)]);
+        const view = createView();
+        const moon = control(view, "theme-Moonlight");
+        moon.forceActiveFocus();
+        keyClick(Qt.Key_Return);
+        compare(themeService.lastOperation, "select");
+        compare(control(view, "theme-Moonlight").applied, true);
+        verify(control(view, "applied-theme-Moonlight").visible);
+        verify(!control(view, "delete-theme-Moonlight").visible);
+        compare(backgroundService.lastOperation, "list");
+        const random = control(view, "randomTheme");
+        random.forceActiveFocus();
+        keyClick(Qt.Key_Return);
+        compare(themeService.lastOperation, "random");
+        compare(control(view, "theme-Moonlight").applied, false);
+    }
+    function test_import_tiles_fill_their_bounds_and_shuffle_needs_four_items() {
+        const view = createView();
+        compare(control(view, "themeTitle").text, "Theme");
+        for (const kind of ["Theme", "Background"]) {
+            const tile = control(view, kind.toLowerCase() + "ImportTile");
+            for (const action of ["File", "Url"]) {
+                const button = control(tile, "import" + kind + action);
+                const point = button.mapToItem(tile, 0, 0);
+                compare(point.x, 0);
+                compare(point.y, 0);
+                compare(button.width, tile.width);
+                compare(button.height, tile.height);
+            }
+        }
+        compare(control(view, "randomTheme").visible, false);
+        themeService.entries = themeService.entries.concat([themeService.card("Fourth", "dark", "#55aaff", false)]);
+        compare(control(view, "randomTheme").visible, true);
+        themeService.entries = themeService.entries.slice(0, 3);
+        compare(control(view, "randomTheme").visible, false);
+        compare(control(view, "randomBackground").visible, true);
+        backgroundService.entries = backgroundService.entries.slice(0, 3);
+        compare(control(view, "randomBackground").visible, false);
+        backgroundService.entries = backgroundService.entries.concat([{name: "Fourth", current: false, source: "", video: true}]);
+        compare(control(view, "randomBackground").visible, true);
     }
     function test_navigation_search_and_max_width() {
         const view = createView();
@@ -258,7 +348,7 @@ TestCase {
         compare(findChild(view, "changeBar"), null);
         compare(control(view, "pageTitle").visible, false);
         compare(view.mockState.groups.length, 0);
-        verify(!control(view, "addThemeButton").visible);
+        verify(!control(view, "themeImportTile").visible);
     }
     function test_import_tile_and_download_dialog() {
         const view = createView();

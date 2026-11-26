@@ -89,7 +89,12 @@ export class SelfFixture {
     this.write(this.upstream, "installs/packages.webapp.jsonc", "[]");
     this.write(this.upstream, "installs/defaults.jsonc", "{}");
     this.write(this.upstream, "apps/git/scripts/after-install.sh", readFileSync(gitHook, "utf8"));
-    this.write(this.upstream, "themes/bundled/tokyo-night/theme.jsonc", "{}");
+    this.write(this.upstream, "theme-fixtures/tokyo-night/theme.jsonc", "{}");
+    this.write(
+      this.upstream,
+      "installs/themes.jsonc",
+      '[{"name":"tokyo-night","source":"theme-fixtures/tokyo-night"}]',
+    );
     this.write(this.upstream, ".gitignore", "target/\n");
     this.commit("Initial fixture");
     this.git(this.root, ["clone", this.upstream, this.repository]);

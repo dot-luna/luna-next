@@ -6,5 +6,5 @@ Settings for Luna, built with Quickshell. Run from the repository root:
 bun run --cwd src/luna-settings dev
 ```
 
-Backgrounds use your installed wallpaper library and apply changes immediately.
-Other controls are still mock UI. See [DOCS.md](DOCS.md) for controls and checks.
+Themes and backgrounds use your installed libraries and save changes immediately.
+Text, login and lock controls are still mock UI. See [DOCS.md](DOCS.md) for controls and checks.

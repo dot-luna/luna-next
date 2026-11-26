@@ -2,7 +2,7 @@ import { capture } from "@/lib/process.ts";
 import { ApiError } from "@/lib/response.ts";
 import { themeCommand } from "./command.ts";
 import type { ThemeContext } from "./context.ts";
-import type { ResolvedTheme } from "./schema.ts";
+import type { ResolvedTheme } from "../schema.ts";
 
 type ThemePackage = NonNullable<ResolvedTheme["packages"]>[number];
 
@@ -30,7 +30,11 @@ class ThemePackages {
     const missing = await this.missing({ context, packages });
     const official = missing.filter((item) => item.source === "pacman").map((item) => item.name);
     const aur = missing.filter((item) => item.source === "aur");
-    const tools = [...(official.length ? ["sudo"] : []), ...(aur.length ? ["yay"] : [])];
+    const elevation = context.authorization === "polkit" ? "pkexec" : "sudo";
+    const tools = [
+      ...(official.length || aur.length ? [elevation] : []),
+      ...(aur.length ? ["yay"] : []),
+    ];
     for (const tool of tools)
       if (!Bun.which(tool, { PATH: context.env.PATH }))
         throw new ApiError(
@@ -40,12 +44,25 @@ class ThemePackages {
     if (official.length)
       await themeCommand.run({
         context,
-        args: ["sudo", "pacman", "-S", "--needed", "--noconfirm", "--", ...official],
+        args: [elevation, "pacman", "-S", "--needed", "--noconfirm", "--", ...official],
       });
     for (const item of aur)
       await themeCommand.run({
-        context,
-        args: ["yay", "-S", "--needed", "--noconfirm", "--", item.name],
+        context:
+          context.authorization === "polkit"
+            ? { ...context, env: { ...context.env, PACMAN_AUTH: "pkexec" } }
+            : context,
+        args: [
+          "yay",
+          "-S",
+          "--needed",
+          "--noconfirm",
+          ...(context.authorization === "polkit"
+            ? ["--sudo", "pkexec", "--sudoflags", "", "--nosudoloop"]
+            : []),
+          "--",
+          item.name,
+        ],
       });
   }
 }

@@ -4,7 +4,7 @@ import { metadata, readOptional, writeFile } from "@/lib/files.ts";
 import { ApiError } from "@/lib/response.ts";
 import type { ThemeContext } from "./context.ts";
 import { gtkCss } from "./gtk-css.ts";
-import type { ResolvedTheme, ThemeMode } from "./schema.ts";
+import type { ResolvedTheme, ThemeMode } from "../schema.ts";
 
 /** A planned stylesheet write: source is the file before publication, or null when absent. */
 export interface PreparedGtkTheme {

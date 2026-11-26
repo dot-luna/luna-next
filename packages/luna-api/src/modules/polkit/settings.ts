@@ -1,8 +1,8 @@
 import { readDocument } from "@/lib/files.ts";
 import { valueAtKey } from "@/lib/keys.ts";
 import { validate } from "@/lib/validation.ts";
-import { themeSelection } from "@/modules/theme/selection.ts";
-import { themeContext } from "@/modules/theme/context.ts";
+import { themeSelection } from "@/modules/theme/lib/selection.ts";
+import { themeContext } from "@/modules/theme/lib/context.ts";
 import { polkitDefaults, polkitSettingsSchema } from "./schema.ts";
 
 class PolkitSettingsStore {

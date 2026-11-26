@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync, mkdirSync, statSync, symlinkSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
-import { themeContext } from "../src/modules/theme/context.ts";
-import { gsettings } from "../src/modules/theme/gsettings.ts";
+import { themeContext } from "../src/modules/theme/lib/context.ts";
+import { gsettings } from "../src/modules/theme/lib/gsettings.ts";
 import type { ThemeMode } from "../src/modules/theme/schema.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 

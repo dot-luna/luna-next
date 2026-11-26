@@ -8,11 +8,11 @@ import {
   symlinkSync,
   unlinkSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { Luna, type ApiResponse } from "../src/index.ts";
-import { defaults } from "../src/modules/theme/defaults.ts";
+import { defaults } from "../src/modules/theme/lib/defaults.ts";
 import { locked } from "../src/lib/files.ts";
-import { themeContext } from "../src/modules/theme/context.ts";
+import { themeContext } from "../src/modules/theme/lib/context.ts";
 import { ThemeFixture } from "./fixtures/theme-fixture.ts";
 
 let f: ThemeFixture;
@@ -30,7 +30,16 @@ test("bundled JSONC matches complete defaults and default reads create only an e
   expect(JSON.parse(f.read(f.configFile))).toEqual({});
   const value = data(await Luna.theme.get(undefined, f.options));
   expect(value).toEqual({ ...defaults, name: "tokyo-night" });
-  const source = resolve(import.meta.dir, "../../../themes/bundled/tokyo-night");
+  const source = f.source(
+    "tokyo-night",
+    JSON.stringify({
+      ...defaults,
+      packages: [
+        { name: "ttf-iosevka-nerd", source: "pacman" },
+        { name: "ttf-outfit", source: "aur" },
+      ],
+    }),
+  );
   const path = data(await Luna.theme.install(source, f.options));
   expect(f.read(join(path, "theme.jsonc"))).toBe(f.read(join(source, "theme.jsonc")));
   const { packages, ...appearance } = data(await Luna.theme.inspect("tokyo-night", f.options));

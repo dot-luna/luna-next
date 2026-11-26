@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Luna.UI 1.0 as UI
-import QtQuick.Controls.Basic
 
 UI.Button {
     variant: UI.Button.Ghost
@@ -21,14 +20,11 @@ UI.Button {
     opacity: cardHovered || cardFocused || hovered || visualFocus ? 1 : 0
     hoverEnabled: true
     Accessible.name: text
-    ToolTip.visible: opacity > 0 && (hovered || visualFocus)
-    ToolTip.text: text
-    ToolTip.delay: 400
     background: Rectangle {
-        color: button.hovered ? button.theme.raised : button.theme.surface
+        color: "transparent"
         radius: button.theme.rounding
         border.width: button.visualFocus ? 1 : 0
         border.color: button.theme.accent
     }
-    contentItem: SettingsIcon { name: "delete-02"; ink: button.theme.text }
+    contentItem: SettingsIcon { name: "delete-02"; ink: button.theme.error }
 }

@@ -72,7 +72,7 @@ userTests("self operations", () => {
     expect(value.git(value.repository, ["config", "--global", "core.editor"])).toBe("nvim");
     expect(readFileSync(value.executable, "utf8")).toContain("fixture CLI");
     expect(statSync(value.executable).mode & 0o777).toBe(0o755);
-    expect(progress).toHaveLength(11);
+    expect(progress).toHaveLength(12);
     expect(process.cwd()).toBe(oldCwd);
     expect(Bun.env.LUNA_ROOT).toBe(oldRoot);
   });
@@ -409,4 +409,20 @@ userTests("self operations", () => {
     });
     expect(value.commands()).toEqual([]);
   });
+});
+
+test("preinstalled themes point to Tokyo Night and Catppuccin in the GitHub collection", async () => {
+  const entries = Bun.JSONC.parse(
+    await Bun.file(join(import.meta.dir, "../../../installs/themes.jsonc")).text(),
+  );
+  expect(entries).toEqual([
+    {
+      name: "tokyo-night",
+      source: "https://github.com/dot-luna/luna-themes/tree/main/themes/tokyo-night",
+    },
+    {
+      name: "catppuccin-mocha",
+      source: "https://github.com/dot-luna/luna-themes/tree/main/themes/catppuccin-mocha",
+    },
+  ]);
 });

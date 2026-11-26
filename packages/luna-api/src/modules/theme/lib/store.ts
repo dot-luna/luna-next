@@ -1,11 +1,20 @@
-import { copyFile, mkdir, mkdtemp, readdir, realpath, rename, rm } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+} from "node:fs/promises";
 import { basename, join } from "pathe";
 import { metadata } from "@/lib/files.ts";
 import { ApiError } from "@/lib/response.ts";
 import { themeCommand } from "./command.ts";
 import type { ThemeContext } from "./context.ts";
 import { themePackages } from "./packages.ts";
-import { themeNameSchema } from "./schema.ts";
+import { themeNameSchema } from "../schema.ts";
 import { themeSelection } from "./selection.ts";
 import { themeValues } from "./values.ts";
 import { themeWallpapers } from "./wallpapers.ts";
@@ -17,6 +26,24 @@ export interface ThemeEntry {
 
 /** Installed theme folders in the library; callers hold the selection lock for mutations. */
 class ThemeStore {
+  /** Reject known destination conflicts before callers download remote assets. */
+  async check({
+    context,
+    name,
+    force = false,
+  }: {
+    context: ThemeContext;
+    name: string;
+    force?: boolean;
+  }) {
+    const destination = join(context.libraryDir, themeSelection.validName(name));
+    const existing = await metadata(destination);
+    if (existing && !existing.isDirectory())
+      throw new ApiError("INVALID_PATH", "Installed theme must be a regular directory");
+    if (existing && !force)
+      throw new ApiError("CONFLICT", "Theme already installed; use --force to replace it");
+    return { destination, existing };
+  }
   /**
    * Copy a validated theme folder into the library and return its installed path.
    * Prerequisite packages and wallpapers are installed before publication. Throws CONFLICT
@@ -27,37 +54,43 @@ class ThemeStore {
     source: input,
     name,
     force = false,
+    manifestSource,
   }: {
     context: ThemeContext;
     source: string;
     /** Defaults to the source folder name. */
     name?: string;
     force?: boolean;
+    /** Exact reviewed manifest bytes for a local source. */
+    manifestSource?: string;
   }) {
     if (!input) throw new ApiError("INVALID_PATH", "Theme source must be a directory");
     const source = await realpath(input);
     if (!(await metadata(source))?.isDirectory())
       throw new ApiError("INVALID_PATH", "Theme source must be a directory");
     name = themeSelection.validName(name ?? basename(source));
-    const original = await themeValues.read(source);
+    const manifest = await themeValues.manifest(source);
+    const originalText = await readFile(manifest, "utf8");
+    if (manifestSource !== undefined && originalText !== manifestSource)
+      throw new ApiError("CONFLICT", "Theme manifest changed after inspection");
+    const original = themeValues.parse(originalText, manifest);
     themeValues.resolve({ source: original, name });
     await mkdir(context.libraryDir, { recursive: true });
     const library = await realpath(context.libraryDir);
     if (library === source || library.startsWith(source + "/"))
       throw new ApiError("INVALID_PATH", "Theme source cannot contain the library");
-    const destination = join(library, name);
-    const existing = await metadata(destination);
-    if (existing && !existing.isDirectory())
-      throw new ApiError("INVALID_PATH", "Installed theme must be a regular directory");
-    if (existing && !force)
-      throw new ApiError("CONFLICT", "Theme already installed; use --force to replace it");
+    const { destination, existing } = await this.check({
+      context: { ...context, libraryDir: library },
+      name,
+      force,
+    });
     const staging = await mkdtemp(join(library, ".luna-theme-"));
     try {
       const staged = join(staging, "theme");
       await this._copyTree({ source, destination: staged, root: source });
       const value = await themeValues.read(staged);
       themeValues.resolve({ source: value, name });
-      if (JSON.stringify(value) !== JSON.stringify(original))
+      if ((await readFile(await themeValues.manifest(staged), "utf8")) !== originalText)
         throw new ApiError("CONFLICT", "Theme source changed while copying");
       await themePackages.install({ context, packages: value.packages });
       await themeWallpapers.import({
@@ -98,7 +131,10 @@ class ThemeStore {
     const names: string[] = [];
     for (const entry of await readdir(context.libraryDir, { withFileTypes: true })) {
       if (!entry.isDirectory() || !themeNameSchema.safeParse(entry.name).success) continue;
-      if ((await metadata(join(context.libraryDir, entry.name, "theme.jsonc")))?.isFile())
+      if (
+        (await metadata(join(context.libraryDir, entry.name, "theme.jsonc")))?.isFile() ||
+        (await metadata(join(context.libraryDir, entry.name, "theme.json")))?.isFile()
+      )
         names.push(entry.name);
     }
     return names.sort().map((name) => ({ name, current: name === current }));

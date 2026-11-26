@@ -6,9 +6,8 @@ import QtQuick.Layouts
 import "." as Components
 
 // The caller handles submission and closes after success; errors keep the input available.
-Controls.Dialog {
+Components.Dialog {
     id: dialog
-    required property Components.Theme theme
     property string fieldLabel: ""
     property string placeholderText: ""
     property string actionText: "Add"
@@ -16,40 +15,10 @@ Controls.Dialog {
     property bool busy: false
     property alias text: input.text
     signal submitted(string value)
-    modal: true
-    focus: true
-    width: Math.min(430, parent ? parent.width - 40 : 430)
-    padding: 22
-    closePolicy: Controls.Popup.CloseOnEscape
-    enter: Transition {
-        ParallelAnimation {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 140; easing.type: Easing.OutCubic }
-            NumberAnimation { property: "scale"; from: 0.97; to: 1; duration: 160; easing.type: Easing.OutCubic }
-        }
-    }
-    exit: Transition {
-        ParallelAnimation {
-            NumberAnimation { property: "opacity"; to: 0; duration: 100; easing.type: Easing.InCubic }
-            NumberAnimation { property: "scale"; to: 0.98; duration: 100; easing.type: Easing.InCubic }
-        }
-    }
     onAboutToShow: { errorMessage = ""; input.clear(); input.forceActiveFocus(); }
 
     function submit() {
         if (!busy && input.text.trim() !== "") submitted(input.text.trim());
-    }
-    background: Rectangle {
-        color: dialog.theme.surface
-        radius: dialog.theme.rounding
-        border.width: Math.max(1, dialog.theme.borderWidth)
-        border.color: dialog.theme.line
-    }
-    Controls.Overlay.modal: Rectangle { color: Qt.alpha(dialog.theme.sidebar, 0.65) }
-    header: Components.Title {
-        theme: dialog.theme
-        text: dialog.title
-        padding: 22
-        bottomPadding: 4
     }
     contentItem: ColumnLayout {
         spacing: 10

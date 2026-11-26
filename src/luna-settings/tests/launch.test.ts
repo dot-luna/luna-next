@@ -19,7 +19,7 @@ async function fixture(root: string) {
   const executable = join(bin, "qs");
   await writeFile(
     executable,
-    '#!/bin/sh\nprintf "%s" "$LUNA_SETTINGS_THEME" > "$LUNA_SETTINGS_CAPTURE"\nprintf "%s\\n" "$@" > "$LUNA_SETTINGS_ARGS"\nprintf "%s" "$QML_IMPORT_PATH" > "$LUNA_SETTINGS_IMPORTS"\nprintf "%s" "$LUNA_SETTINGS_BACKGROUND_COMMAND" > "$LUNA_SETTINGS_BRIDGE"\nprintf "%s" "$QT_QPA_PLATFORMTHEME" > "$LUNA_SETTINGS_PLATFORM"\nexit 23\n',
+    '#!/bin/sh\nprintf "%s" "$LUNA_SETTINGS_THEME" > "$LUNA_SETTINGS_CAPTURE"\nprintf "%s\\n" "$@" > "$LUNA_SETTINGS_ARGS"\nprintf "%s" "$QML_IMPORT_PATH" > "$LUNA_SETTINGS_IMPORTS"\nprintf "%s" "$LUNA_SETTINGS_BACKGROUND_COMMAND" > "$LUNA_SETTINGS_BRIDGE"\nprintf "%s" "$QT_QPA_PLATFORMTHEME" > "$LUNA_SETTINGS_PLATFORM"\nprintf "%s" "$LUNA_SETTINGS_THEME_COMMAND" > "$LUNA_SETTINGS_THEME_BRIDGE"\nexit 23\n',
   );
   await chmod(executable, 0o755);
   return {
@@ -36,6 +36,7 @@ async function fixture(root: string) {
       LUNA_SETTINGS_ARGS: join(root, "args.txt"),
       LUNA_SETTINGS_IMPORTS: join(root, "imports.txt"),
       LUNA_SETTINGS_BRIDGE: join(root, "bridge.json"),
+      LUNA_SETTINGS_THEME_BRIDGE: join(root, "theme-bridge.json"),
       LUNA_SETTINGS_PLATFORM: join(root, "platform.txt"),
       QML_IMPORT_PATH: join(root, "existing-qml"),
     },
@@ -69,6 +70,10 @@ test("launcher passes one resolved theme snapshot and leaves its source intact",
     expect(JSON.parse(await readFile(setup.env.LUNA_SETTINGS_BRIDGE, "utf8"))).toEqual([
       process.execPath,
       fileURLToPath(new URL("../src/backgrounds.ts", import.meta.url)),
+    ]);
+    expect(JSON.parse(await readFile(setup.env.LUNA_SETTINGS_THEME_BRIDGE, "utf8"))).toEqual([
+      process.execPath,
+      fileURLToPath(new URL("../src/themes.ts", import.meta.url)),
     ]);
     expect(await readFile(setup.env.LUNA_SETTINGS_IMPORTS, "utf8")).toBe(
       [

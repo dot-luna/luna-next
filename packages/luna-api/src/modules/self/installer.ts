@@ -10,7 +10,7 @@ import type { InstallContext } from "./install/command.ts";
 import { gitConfigurator } from "./install/git.ts";
 import { packageRecipes } from "./install/packages.ts";
 import { installReport, type InstallResult } from "./install/report.ts";
-import { bundledThemes } from "./install/themes.ts";
+import { preinstalledThemes } from "./install/themes.ts";
 import { bundledWebapps } from "./install/webapps.ts";
 import { migrationRunner } from "./migrations/run.ts";
 import { migrationState } from "./migrations/state.ts";
@@ -58,8 +58,8 @@ class SelfInstaller {
             context,
             recipes: [...packages.after_cli, ...packages.mise],
           });
-          context.progress("Installing bundled themes...");
-          await bundledThemes.install(context);
+          context.progress("Installing preinstalled themes...");
+          await preinstalledThemes.install(context);
           const appsContext = await appContext.resolve({
             repository,
             env: context.env,
@@ -127,6 +127,7 @@ class SelfInstaller {
         log: context.log,
       }),
     );
+    await preinstalledThemes.read(context);
     await bundledWebapps.read(context);
     await defaultsManifest.read({ context });
     return packages;

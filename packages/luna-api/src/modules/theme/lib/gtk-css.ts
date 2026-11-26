@@ -1,4 +1,4 @@
-import type { ResolvedTheme, ThemeMode } from "./schema.ts";
+import type { ResolvedTheme, ThemeMode } from "../schema.ts";
 
 class GtkCss {
   /** GTK3 widget structure comes from GTK; resolved Luna colors stay fixed across mode overrides. */

@@ -4,7 +4,7 @@ import { metadata, parse } from "@/lib/files.ts";
 import { ApiError } from "@/lib/response.ts";
 import { validate } from "@/lib/validation.ts";
 import type { ThemeContext } from "./context.ts";
-import { themeNameSchema, themeSelectionSchema } from "./schema.ts";
+import { themeNameSchema, themeSelectionSchema } from "../schema.ts";
 import { themeValues } from "./values.ts";
 
 /** Used when nothing is selected; resolving an empty source yields the bundled defaults. */

@@ -3,6 +3,7 @@ import { cp, mkdir, mkdtemp, rm, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { defaults } from "../../../packages/luna-api/src/modules/theme/lib/defaults.ts";
 
 async function fixture() {
   const executable = Bun.which("qs") ?? Bun.which("quickshell");
@@ -51,11 +52,7 @@ async function until(check: () => Promise<boolean>) {
 test("native Lock preview compiles, and a broken custom screen falls back without PAM or a session lock", async () => {
   const f = await fixture();
   try {
-    const theme = Bun.JSONC.parse(
-      await Bun.file(
-        new URL("../../../themes/bundled/tokyo-night/theme.jsonc", import.meta.url),
-      ).text(),
-    );
+    const theme: Record<string, unknown> = structuredClone(defaults);
     await Bun.write(
       join(f.root, "broken/Screen.qml"),
       "import QtQuick\nItem { required property var lock; MissingType {} }\n",

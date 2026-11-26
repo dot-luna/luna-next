@@ -1,4 +1,4 @@
-import type { ResolvedTheme } from "./schema.ts";
+import type { ResolvedTheme } from "../schema.ts";
 
 // API fallbacks remain available without an installed theme collection.
 export const defaults: Omit<ResolvedTheme, "name"> = {

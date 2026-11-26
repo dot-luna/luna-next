@@ -11,8 +11,8 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { wallpaperLibrary, type LibraryContext } from "../src/modules/wallpaper/library.ts";
-import { themeWallpapers } from "../src/modules/theme/wallpapers.ts";
-import { themeContext } from "../src/modules/theme/context.ts";
+import { themeWallpapers } from "../src/modules/theme/lib/wallpapers.ts";
+import { themeContext } from "../src/modules/theme/lib/context.ts";
 import { locked } from "../src/lib/files.ts";
 
 const svg = (color = "red") =>

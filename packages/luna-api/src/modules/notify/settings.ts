@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "pathe";
 import { readDocument } from "@/lib/files.ts";
 import { validate } from "@/lib/validation.ts";
-import { themeSelection } from "@/modules/theme/selection.ts";
-import { themeContext } from "@/modules/theme/context.ts";
+import { themeSelection } from "@/modules/theme/lib/selection.ts";
+import { themeContext } from "@/modules/theme/lib/context.ts";
 import { notifyDefaults, notifySettingsSchema, type NotifySettings } from "./schema.ts";
 import { valueAtKey } from "@/lib/keys.ts";
 
