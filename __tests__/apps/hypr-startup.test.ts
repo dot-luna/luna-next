@@ -21,13 +21,17 @@ dofile(arg[1])
   const result = Bun.spawnSync(["lua", "-", startup], { stdin: Buffer.from(script) });
   expect(result.exitCode, result.stderr.toString()).toBe(0);
   const commands = result.stdout.toString().trim().split("\n");
-  expect(commands).toContain("/usr/lib/polkit-kde-authentication-agent-1");
+  expect(commands).toContain('"$HOME/.local/bin/luna" polkit start');
+  expect(commands.some((command) => command.includes("polkit-kde"))).toBe(false);
   const fixture = new AppFixture();
   try {
     const context = await appContext.resolve({ repository, env: fixture.env });
     const catalog = await appCatalog.read(context);
     const hypr = catalog.find((app) => app.id === "hypr")!;
-    expect(hypr.manifest.deps?.map((dep) => dep.name)).toContain("polkit-kde-agent");
+    expect(hypr.manifest.deps?.map((dep) => dep.name)).not.toContain("polkit-kde-agent");
+    const polkit = catalog.find((app) => app.id === "luna-polkit")!;
+    expect(polkit.manifest.enabled).toBe(true);
+    expect(polkit.manifest.deps?.map((dep) => dep.name)).toEqual(["quickshell", "polkit"]);
   } finally {
     fixture.dispose();
   }

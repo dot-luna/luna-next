@@ -8,17 +8,18 @@ PanelWindow {
     id: panel
 
     required property var theme
+    property var settings: ({ width: 420, dim_opacity: 0.5 })
     property var flow: null
     visible: flow !== null && !flow.isCompleted
     color: "transparent"
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "luna-next-polkit"
+    WlrLayershell.namespace: "luna-polkit"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     onVisibleChanged: if (visible) Qt.callLater(card.focusInput)
 
-    Rectangle { anchors.fill: parent; color: "#80000000" }
+    Rectangle { anchors.fill: parent; color: "black"; opacity: panel.settings.dim_opacity }
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
 
     // Short displays and large system prompts remain scrollable without clipping actions.
@@ -35,6 +36,7 @@ PanelWindow {
             width: parent.width
             height: implicitHeight
             theme: panel.theme
+            settings: panel.settings
             flow: panel.flow
             onFocusMoved: control => {
                 // Tab navigation must keep the focused control visible on short displays.

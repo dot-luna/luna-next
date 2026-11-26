@@ -10,6 +10,7 @@ import { addDefaultsCommands } from "@/modules/defaults/commands.ts";
 import { addEmojiCommands } from "@/modules/emoji/commands.ts";
 import { addLockCommands } from "@/modules/lock/commands.ts";
 import { addMenuCommands } from "@/modules/menu/commands.ts";
+import { addPolkitCommands } from "@/modules/polkit/commands.ts";
 import { addNotifyCommands } from "@/modules/notify/commands.ts";
 import { addScreensaverCommands } from "@/modules/screensaver/commands.ts";
 import { addScreenshotCommands } from "@/modules/screenshot/commands.ts";
@@ -30,6 +31,7 @@ const registrations = [
   addAppCommands,
   addWebappCommands,
   addNotifyCommands,
+  addPolkitCommands,
   addBarCommands,
   addMenuCommands,
   addEmojiCommands,

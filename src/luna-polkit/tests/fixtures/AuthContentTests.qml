@@ -9,7 +9,7 @@ TestCase {
     name: "AuthenticationContent"
     visible: true
 
-    readonly property var theme: JSON.parse(Quickshell.env("LUNA_NEXT_POLKIT_THEME"))
+    readonly property var theme: JSON.parse(Quickshell.env("LUNA_POLKIT_THEME"))
     property var flow
     property var card
     property var input
@@ -25,7 +25,7 @@ TestCase {
         // QObject properties provide the same change notifications as native flows.
         QtObject {
             property string message: "Authentication is needed to change a setting."
-            property string actionId: "org.example.lunanext.test"
+            property string actionId: "org.example.luna.test"
             property var identities: [
                 {string: "alice", displayName: "Alice", isGroup: false, id: 1000},
                 {string: "root", displayName: "Administrator", isGroup: false, id: 0}
@@ -93,12 +93,17 @@ TestCase {
     }
 
     function cleanupTestCase() {
-        console.log("LUNA_NEXT_POLKIT_TEST_RESULT " + JSON.stringify({
+        console.log("LUNA_POLKIT_TEST_RESULT " + JSON.stringify({
             passed: qtest_results.passCount,
             failed: qtest_results.failCount,
             skipped: qtest_results.skipCount,
             failedTests: failedTests
         }));
+    }
+
+    function test_configured_width() {
+        card.settings = { width: 520, dim_opacity: 0.3 };
+        compare(card.implicitWidth, 520);
     }
 
     function typeSecret() {

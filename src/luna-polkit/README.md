@@ -1,11 +1,12 @@
-# Luna Next polkit agent
+# Luna Polkit
 
-Desktop authentication prompts using Quickshell's native polkit backend and Luna
-Next's selected theme. Runs separately from the bar and launcher.
+Desktop authentication prompts using Quickshell's native polkit backend and the
+selected Luna theme. Install with Luna, then log in again for automatic startup
+in Luna's Hyprland session.
 
 ```sh
-luna install --local cli polkit
-luna polkit start
+luna install luna-polkit
+luna polkit status
 ```
 
-See [DOCS.md](DOCS.md) for dependencies, session startup, and tests.
+See [DOCS.md](DOCS.md) for manual startup, settings, dependencies, and tests.

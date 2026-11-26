@@ -8,6 +8,7 @@ Rectangle {
     id: card
 
     required property var theme
+    property var settings: ({ width: 420, dim_opacity: 0.5 })
     property var flow: null
     property bool submitted: false
     property string failure: ""
@@ -16,7 +17,7 @@ Rectangle {
     readonly property string feedback: flow && flow.supplementaryMessage ? flow.supplementaryMessage : failure
     signal focusMoved(Item control)
 
-    implicitWidth: 420
+    implicitWidth: settings.width
     implicitHeight: content.implicitHeight + 48
     color: card.theme.colors.background
     radius: Math.min(18, card.theme.appearance.rounding)
@@ -158,7 +159,7 @@ Rectangle {
         RowLayout {
             spacing: 10
             AuthIcon {
-                name: "lock"
+                name: "square-lock-02"
                 ink: card.theme.colors.accent
                 implicitWidth: 20
                 implicitHeight: 20
@@ -211,7 +212,7 @@ Rectangle {
                 palette.mid: card.theme.colors.muted
                 palette.dark: card.theme.colors.foreground
                 indicator: AuthIcon {
-                    name: "chevron-right"
+                    name: "arrow-right-01"
                     ink: card.theme.colors.foreground
                     implicitWidth: 14
                     implicitHeight: 14

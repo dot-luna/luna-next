@@ -1,42 +1,46 @@
-# Luna Next polkit agent
+# Luna Polkit
 
 Requires Quickshell 0.3.2+ with `Quickshell.Services.Polkit`, Qt Quick Controls,
-polkit, a Wayland session, and a systemd user manager.
+polkit, and a Wayland desktop session recognized by logind. `luna install luna-polkit`
+installs the declared packages, QML, and [default settings](../../apps/luna-polkit/config/polkit.jsonc).
 
-Install the CLI and app with `luna install --local cli polkit`, then run
-`luna polkit start` from the desktop session. Other authentication agents must
-release the session registration first.
+Luna's Hyprland configuration runs `luna polkit start` at login. Other compositors
+can run that command from their session startup. Stop any other authentication
+agent first; Luna does not terminate competing agents. After upgrading from KDE's
+agent, log out and back in. The v0.0.13 migration removes `polkit-kde-agent` after
+successful setup. There is no separate systemd service.
 
-| Command               | Behavior                                                                                                    |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `luna polkit start`   | Validate the real UI, enable session autostart, start and confirm registration. A healthy instance is kept. |
-| `luna polkit restart` | Validate before replacing the running instance.                                                             |
-| `luna polkit stop`    | Stop the agent; login startup remains enabled.                                                              |
-| `luna polkit status`  | Print `running`, `unavailable`, or `stopped`.                                                               |
-| `luna polkit serve`   | Foreground process used by the user service.                                                                |
+| Command                       | Behavior                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `luna polkit start`           | Validate the UI, start the agent, and confirm registration; keep a healthy instance. |
+| `luna polkit restart`         | Validate settings and UI before replacing the running instance.                      |
+| `luna polkit stop`            | Stop this agent; login startup remains configured.                                   |
+| `luna polkit status`          | Print `running`, `unavailable`, or `stopped`.                                        |
+| `luna polkit get [key]`       | Read source settings; absent keys return null.                                       |
+| `luna polkit get-config-file` | Print the settings path.                                                             |
 
-The app links into `$XDG_DATA_HOME/luna-next/polkit` (default `~/.local/share`).
-[app.conf](../../apps/luna-polkit/app.conf) installs the systemd unit under
-`$XDG_CONFIG_HOME/systemd/user`. The service follows `graphical-session.target`,
-restarts after crashes, and imports the session environment when started.
-The supplied Hyprland configuration starts it at login. No root daemon is added.
+Settings use `--config <file>`, then `LUNA_POLKIT_CONFIG`, then
+`$LUNA_CONFIG_HOME_DIR/polkit.jsonc` (normally `~/.config/luna/polkit.jsonc`).
+Missing settings files are created as `{}`. Defaults merge only in memory:
+`width` is 420 pixels (280–640), and `dim_opacity` is 0.5 (0–0.8).
+Colors, fonts, borders, and rounding follow the shared theme. Restart after edits;
+there are no file watchers. `--install-dir <checkout>` selects source QML instead
+of the installed `$LUNA_CONFIG_HOME_DIR/polkit` shell.
 
-Colors, fonts, borders, and rounding come from the shared theme API once at
-startup. Restart after changing the theme. There is no separate app config or
-file watcher. `LUNA_NEXT_POLKIT_SHELL` can select a different shell path.
+Passwords go directly to the native conversation, never through CLI IPC, files,
+logs, or shell commands. Input and undo history clear between challenges and
+identity changes. Escape cancels, Enter submits, and Tab navigates controls.
+Polkit and PAM retain their policies. Restarting cancels a pending prompt.
 
-Passwords go directly to the native authentication conversation, with no files,
-logs, shell commands, or IPC carrying responses. Inputs and undo history clear
-between challenges, requests, and identity changes. Escape cancels; Enter submits;
-Tab navigates the account selector and buttons. Polkit and PAM retain their policies.
+From the repository root:
 
 ```sh
+bun run check
+bun test packages/luna-api/tests/polkit.test.ts __tests__/apps/luna-polkit __tests__/apps/hypr-startup.test.ts
 python3 -m unittest discover -s src/luna-polkit/tests -v
-cargo test -p luna-next --test polkit
-cargo test -p ln-cli
+/usr/lib/qt6/bin/qmllint -I /usr/lib/qt6/qml src/luna-polkit/src/shell/*.qml
+bun run --cwd src/luna-cli build --no-install
 ```
 
-QML tests use fake conversations and an isolated D-Bus authority. They never
-authenticate against the host. Native backend tests also need Python GObject
-bindings (`python-gobject`). For live troubleshooting, use
-`journalctl --user -u luna-next-polkit.service`.
+Native tests need `python-gobject` and a logind session. They use an isolated
+D-Bus authority; UI tests use fake conversations, without authenticating on the host.

@@ -541,3 +541,17 @@ are merged only in memory. Unknown source fields and comments are left intact. S
 and `toggle` control it. `Luna.bar` provides the same operations with
 `{repository?, configFile?, env?}`, plus `get` and `getConfigFile` for settings.
 See [Luna Bar controls and checks](../../src/luna-bar/DOCS.md).
+
+## Polkit
+
+`Luna.polkit.start/stop/restart/status(options?)` control the desktop authentication
+agent and return `{ running, status, shellDirectory, configFile }`. Status is
+`running`, `unavailable` (registration pending or rejected), or `stopped`.
+`start` keeps a registered instance; `restart` validates settings and QML before
+stopping it. Authentication stays in the native backend and is never exposed over IPC.
+
+`get(key?, options?)` reads sparse JSONC, creating `{}` when missing; missing keys
+return null. `getConfigFile(options?)` returns its path. Options accept `env`,
+`repository` for source QML, and `configFile` (before `LUNA_POLKIT_CONFIG` and
+`$LUNA_CONFIG_HOME_DIR/polkit.jsonc`). Settings are validated with Zod and merged
+in memory. See [Polkit settings and startup](../../src/luna-polkit/DOCS.md).
