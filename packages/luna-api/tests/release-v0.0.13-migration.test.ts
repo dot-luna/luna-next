@@ -73,10 +73,14 @@ test("v0.0.13 upgrades Hyprland or Polkit installations, respects disabled apps 
     expect(migrated.code).toBe(0);
     expect(migrated.calls).toEqual([
       installed,
-      { name: "systemctl", args: ["--user", "disable", "--now", "luna-next-polkit.service"] },
+      { name: "systemctl", args: ["--user", "disable", "luna-next-polkit.service"] },
       { name: "systemctl", args: ["--user", "daemon-reload"] },
       { name: "configure", ids: ["hypr"], options: { closeApps: false } },
     ]);
+    // Disabling autostart must leave the legacy process available until logout.
+    expect(
+      migrated.calls.some((call) => call.args?.includes("--now") || call.args?.includes("stop")),
+    ).toBe(false);
     expect(await Bun.file(unit).exists()).toBe(false);
     expect(await run(["hypr"])).toEqual({
       code: 0,

@@ -17,11 +17,12 @@ if (installed.data.length) {
     const unit = join(config, "systemd/user/luna-next-polkit.service");
     await ordinaryParents(unit);
     if (await metadata(unit)) {
-      const stop = Bun.spawn(
-        ["systemctl", "--user", "disable", "--now", "luna-next-polkit.service"],
-        { stdout: "inherit", stderr: "inherit" },
-      );
-      if ((await stop.exited) !== 0)
+      // Disable future startup without cancelling the current authentication session.
+      const disable = Bun.spawn(["systemctl", "--user", "disable", "luna-next-polkit.service"], {
+        stdout: "inherit",
+        stderr: "inherit",
+      });
+      if ((await disable.exited) !== 0)
         throw new Error("Could not disable the obsolete Luna polkit service");
       await rm(unit);
       const reload = Bun.spawn(["systemctl", "--user", "daemon-reload"], {

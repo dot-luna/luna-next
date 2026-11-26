@@ -43,3 +43,8 @@ bun run --cwd src/luna-cli build --no-install
 
 Native tests need `python-gobject` and a logind session. They use an isolated
 D-Bus authority; UI tests use fake conversations, without authenticating on the host.
+
+Temporary approval is controlled by each Polkit action's policy. Policies using
+`auth_admin_keep` or `auth_self_keep` can retain approval briefly (typically about
+five minutes) for the same action and subject. The native Quickshell backend has
+no per-request remember toggle, so Luna does not show a checkbox for it.
