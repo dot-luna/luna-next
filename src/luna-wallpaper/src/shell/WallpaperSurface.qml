@@ -15,10 +15,9 @@ PanelWindow {
     property string kind: "image"
     property bool completed: false
     property string requestedSource: ""
-    // The old visible slot survives decoding and, when enabled, the replacement fade.
+    // Keep the visible slot until its replacement has decoded.
     property var currentImage: null
     property var pendingImage: null
-    property var retiringImage: null
     // Deferred failures belong to one request, even when its Loader slot is reused.
     property int generation: 0
 
@@ -36,7 +35,6 @@ PanelWindow {
         default: return Image.Pad;
         }
     }
-    readonly property int fadeDuration: (settings?.transition?.type ?? "fade") === "fade" ? (settings?.transition?.duration_ms ?? 200) : 0
 
     readonly property bool hasHyprland: !!Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")
     readonly property var monitor: hasHyprland && screen ? Hyprland.monitorFor(screen) : null
@@ -71,12 +69,6 @@ PanelWindow {
         console.warn("Wallpaper " + (screen?.name || "output") + ": " + message);
     }
 
-    function finishFade() {
-        if (retiringImage && retiringImage !== currentImage)
-            retiringImage.active = false;
-        retiringImage = null;
-    }
-
     function apply(force) {
         const nextSource = settings?.wallpaper?.source ?? "";
         // Fit, color, and playback settings update through their existing bindings.
@@ -86,10 +78,6 @@ PanelWindow {
         probe.active = false;
         requestedSource = nextSource;
         deadline.stop();
-        fade.stop();
-        finishFade();
-        if (currentImage)
-            currentImage.opacity = 1;
         if (pendingImage) {
             pendingImage.active = false;
             pendingImage = null;
@@ -142,8 +130,7 @@ PanelWindow {
             next.active = false;
             next.sourcePath = requestedSource;
             next.mediaKind = kind;
-            next.opacity = 0;
-            next.z = 1;
+            next.visible = false;
             pendingImage = next;
             next.active = true;
         }
@@ -168,21 +155,11 @@ PanelWindow {
             const previous = currentImage;
             currentImage = image;
             pendingImage = null;
-            const replacingVideo = video.active;
             video.active = false;
+            image.visible = true;
             mediaStatus = "ready";
             if (previous)
-                previous.z = 0;
-            // The fade covers Qt image slots; mpvpaper's separate surface is already released.
-            if (!replacingVideo && fadeDuration > 0) {
-                retiringImage = previous;
-                fade.target = image;
-                fade.start();
-            } else {
-                image.opacity = 1;
-                if (previous)
-                    previous.active = false;
-            }
+                previous.active = false;
         }
     }
 
@@ -253,15 +230,6 @@ PanelWindow {
         }
     }
 
-    NumberAnimation {
-        id: fade
-        property: "opacity"
-        from: 0
-        to: 1
-        duration: surface.fadeDuration
-        onFinished: surface.finishFade()
-    }
-
     Timer {
         interval: 2000
         repeat: true
@@ -281,7 +249,6 @@ PanelWindow {
             scale: surface.nativeScale
             transformOrigin: Item.TopLeft
             active: false
-            opacity: 0
             fit: surface.fit
             fillMode: surface.imageFillMode
             paused: surface.pauseMedia
@@ -296,7 +263,6 @@ PanelWindow {
             scale: surface.nativeScale
             transformOrigin: Item.TopLeft
             active: false
-            opacity: 0
             fit: surface.fit
             fillMode: surface.imageFillMode
             paused: surface.pauseMedia

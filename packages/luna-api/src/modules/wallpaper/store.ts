@@ -4,17 +4,20 @@ import { basename, isAbsolute, join, resolve } from "pathe";
 import { locked, metadata } from "@/lib/files.ts";
 import { canonicalPath, overlaps } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
-import type { WallpaperContext, WallpaperEntry, WallpaperInstallOptions } from "./context.ts";
+import {
+  wallpaperConfig,
+  type WallpaperContext,
+  type WallpaperEntry,
+  type WallpaperInstallOptions,
+} from "./config.ts";
 import { wallpaperLibrary, type LibraryContext } from "./library.ts";
-import { wallpaperMedia } from "./media.ts";
 import { wallpaperRenderer } from "./runtime.ts";
 import { wallpaperImportSchema } from "./schema.ts";
-import { wallpaperSettings } from "./settings.ts";
 
 /** Library operations that read or change the saved selection. */
 class WallpaperStore {
   async current(context: WallpaperContext) {
-    return (await wallpaperSettings.read(context)).value.wallpaper?.source || null;
+    return (await wallpaperConfig.read(context)).value.wallpaper?.source || null;
   }
 
   /** Copy validated media into the library without changing the selection. */
@@ -57,11 +60,11 @@ class WallpaperStore {
   /** Installed names use the shared data library; explicit absolute paths and empty sources remain supported. */
   async select({ context, source }: { context: WallpaperContext; source: string }) {
     if (source === "" || isAbsolute(source))
-      return wallpaperSettings.save({ context, patch: { wallpaper: { source } } });
+      return wallpaperConfig.save({ context, patch: { wallpaper: { source } } });
     return this._libraryLocked(context, async (library) => {
       const path = await wallpaperLibrary.path({ context: library, name: source });
-      await wallpaperMedia.validate({ context: library, path });
-      return wallpaperSettings.save({ context, patch: { wallpaper: { source: path } } });
+      await wallpaperLibrary.validate({ context: library, path });
+      return wallpaperConfig.save({ context, patch: { wallpaper: { source: path } } });
     });
   }
 
@@ -74,7 +77,7 @@ class WallpaperStore {
       const current = await this._canonicalSource(await this.current(context));
       const alternatives = all.filter((entry) => entry.path !== current);
       const choices = alternatives.length ? alternatives : all;
-      return wallpaperSettings.save({
+      return wallpaperConfig.save({
         context,
         patch: { wallpaper: { source: choices[randomInt(choices.length)]!.path } },
       });
@@ -102,7 +105,7 @@ class WallpaperStore {
         const paths: string[] = [];
         for (const name of new Set(names)) {
           const path = await wallpaperLibrary.path({ context: library, name });
-          await wallpaperMedia.validate({ context: library, path });
+          await wallpaperLibrary.validate({ context: library, path });
           paths.push(path);
         }
         const selected = await this._canonicalSource(await this.current(context));

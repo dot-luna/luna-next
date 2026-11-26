@@ -209,20 +209,22 @@ file, and `--install-dir PATH` for source QML. Installed copies remain usable
 after their original files move or are removed.
 
 Use `get [key]` to read saved settings and `get-config-file` to locate the JSONC.
-Settings commands are `fit <mode>`, `background <color>`,
-`pause-when-inactive <true|false>`, and `transition <type> [duration]`, with durations
-in milliseconds. Missing settings read as null; omitted values use renderer
-defaults. Settings commands validate and save the JSONC, then reload a running
-renderer. After direct file edits, run `luna wallpaper reload`.
+`background <color>` changes the background color. Configure sizing and inactive
+output playback in JSONC. Missing settings read as null; omitted values use renderer
+defaults. Commands that change settings validate and save the JSONC, then reload a
+running renderer. Valid direct edits reload automatically by default. Use
+`watch false` to disable watching and `watch true` to enable it. With watching
+disabled, apply direct edits with `luna wallpaper reload`. Invalid edits keep the
+last valid snapshot active and report errors in the renderer log.
 JSON mode returns the API response unchanged.
 
 ```sh
 luna wallpaper install "$HOME/Pictures/wallpaper.png"
 luna wallpaper set wallpaper.png
-luna wallpaper transition fade 300
+luna wallpaper start
 ```
 
-See [wallpaper settings and setup](../luna-wallpaper/DOCS.md).
+See [wallpaper settings](../luna-wallpaper/config.example.jsonc).
 
 ## Screensaver
 

@@ -27,6 +27,9 @@
 - Installing or configuring apps replaces the declared destination files and
   folders. Do not create backups or preserve their previous contents. Leave
   paths outside those exports untouched; keep validation and safe writes.
+- Add a package to an app's `deps` only when it is not already declared in another
+  app's `name` or `deps` under `apps/`, or in `installs/`. Check those declarations
+  first and do not duplicate packages.
 
 - Keep each package's `README.md` short: what it does, the minimum setup, and one
   working usage example. Link to the package's `DOCS.md` for everything else.
@@ -36,6 +39,8 @@
 - Document only what users need for that package. List external dependencies
   only when they need separate installation. Omit generic toolchain reminders
   and other packages' requirements; link elsewhere only when needed for use.
+- Keep app documentation focused on the app itself. CLI commands and configuration
+  management belong in the CLI and API documentation, not each app's docs.
 - Put implementation in `src/`. Keep tests and fixtures for `packages/` and
   `src/` packages with their owning package, usually in `tests/`.
 - Put app configuration tests in root `__tests__/apps/<app>/`, and shared app
@@ -60,11 +65,13 @@
   Do not add JSON Schema files, Ajv, or duplicate validation rules in consumers.
 - Preserve author-written theme sources when installing them. Merge defaults
   only in memory; do not write resolved defaults over source files. Keep settings
-  reads explicit and one-shot; do not add watchers, caches, or live getters.
+  reads explicit and one-shot, except for Wallpaper's opt-out configuration watcher;
+  do not add caches or live getters.
 - Keep shared application operations in `packages/luna-api`; CLI code handles
   arguments, prompts, and output. Standard wallpaper config mutations validate
   and save atomically, then explicitly reload the running renderer. Keep full
-  process replacement for `restart`; do not add configuration file watchers. Failed
+  process replacement for `restart`. Wallpaper's optional watcher publishes validated
+  snapshots without replacing the renderer process. Failed
   application restores the previous source without overwriting external edits.
 - Preserve explicit file paths, automatic missing-file creation, and null values
   for missing settings. Apps choose configuration paths.

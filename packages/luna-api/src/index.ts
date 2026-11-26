@@ -84,7 +84,7 @@ export type {
   WallpaperInstallOptions,
   WallpaperSetOptions,
   WallpaperEntry,
-} from "./modules/wallpaper/context.ts";
+} from "./modules/wallpaper/config.ts";
 export type { WallpaperSettings } from "./modules/wallpaper/schema.ts";
 
 export type { DefaultsOptions, DefaultEntry, DefaultsResult } from "./modules/defaults/context.ts";

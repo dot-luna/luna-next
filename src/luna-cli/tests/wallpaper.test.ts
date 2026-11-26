@@ -77,12 +77,15 @@ beforeEach(() => {
   mkdirSync(env.PATH!, { recursive: true });
   for (const tool of ["flock", "bash", "file", "curl"])
     symlinkSync(Bun.which(tool)!, join(env.PATH!, tool));
+  symlinkSync(process.execPath, join(env.PATH!, "bun"));
   write(configFile, '// Keep my settings\n{"wallpaper":{"fit":"fit"},}\n');
   write(join(env.XDG_CONFIG_HOME!, "luna/wallpaper/shell.qml"), "import Quickshell\nShellRoot {}");
+  write(join(env.XDG_CONFIG_HOME!, "luna/wallpaper/watch.js"), "// fixture");
   write(
     join(repository, "src/luna-wallpaper/src/shell/shell.qml"),
     "import Quickshell\nShellRoot {}",
   );
+  write(join(repository, "src/luna-wallpaper/src/shell/watch.js"), "// fixture");
   write(
     join(env.PATH!, "qs"),
     `#!${process.execPath}\n` +
@@ -136,27 +139,18 @@ test("wallpaper setters preserve sparse JSONC and send validated settings to the
   const initial = Bun.JSONC.parse(readFileSync(configFile, "utf8"));
   expect(initial).toEqual({ wallpaper: { fit: "fit", source } });
 
-  for (const args of [
-    ["fit", "center"],
-    ["background", "#102030"],
-    ["pause-when-inactive", "false"],
-    ["transition", "none", "250"],
-  ]) {
+  for (const args of [["background", "#102030"]]) {
     const result = await cli(args);
     expect(result.exitCode, result.stdout + result.stderr).toBe(0);
     expect(result.stdout).toBe("Wallpaper updated.\n");
   }
   expect(Bun.JSONC.parse(readFileSync(configFile, "utf8"))).toEqual({
-    wallpaper: { fit: "center", source, background_color: "#102030" },
-    playback: { pause_when_output_inactive: false },
-    transition: { type: "none", duration_ms: 250 },
+    wallpaper: { fit: "fit", source, background_color: "#102030" },
   });
   expect(JSON.parse(readFileSync(env.LUNA_WALLPAPER_TEST_SNAPSHOT!, "utf8"))).toMatchObject({
-    wallpaper: { source, fit: "center", background_color: "#102030" },
-    playback: { pause_when_output_inactive: false },
-    transition: { type: "none", duration_ms: 250 },
+    wallpaper: { source, fit: "fit", background_color: "#102030" },
   });
-  expect(commands().filter((args) => args.includes("reload"))).toHaveLength(5);
+  expect(commands().filter((args) => args.includes("reload"))).toHaveLength(2);
 
   const cleared = await cli(["set", "", "--json"]);
   expect(cleared.exitCode, cleared.stdout + cleared.stderr).toBe(0);
@@ -341,7 +335,13 @@ test("wallpaper install rejects invalid names and ambiguous renames without impo
 
 test("wallpaper rejects invalid arguments and settings before changing the configuration", async () => {
   const original = readFileSync(configFile, "utf8");
-  for (const args of [["set"], ["pause-when-inactive", "yes"], ["transition", "fade", "250ms"]]) {
+  for (const args of [
+    ["set"],
+    ["watch", "yes"],
+    ["fit", "center"],
+    ["pause-when-inactive", "true"],
+    ["transition", "fade", "250"],
+  ]) {
     const result = await cli([...args, "--json"]);
     expect(result.exitCode, result.stdout + result.stderr).toBe(2);
     expect(result.stderr).toBe("");
@@ -349,9 +349,7 @@ test("wallpaper rejects invalid arguments and settings before changing the confi
   }
   for (const args of [
     ["set", "relative.png"],
-    ["fit", "invalid"],
     ["background", "invalid"],
-    ["transition", "invalid"],
   ]) {
     const result = await cli([...args, "--json"]);
     expect(result.exitCode, result.stdout + result.stderr).toBe(1);
@@ -360,4 +358,26 @@ test("wallpaper rejects invalid arguments and settings before changing the confi
   }
   expect(readFileSync(configFile, "utf8")).toBe(original);
   expect(commands()).toEqual([]);
+});
+
+test("wallpaper watch switches automatic reloads on and off through the API", async () => {
+  write(env.LUNA_WALLPAPER_TEST_STATE!, "ready");
+  for (const enabled of [false, true]) {
+    const result = await cli(["watch", String(enabled), "--json"]);
+    expect(result.exitCode, result.stdout + result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      succes: true,
+      data: { watch_config: enabled },
+    });
+    expect(Bun.JSONC.parse(readFileSync(configFile, "utf8"))).toMatchObject({
+      watch_config: enabled,
+    });
+    expect(JSON.parse(readFileSync(env.LUNA_WALLPAPER_TEST_SNAPSHOT!, "utf8"))).toMatchObject({
+      watch_config: enabled,
+    });
+  }
+  expect(commands().filter((args) => args.includes("reload"))).toHaveLength(2);
+  expect(commands().some((args) => args.includes("kill") || args.includes("--daemonize"))).toBe(
+    false,
+  );
 });

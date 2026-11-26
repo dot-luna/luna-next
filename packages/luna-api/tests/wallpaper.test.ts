@@ -88,7 +88,7 @@ test("feature Zod schema rejects invalid known values and HOCON without touching
     { wallpaper: null },
     { wallpaper: [] },
     { playback: false },
-    { transition: "fade" },
+    ...[null, "true", 1].map((watch_config) => ({ watch_config })),
     ...[
       "relative.png",
       "~/image.png",
@@ -106,8 +106,6 @@ test("feature Zod schema rejects invalid known values and HOCON without touching
     ...["false", null].map((pause_when_output_inactive) => ({
       playback: { pause_when_output_inactive },
     })),
-    ...[-1, 0.5, 2147483648, "200", null].map((duration_ms) => ({ transition: { duration_ms } })),
-    { transition: { type: "unknown" } },
   ];
   for (const document of documents) {
     const source = JSON.stringify(document);
@@ -123,13 +121,6 @@ test("feature Zod schema rejects invalid known values and HOCON without touching
     succes: false,
     err: "INVALID_METADATA",
   });
-  for (const duration_ms of [0, 2147483647]) {
-    f.source(JSON.stringify({ transition: { duration_ms } }));
-    expect(await Luna.wallpaper.get("transition.duration_ms", f.options)).toEqual({
-      succes: true,
-      data: duration_ms,
-    });
-  }
   expect(f.commands()).toHaveLength(0);
 });
 
@@ -169,6 +160,12 @@ test("start snapshots settings once, repeated start preserves the instance, relo
     { wallpaper: { source: "/second.png" } },
   ]);
   expect(f.env.LUNA_WALLPAPER_SETTINGS).toBeUndefined();
+  const watcher = f.commands().find((command) => command.watcher)?.watcher;
+  expect(JSON.parse(watcher!)).toEqual([
+    join(f.bin, "bun"),
+    join(f.shell, "watch.js"),
+    f.configFile,
+  ]);
   expect(await Luna.wallpaper.stop(f.options)).toMatchObject({
     succes: true,
     data: { running: false },
@@ -204,10 +201,13 @@ test("mutations merge sparse groups, reload without process replacement, and pre
   expect(f.commands().filter((c) => c.args.includes("--daemonize"))).toHaveLength(1);
   expect(f.commands().filter((c) => c.args.includes("kill"))).toHaveLength(0);
   expect(
-    await Luna.wallpaper.configure({ transition: { duration_ms: 0 } }, f.options),
+    await Luna.wallpaper.configure({ playback: { pause_when_output_inactive: false } }, f.options),
   ).toMatchObject({
     succes: true,
-    data: { wallpaper: { source, fit: "fit" }, transition: { duration_ms: 0 } },
+    data: {
+      wallpaper: { source, fit: "fit" },
+      playback: { pause_when_output_inactive: false },
+    },
   });
 });
 
@@ -326,6 +326,7 @@ test("renderer source selection, missing QML and command failures return diagnos
   const repository = join(f.root, "checkout");
   const shell = join(repository, "src/luna-wallpaper/src/shell");
   f.write(join(shell, "shell.qml"), "// fixture");
+  f.write(join(shell, "watch.js"), "// fixture");
   expect(await Luna.wallpaper.status({ ...f.options, repository })).toMatchObject({
     succes: true,
     data: { shellDirectory: shell },
@@ -345,4 +346,21 @@ test("renderer source selection, missing QML and command failures return diagnos
     err: "INVALID_PATH",
   });
   expect(existsSync(f.env.LUNA_TEST_STATE!)).toBe(false);
+});
+
+test("watch toggles persist and update a running renderer without replacing it, while stopped renderers stay stopped", async () => {
+  await Luna.wallpaper.start(f.options);
+  for (const enabled of [false, true]) {
+    expect(await Luna.wallpaper.watch(enabled, f.options)).toEqual({
+      succes: true,
+      data: { watch_config: enabled },
+    });
+    expect(f.state().settings.watch_config).toBe(enabled);
+  }
+  expect(f.commands().filter((command) => command.args.includes("--daemonize"))).toHaveLength(1);
+  expect(f.commands().filter((command) => command.args.includes("kill"))).toHaveLength(0);
+  await Luna.wallpaper.stop(f.options);
+  expect(await Luna.wallpaper.watch(false, f.options)).toMatchObject({ succes: true });
+  expect(f.state().running).toBe(false);
+  expect(f.commands().filter((command) => command.args.includes("--daemonize"))).toHaveLength(1);
 });

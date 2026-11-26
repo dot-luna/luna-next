@@ -4,10 +4,11 @@ import { basename, isAbsolute, join, resolve } from "pathe";
 import { metadata } from "@/lib/files.ts";
 import { canonicalPath, hasControlCharacters, ordinaryParents, overlaps } from "@/lib/paths.ts";
 import { ApiError } from "@/lib/response.ts";
-import { wallpaperMedia, type MediaContext } from "./media.ts";
+import { capture } from "@/lib/process.ts";
 import { wallpaperNameSchema } from "./schema.ts";
 
-export interface LibraryContext extends MediaContext {
+export interface LibraryContext {
+  env: Record<string, string>;
   libraryDir: string;
 }
 
@@ -29,8 +30,30 @@ interface StagedMedia {
 const byName = (a: { name: string }, b: { name: string }) =>
   a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
 
+/** Stable extensions keep unnamed HTTP downloads usable by desktop media tools. */
+const extensions: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/svg+xml": "svg",
+  "image/x-ms-bmp": "bmp",
+  "video/quicktime": "mov",
+  "video/x-matroska": "mkv",
+  "video/x-msvideo": "avi",
+};
+
 /** The managed media directory: regular files only, published without replacing existing media. */
 class WallpaperLibrary {
+  /** Return the MIME type from file contents, not the extension; non-image/video throws INVALID_METADATA. */
+  async validate({ context, path }: { context: Pick<LibraryContext, "env">; path: string }) {
+    const mime = await this._command({
+      context,
+      tool: "file",
+      args: ["--mime-type", "--brief", "--", path],
+    });
+    if (!mime.startsWith("image/") && !mime.startsWith("video/"))
+      throw new ApiError("INVALID_METADATA", `Unsupported wallpaper media: ${path}`);
+    return mime;
+  }
+
   /** Validate the owned directory before callers create its persistent advisory lock. */
   async directory({ context, create = false }: { context: LibraryContext; create?: boolean }) {
     const path = context.libraryDir;
@@ -60,7 +83,7 @@ class WallpaperLibrary {
       try {
         this._name(entry.name);
         const path = join(library, entry.name);
-        await wallpaperMedia.validate({ context, path });
+        await this.validate({ context, path });
         result.push({ name: entry.name, path });
       } catch (error) {
         if (
@@ -127,11 +150,11 @@ class WallpaperLibrary {
       const targets = new Map<string, StagedMedia>();
       for (const [index, input] of inputs.entries()) {
         const path = join(staging, String(index));
-        if (input.url) await wallpaperMedia.download({ context, url: input.url, path });
+        if (input.url) await this._download({ context, url: input.url, path });
         else await copyFile(input.path!, path);
         let mime: string;
         try {
-          mime = await wallpaperMedia.validate({ context, path });
+          mime = await this.validate({ context, path });
         } catch (error) {
           if (error instanceof ApiError && error.code === "INVALID_METADATA") {
             if (input.directoryMember) continue;
@@ -144,7 +167,7 @@ class WallpaperLibrary {
         }
         const hash = await this._digest(path);
         const target = this._name(
-          name ?? input.name ?? `wallpaper-${hash.slice(0, 16)}.${wallpaperMedia.extension(mime)}`,
+          name ?? input.name ?? `wallpaper-${hash.slice(0, 16)}.${this._extension(mime)}`,
         );
         const destination = join(library, target);
         const media = { path, destination, digest: hash, size: (await metadata(path))!.size };
@@ -239,6 +262,68 @@ class WallpaperLibrary {
     return (
       info?.isFile() && info.size === media.size && (await this._digest(path)) === media.digest
     );
+  }
+
+  /** Limit redirects to HTTP(S); curl never interprets the URL as a command option. */
+  private async _download({
+    context,
+    url,
+    path,
+  }: {
+    context: Pick<LibraryContext, "env">;
+    url: string;
+    path: string;
+  }) {
+    await this._command({
+      context,
+      tool: "curl",
+      args: [
+        "--disable",
+        "--globoff",
+        "--fail",
+        "--location",
+        "--silent",
+        "--show-error",
+        "--proto",
+        "=http,https",
+        "--proto-redir",
+        "=http,https",
+        "--max-redirs",
+        "10",
+        "--max-time",
+        "60",
+        "--output",
+        path,
+        "--",
+        url,
+      ],
+    });
+  }
+
+  private _extension(mime: string) {
+    return extensions[mime] ?? mime.split("/")[1]!.replace(/[^a-z0-9]/giu, "");
+  }
+
+  /** Capture media tool diagnostics without printing or changing the caller's environment. */
+  private async _command({
+    context,
+    tool,
+    args,
+  }: {
+    context: Pick<LibraryContext, "env">;
+    tool: string;
+    args: string[];
+  }) {
+    const executable = Bun.which(tool, { PATH: context.env.PATH ?? "" });
+    if (!executable)
+      throw new ApiError("COMMAND_FAILED", `Install ${tool} to manage wallpaper media`);
+    const result = await capture({ args: [executable, ...args], env: context.env });
+    if (result.code !== 0)
+      throw new ApiError(
+        "COMMAND_FAILED",
+        `${tool} failed (${result.code}): ${(result.stderr || result.stdout).trim()}`,
+      );
+    return result.stdout.trim();
   }
 }
 

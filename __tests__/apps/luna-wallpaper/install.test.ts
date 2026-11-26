@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { Luna } from "../../../packages/luna-api/src/index.ts";
 import { AppFixture } from "../../../packages/luna-api/tests/fixtures/app-fixture.ts";
 
-test("wallpaper installs its JSONC and QML exports, declares media dependencies, and refreshes only a running renderer", async () => {
+test("wallpaper installs its exports and dedicated dependency, and refreshes only a running renderer", async () => {
   const f = new AppFixture();
   try {
     const repo = fileURLToPath(new URL("../../../", import.meta.url));
@@ -26,11 +26,9 @@ test("wallpaper installs its JSONC and QML exports, declares media dependencies,
         recursive: true,
       });
     }
-    cpSync(
-      join(repo, "src/luna-wallpaper/src/shell"),
-      join(f.repository, "src/luna-wallpaper/src/shell"),
-      { recursive: true },
-    );
+    cpSync(join(repo, "src/luna-wallpaper/src"), join(f.repository, "src/luna-wallpaper/src"), {
+      recursive: true,
+    });
     symlinkSync(join(repo, "packages"), join(f.repository, "packages"));
     f.write(f.repository, "apps/apps.jsonc", '{"packages":["luna-wallpaper/app.jsonc"]}');
     rmSync(join(f.bin, "bun"));
@@ -68,16 +66,24 @@ else process.exit(2);
     expect(readFileSync(join(destination, "shell.qml"), "utf8")).toContain(
       "LUNA_WALLPAPER_SETTINGS",
     );
+    expect(await Bun.file(join(destination, "watch.js")).exists()).toBe(true);
     expect(readFileSync(config, "utf8")).toBe(
       readFileSync(join(app, "config/wallpaper.jsonc"), "utf8"),
     );
     expect(readFileSync(qsLog, "utf8")).not.toContain("--daemonize");
-    for (const dependency of ["quickshell", "ffmpeg", "qt6-svg", "qt6-imageformats"]) {
+    for (const dependency of [
+      "quickshell",
+      "ffmpeg",
+      "file",
+      "curl",
+      "qt6-svg",
+      "qt6-imageformats",
+    ]) {
       expect(
         f
           .commands()
           .some((command) => command.name === "sudo" && command.args.includes(dependency)),
-      ).toBe(true);
+      ).toBe(false);
     }
     expect(
       f.commands().some((command) => command.name === "yay" && command.args.includes("mpvpaper")),
@@ -100,9 +106,9 @@ else process.exit(2);
     );
     expect(readFileSync(join(configRoot, "unrelated/value"), "utf8")).toBe("keep");
     expect(JSON.parse(readFileSync(running, "utf8"))).toMatchObject({
+      watch_config: true,
       wallpaper: { source: "", fit: "fill", background_color: "#000000" },
       playback: { pause_when_output_inactive: true },
-      transition: { type: "fade", duration_ms: 200 },
     });
     const commands = readFileSync(qsLog, "utf8")
       .trim()

@@ -1,4 +1,5 @@
 {
+  "watch_config": true,
   "wallpaper": {
     "source": "",
     "fit": "fill",
@@ -6,9 +7,5 @@
   },
   "playback": {
     "pause_when_output_inactive": true,
-  },
-  "transition": {
-    "type": "fade",
-    "duration_ms": 200,
   },
 }

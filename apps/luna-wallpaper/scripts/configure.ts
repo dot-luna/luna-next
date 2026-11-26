@@ -11,3 +11,12 @@ await ordinaryParents(generated);
 await mkdir(dirname(generated), { recursive: true });
 await rm(generated, { recursive: true, force: true });
 await copyTree(source, generated);
+// Bundle the API-backed watcher so installed QML does not depend on checkout imports.
+const watcher = await Bun.build({
+  entrypoints: [join(source, "../watch.ts")],
+  outdir: generated,
+  naming: "watch.js",
+  target: "bun",
+});
+if (!watcher.success)
+  throw new AggregateError(watcher.logs, "Could not build the wallpaper watcher");

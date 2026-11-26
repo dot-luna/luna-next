@@ -9,6 +9,7 @@ ShellRoot {
 
     property var wallpaperSettings: null
     property string settingsStatus: "loading"
+    readonly property var watchCommand: JSON.parse(Quickshell.env("LUNA_WALLPAPER_WATCH_COMMAND") || "[]")
 
     // The Luna API owns JSONC parsing and validation. Publish its JSON snapshot
     // only after decoding it, so a malformed IPC payload keeps the previous media.
@@ -27,9 +28,24 @@ ShellRoot {
     }
 
     Component.onCompleted: {
-        // File changes alone must not replace the shell or its owned media.
+        // Keep QML hot reload disabled; only validated configuration snapshots change media.
         Quickshell.watchFiles = false;
         loadSettings(Quickshell.env("LUNA_WALLPAPER_SETTINGS"));
+    }
+
+    Process {
+        command: shell.watchCommand
+        running: shell.settingsStatus === "ready" && (shell.wallpaperSettings?.watch_config ?? true) && command.length > 0
+        stdout: SplitParser {
+            onRead: snapshot => {
+                // Ignore buffered output from a watcher that an explicit reload just disabled.
+                if (shell.wallpaperSettings?.watch_config !== false)
+                    shell.loadSettings(snapshot);
+            }
+        }
+        stderr: SplitParser {
+            onRead: message => console.warn(message)
+        }
     }
 
     Variants {

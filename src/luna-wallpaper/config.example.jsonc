@@ -1,0 +1,15 @@
+// Omitted settings use these defaults on every connected monitor.
+{
+  "watch_config": true,
+  "wallpaper": {
+    // Absolute local image, animation, or video path; empty shows the background.
+    "source": "",
+    // fill, fit, stretch, center, or tile. Videos use center for tile.
+    "fit": "fill",
+    "background_color": "#000000",
+  },
+  "playback": {
+    // Pause animation/video on disabled or sleeping Hyprland outputs.
+    "pause_when_output_inactive": true,
+  },
+}

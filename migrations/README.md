@@ -132,3 +132,9 @@ Hyprland's login startup to use Luna instead of KDE's agent and removes the obso
 Luna polkit user service when present. KDE package removal remains a manual step. An explicitly disabled Polkit manifest skips
 this migration's changes. Log out and back in to switch agents; an existing KDE
 agent is left running until then. Repeating the migration is safe.
+
+## v0.0.16
+
+Refreshes an installed Luna Wallpaper with its bundled config watcher and removes
+image transitions. The app's owned config and renderer files are replaced; a
+running renderer restarts, and a stopped one stays stopped. Repeating it is safe.

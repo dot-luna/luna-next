@@ -3,7 +3,7 @@ import { join } from "pathe";
 import { metadata } from "@/lib/files.ts";
 import { quickshell, type QuickshellContext } from "@/lib/quickshell.ts";
 import { ApiError } from "@/lib/response.ts";
-import type { WallpaperContext, WallpaperState } from "./context.ts";
+import type { WallpaperContext, WallpaperState } from "./config.ts";
 import { wallpaperSettingsSchema, type WallpaperSettings } from "./schema.ts";
 
 /** Every command is scoped to this renderer; media paths and JSON snapshots stay single arguments. */
@@ -67,10 +67,24 @@ class WallpaperRenderer {
 
   /** Launch with `settings` as the initial snapshot and wait until media is ready. */
   async start({ context, settings }: { context: RendererContext; settings: WallpaperSettings }) {
+    const bundledWatcher = join(context.shellDirectory, "watch.js");
+    const watcher = (await metadata(bundledWatcher))?.isFile()
+      ? bundledWatcher
+      : join(context.shellDirectory, "../watch.ts");
+    if (!(await metadata(watcher))?.isFile())
+      throw new ApiError("INVALID_PATH", `Wallpaper config watcher is missing: ${watcher}`);
+    // A compiled Luna CLI's process.execPath is Luna itself, not the Bun interpreter.
+    const bun = Bun.which("bun", { PATH: context.env.PATH ?? "" });
+    if (!bun)
+      throw new ApiError("COMMAND_FAILED", "Install Bun to run the wallpaper config watcher");
     await quickshell.command({
       context: {
         ...context,
-        env: { ...context.env, LUNA_WALLPAPER_SETTINGS: JSON.stringify(settings) },
+        env: {
+          ...context.env,
+          LUNA_WALLPAPER_SETTINGS: JSON.stringify(settings),
+          LUNA_WALLPAPER_WATCH_COMMAND: JSON.stringify([bun, watcher, context.configFile]),
+        },
       },
       args: ["--no-color", "--daemonize", "--no-duplicate", "-p", context.shellDirectory],
       label: "Wallpaper",

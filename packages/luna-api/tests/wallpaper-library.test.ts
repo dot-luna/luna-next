@@ -11,7 +11,6 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { wallpaperLibrary, type LibraryContext } from "../src/modules/wallpaper/library.ts";
-import { wallpaperMedia } from "../src/modules/wallpaper/media.ts";
 import { themeWallpapers } from "../src/modules/theme/wallpapers.ts";
 import { themeContext } from "../src/modules/theme/context.ts";
 import { locked } from "../src/lib/files.ts";
@@ -43,7 +42,7 @@ afterEach(() => {
 
 test("files use content validation, preserve names and sources, and install idempotently", async () => {
   const source = write(join(root, "a ' # ? $(image).svg"));
-  expect(await wallpaperMedia.validate({ context, path: source })).toBe("image/svg+xml");
+  expect(await wallpaperLibrary.validate({ context, path: source })).toBe("image/svg+xml");
   const path = join(context.libraryDir, "a ' # ? $(image).svg");
   expect(await wallpaperLibrary.install({ context, sources: [source] })).toEqual([path]);
   expect(await wallpaperLibrary.install({ context, sources: [source] })).toEqual([path]);
@@ -59,7 +58,7 @@ test("video containers are accepted independently of filename extensions", async
   // A minimal ISO media header exercises MIME detection; decoding belongs to the renderer.
   const contents = Buffer.from("000000186674797069736f6d0000020069736f6d69736f32", "hex");
   writeFileSync(source, contents);
-  expect(await wallpaperMedia.validate({ context, path: source })).toBe("video/mp4");
+  expect(await wallpaperLibrary.validate({ context, path: source })).toBe("video/mp4");
   expect(await wallpaperLibrary.install({ context, sources: [source] })).toEqual([
     join(context.libraryDir, "video-without-extension"),
   ]);

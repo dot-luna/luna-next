@@ -211,6 +211,7 @@ and focus checks. Invalid selections return `INVALID_ARGUMENT` before copying.
 `list(options?)`, `current(options?)`, `path(name?, options?)`,
 `set(nameOrPath, options?)`, `random(options?)`, `remove(names, options?)`,
 `get(key?, options?)`, `getConfigFile(options?)`, `configure(settings, options?)`,
+`watch(enabled, options?)`,
 `start`, `stop`, `restart`, `reload`, and `status`. Lifecycle methods accept
 `options?` and return `{running, status, shellDirectory, configFile}`. Reload
 leaves a stopped renderer stopped; restart performs a full stop/start. Start
@@ -251,7 +252,7 @@ Reads parse JSONC with Bun and validate with the feature's Zod schema in
 `src/modules/wallpaper/schema.ts`. Missing files are created as `{}`; blank files and
 omitted values use renderer defaults without rewriting source. `get` returns sparse
 saved settings; missing dotted keys return null. Unknown fields are retained.
-See [wallpaper settings and dependencies](../../src/luna-wallpaper/DOCS.md).
+See [config.example.jsonc](../../src/luna-wallpaper/config.example.jsonc) for renderer settings.
 
 `set`, `random`, and `configure` validate, lock and atomically save the normalized
 JSONC document; `configure` merges supplied groups. Each mutation
@@ -261,7 +262,12 @@ Failed application restores the exact previous source and renderer settings when
 no detected external edit would be overwritten. Conflicts return `CONFLICT`;
 invalid documents return `INVALID_METADATA`, invalid patches `INVALID_ARGUMENT`,
 missing QML `INVALID_PATH`, and failed renderer commands/media `COMMAND_FAILED`.
-Direct file edits require `reload`; no files are watched.
+`watch_config` defaults to `true`. The renderer owns a Bun helper that watches the
+config and publishes API-validated snapshots, including after atomic saves and
+symlink target edits. Invalid edits leave the previous snapshot active and report
+the validation error in the renderer log. `watch(false)` disables automatic reloads;
+`watch(true)` enables them. Both persist the setting and update a running renderer;
+a stopped renderer stays stopped. With watching disabled, direct edits require `reload`.
 
 ## Screensaver API
 

@@ -1,6 +1,5 @@
 import { Luna, type WallpaperOptions } from "@luna/api";
 import { InvalidArgumentError, type Command } from "commander";
-import { duration } from "@/lib/arguments.ts";
 import type { Output } from "@/lib/output.ts";
 import { confirmRemoval } from "@/lib/removal.ts";
 
@@ -37,6 +36,13 @@ export function addWallpaperCommands(program: Command, output: Output) {
     );
 
   group.action(() => run("status"));
+  group
+    .command("watch")
+    .description("Reload valid configuration changes automatically")
+    .argument("<enabled>", "true or false", boolean)
+    .action(async (enabled: boolean) =>
+      output.response(await Luna.wallpaper.watch(enabled, options()), () => "Wallpaper updated."),
+    );
   group
     .command("install <sources...>")
     .alias("add")
@@ -107,7 +113,7 @@ export function addWallpaperCommands(program: Command, output: Output) {
         flags: { login?: boolean; loginConfig?: string; systemRoot?: string },
       ) => {
         if (flags.login) {
-          output.response(
+          output.response<unknown>(
             await Luna.wallpaper.set(source, {
               ...options(),
               login: true,
@@ -119,30 +125,15 @@ export function addWallpaperCommands(program: Command, output: Output) {
         } else {
           if (flags.loginConfig || flags.systemRoot)
             throw new InvalidArgumentError("--login-config and --system-root require --login");
-          output.response(await Luna.wallpaper.set(source, options()), () => "Wallpaper updated.");
+          output.response<unknown>(
+            await Luna.wallpaper.set(source, options()),
+            () => "Wallpaper updated.",
+          );
         }
       },
     );
   group
-    .command("fit <mode>")
-    .description("Set media sizing")
-    .action(async (fit: string) => configure({ wallpaper: { fit } }));
-  group
     .command("background <color>")
     .description("Set the background color")
     .action(async (background_color: string) => configure({ wallpaper: { background_color } }));
-  group
-    .command("pause-when-inactive")
-    .description("Pause media on an inactive output (true or false)")
-    .argument("<value>", "true or false", boolean)
-    .action(async (pause_when_output_inactive: boolean) =>
-      configure({ playback: { pause_when_output_inactive } }),
-    );
-  group
-    .command("transition <type>")
-    .description("Set the transition and optional duration in milliseconds")
-    .argument("[duration]", "Duration in milliseconds", duration("milliseconds"))
-    .action(async (type: string, duration_ms?: number) =>
-      configure({ transition: { type, ...(duration_ms === undefined ? {} : { duration_ms }) } }),
-    );
 }

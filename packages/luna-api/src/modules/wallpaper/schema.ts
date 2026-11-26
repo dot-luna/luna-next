@@ -13,6 +13,7 @@ const source = z
 
 /** Sparse settings retain unknown fields; renderer defaults never enter the source document. */
 export const wallpaperSettingsSchema = z.looseObject({
+  watch_config: z.boolean().optional(),
   wallpaper: z
     .looseObject({
       source: source.optional(),
@@ -24,12 +25,6 @@ export const wallpaperSettingsSchema = z.looseObject({
     })
     .optional(),
   playback: z.looseObject({ pause_when_output_inactive: z.boolean().optional() }).optional(),
-  transition: z
-    .looseObject({
-      type: z.enum(["none", "fade"]).optional(),
-      duration_ms: z.number().int().min(0).max(2147483647).optional(),
-    })
-    .optional(),
 });
 
 export type WallpaperSettings = z.infer<typeof wallpaperSettingsSchema>;

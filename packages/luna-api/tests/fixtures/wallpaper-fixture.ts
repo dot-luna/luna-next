@@ -22,14 +22,16 @@ export class WallpaperFixture {
   }
   constructor() {
     this.write(join(this.shell, "shell.qml"), "// fixture\n");
+    this.write(join(this.shell, "watch.js"), "// fixture\n");
     mkdirSync(this.bin);
+    symlinkSync(process.execPath, join(this.bin, "bun"));
     for (const name of ["flock", "bash"]) symlinkSync(Bun.which(name)!, join(this.bin, name));
     this.write(
       join(this.bin, "qs"),
       `#!${process.execPath}
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 const args = Bun.argv.slice(2);
-appendFileSync(Bun.env.LUNA_TEST_COMMANDS, JSON.stringify({args, snapshot: Bun.env.LUNA_WALLPAPER_SETTINGS}) + '\\n');
+appendFileSync(Bun.env.LUNA_TEST_COMMANDS, JSON.stringify({args, snapshot: Bun.env.LUNA_WALLPAPER_SETTINGS, watcher: Bun.env.LUNA_WALLPAPER_WATCH_COMMAND}) + '\\n');
 const file = Bun.env.LUNA_TEST_STATE;
 let state = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {running: false};
 if (args.includes('--daemonize')) {
@@ -78,7 +80,7 @@ writeFileSync(file, JSON.stringify(state));
   state() {
     return JSON.parse(readFileSync(this.env.LUNA_TEST_STATE!, "utf8"));
   }
-  commands(): { args: string[]; snapshot?: string }[] {
+  commands(): { args: string[]; snapshot?: string; watcher?: string }[] {
     try {
       return readFileSync(this.env.LUNA_TEST_COMMANDS!, "utf8")
         .trim()
