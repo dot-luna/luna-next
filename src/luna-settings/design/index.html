@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Luna Settings</title>
+    <style>
+      :root {
+        font-family: "Outfit", "Inter", system-ui, sans-serif;
+        --surface: var(--card, #1a1b26);
+        --sidebar: var(--background, #161720);
+        --raised: var(--secondary, #242633);
+        --ink: var(--foreground, #c0caf5);
+        --subtle: var(--muted-foreground, #929bbd);
+        --line: var(--border, #333647);
+        --highlight: var(--ring, #7aa2f7);
+        --selected: color-mix(in srgb, var(--highlight) 14%, transparent);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      select,
+      input[type="checkbox"],
+      input[type="range"] {
+        cursor: pointer;
+      }
+      button {
+        color: inherit;
+        border: 0;
+        background: transparent;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--highlight);
+        outline-offset: 3px;
+      }
+      svg {
+        width: 19px;
+        height: 19px;
+        flex-shrink: 0;
+      }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+      }
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 23px;
+        font-weight: 550;
+        letter-spacing: -0.5px;
+      }
+      h2 {
+        font-size: 13px;
+        font-weight: 550;
+        margin-bottom: 10px;
+      }
+      .stage {
+        width: 100%;
+        padding: 1px 0;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        height: 680px;
+        max-width: 1080px;
+        margin: 0 auto;
+        overflow: clip;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 13px;
+      }
+      .sidebar {
+        padding: 20px 11px;
+        background: var(--sidebar);
+        border-right: 1px solid var(--line);
+      }
+      .search-wrap {
+        position: relative;
+        margin-bottom: 22px;
+      }
+      .search-wrap > [data-icon] {
+        position: absolute;
+        left: 11px;
+        top: 11px;
+        pointer-events: none;
+        color: var(--subtle);
+      }
+      .search-wrap svg {
+        width: 15px;
+        height: 15px;
+      }
+      .search-wrap input {
+        width: 100%;
+        height: 37px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 0 10px 0 34px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 12px;
+      }
+      input::placeholder {
+        color: var(--subtle);
+        opacity: 1;
+      }
+      nav {
+        display: grid;
+        gap: 5px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 12px;
+        border-radius: 7px;
+        text-align: left;
+        color: var(--subtle);
+      }
+      .nav-item:hover {
+        background: var(--raised);
+        color: var(--ink);
+      }
+      .nav-item[aria-current="page"] {
+        background: var(--selected);
+        color: var(--highlight);
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        padding: 34px 34px 23px;
+        min-width: 0;
+        min-height: 0;
+      }
+      .page-title {
+        margin-bottom: 23px;
+        flex-shrink: 0;
+      }
+      .page {
+        display: grid;
+        gap: 23px;
+        align-content: start;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: 1;
+        padding: 3px;
+        margin: -3px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line) transparent;
+      }
+      .back {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: fit-content;
+        color: var(--subtle);
+        padding: 0;
+        margin-bottom: 16px;
+        font-size: 12px;
+      }
+      .back:hover {
+        color: var(--ink);
+      }
+      .back svg {
+        width: 14px;
+        height: 14px;
+        transform: rotate(180deg);
+      }
+      .back[hidden] {
+        display: none;
+      }
+      .settings-group {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: clip;
+      }
+      .setting {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        min-height: 56px;
+        padding: 12px 17px;
+      }
+      .setting + .setting {
+        border-top: 1px solid var(--line);
+      }
+      .setting label,
+      .setting-label {
+        font-size: 12px;
+      }
+      .setting label {
+        flex: 1;
+      }
+      .link-row {
+        width: 100%;
+        text-align: left;
+      }
+      .link-row:hover {
+        background: var(--raised);
+      }
+      .row-name {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .row-name > svg {
+        color: var(--subtle);
+      }
+      .link-row > svg {
+        width: 15px;
+        height: 15px;
+        color: var(--subtle);
+      }
+      select {
+        color: var(--ink);
+        background: var(--raised);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px 9px;
+        max-width: 166px;
+        font-size: 11px;
+      }
+      .toggle {
+        appearance: none;
+        position: relative;
+        flex-shrink: 0;
+        width: 35px;
+        height: 21px;
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: var(--raised);
+        transition: background 0.12s;
+      }
+      .toggle::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--subtle);
+        transition: transform 0.12s;
+      }
+      .toggle:checked {
+        border-color: var(--highlight);
+        background: var(--highlight);
+      }
+      .toggle:checked::after {
+        transform: translateX(14px);
+        background: var(--sidebar);
+      }
+      .segmented {
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        background: var(--sidebar);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+      }
+      .segmented button {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border-radius: 4px;
+        color: var(--subtle);
+        font-size: 11px;
+      }
+      .segmented svg {
+        width: 13px;
+        height: 13px;
+      }
+      .segmented [aria-pressed="true"] {
+        background: var(--raised);
+        color: var(--ink);
+      }
+      .slider-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      input[type="range"] {
+        width: 88px;
+        height: 4px;
+        accent-color: var(--highlight);
+      }
+      output {
+        color: var(--subtle);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        min-width: 32px;
+        text-align: right;
+      }
+      .reset-defaults {
+        justify-self: start;
+        padding: 0;
+        color: var(--subtle);
+        font-size: 11px;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .reset-defaults:hover {
+        color: var(--ink);
+      }
+      .change-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-shrink: 0;
+        padding-top: 15px;
+        margin-top: 17px;
+        border-top: 1px solid var(--line);
+        font-size: 11px;
+      }
+      .change-bar[hidden] {
+        display: none;
+      }
+      .buttons {
+        display: flex;
+        gap: 7px;
+      }
+      .button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 11px;
+      }
+      .button:hover {
+        background: var(--raised);
+      }
+      .primary {
+        background: var(--highlight);
+        color: var(--sidebar);
+        border-color: transparent;
+        font-weight: 550;
+      }
+      .primary:hover {
+        background: color-mix(in srgb, var(--highlight) 85%, var(--ink));
+      }
+      .search-results {
+        display: grid;
+        gap: 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: clip;
+      }
+      .search-result {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        align-items: center;
+        text-align: left;
+        padding: 15px 17px;
+        font-size: 12px;
+      }
+      .search-result + .search-result {
+        border-top: 1px solid var(--line);
+      }
+      .search-result:hover {
+        background: var(--raised);
+      }
+      .search-result small {
+        display: block;
+        color: var(--subtle);
+        font-size: 11px;
+        margin-top: 5px;
+      }
+      .search-result > svg {
+        width: 14px;
+        height: 14px;
+        color: var(--subtle);
+      }
+      .empty-state {
+        color: var(--subtle);
+        font-size: 12px;
+      }
+      .found-setting {
+        animation: setting-highlight 1.4s ease-out;
+      }
+      @keyframes setting-highlight {
+        from {
+          background: var(--selected);
+        }
+        to {
+          background: transparent;
+        }
+      }
+      .skip-link {
+        position: absolute;
+        top: -100px;
+        left: 16px;
+        z-index: 10;
+        color: var(--ink);
+        background: var(--raised);
+        padding: 10px;
+      }
+      .skip-link:focus {
+        top: 10px;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      @media (min-width: 900px) {
+        main {
+          padding: 38px 58px 26px;
+        }
+        .app {
+          grid-template-columns: 210px minmax(0, 1fr);
+        }
+      }
+      @media (max-width: 680px) {
+        .app {
+          grid-template-columns: 155px minmax(0, 1fr);
+        }
+        main {
+          padding: 28px 20px 22px;
+        }
+        .setting {
+          padding: 14px;
+          gap: 10px;
+        }
+        .segmented svg {
+          display: none;
+        }
+        .segmented button {
+          padding: 6px 7px;
+        }
+      }
+      @media (max-width: 520px) {
+        .app {
+          grid-template-columns: 1fr;
+          height: auto;
+          min-height: 640px;
+        }
+        .sidebar {
+          padding: 13px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .search-wrap {
+          margin-bottom: 12px;
+        }
+        nav {
+          display: flex;
+          gap: 5px;
+        }
+        .nav-item {
+          flex: 1;
+          justify-content: center;
+          gap: 7px;
+          padding: 10px 6px;
+          font-size: 11px;
+        }
+        .nav-item svg {
+          width: 16px;
+          height: 16px;
+        }
+        main {
+          padding: 26px 19px 21px;
+        }
+        .page {
+          overflow: visible;
+        }
+        .setting {
+          min-height: 61px;
+        }
+        .change-bar {
+          position: sticky;
+          bottom: 0;
+          background: var(--surface);
+          padding-bottom: 4px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage" id="luna-settings-design">
+      <a class="skip-link" href="#main">Skip to settings</a>
+      <div class="app">
+        <aside class="sidebar">
+          <div class="search-wrap">
+            <span data-icon="search"></span
+            ><input
+              id="search"
+              type="search"
+              placeholder="Search"
+              aria-label="Search settings"
+              autocomplete="off"
+            />
+          </div>
+          <nav aria-label="Settings pages">
+            <button class="nav-item" data-page="home"><span data-icon="home"></span>Home</button>
+            <button class="nav-item" data-page="appearance" aria-current="page">
+              <span data-icon="appearance"></span>Appearance
+            </button>
+            <button class="nav-item" data-page="desktop">
+              <span data-icon="desktop"></span>Desktop
+            </button>
+          </nav>
+        </aside>
+        <main id="main" tabindex="-1">
+          <button class="back" id="back" hidden><span data-icon="arrow"></span>Appearance</button>
+          <h1 class="page-title" id="page-title">Appearance</h1>
+          <div class="page" id="page-content"></div>
+          <div class="change-bar" id="change-bar" hidden>
+            <span>Unsaved changes</span>
+            <div class="buttons">
+              <button class="button" id="discard">Discard</button
+              ><button class="button primary" id="apply">Apply</button>
+            </div>
+          </div>
+        </main>
+      </div>
+      <div class="sr-only" role="status" aria-live="polite" id="status"></div>
+    </div>
+    <script>
+      // Free Hugeicons Stroke Rounded, @hugeicons/core-free-icons 4.4.0.
+      // The complete upstream MIT notice is in LICENSE.icons.md.
+      const icons = {
+        moon: '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.7491 15.0821 8.91792 11.2509 8.91792 6.52485C8.91792 5.06986 9.28105 3.69968 9.92163 2.5C5.66765 3.49698 2.5 7.31513 2.5 11.8731C2.5 17.1899 6.8101 21.5 12.1269 21.5C16.6849 21.5 20.503 18.3324 21.5 14.0784Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n</svg>\n',
+        sun: '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7C14.7614 7 17 9.23858 17 12Z" stroke="currentColor" stroke-width="1.5" />\n  <path d="M12 2V3.5M12 20.5V22M19.0708 19.0713L18.0101 18.0106M5.98926 5.98926L4.9286 4.9286M22 12H20.5M3.5 12H2M19.0713 4.92871L18.0106 5.98937M5.98975 18.0107L4.92909 19.0714" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" />\n</svg>\n',
+        search:
+          '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M17 17L21 21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n  <path d="M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n</svg>\n',
+        home: '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M3.88884 9.66294C4.39329 10 5.09552 10 6.49998 10C7.90445 10 8.60668 10 9.11113 9.66294C9.32951 9.51702 9.51701 9.32952 9.66292 9.11114C9.99998 8.60669 9.99998 7.90446 9.99998 6.5C9.99998 5.09554 9.99998 4.39331 9.66292 3.88886C9.51701 3.67048 9.32951 3.48298 9.11113 3.33706C8.60668 3 7.90445 3 6.49998 3C5.09552 3 4.39329 3 3.88884 3.33706C3.67046 3.48298 3.48296 3.67048 3.33705 3.88886C2.99998 4.39331 2.99998 5.09554 2.99998 6.5C2.99998 7.90446 2.99998 8.60669 3.33705 9.11114C3.48296 9.32952 3.67046 9.51702 3.88884 9.66294Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5" />\n  <path d="M14.8888 9.66294C15.3933 10 16.0955 10 17.5 10C18.9044 10 19.6067 10 20.1111 9.66294C20.3295 9.51702 20.517 9.32952 20.6629 9.11114C21 8.60669 21 7.90446 21 6.5C21 5.09554 21 4.39331 20.6629 3.88886C20.517 3.67048 20.3295 3.48298 20.1111 3.33706C19.6067 3 18.9044 3 17.5 3C16.0955 3 15.3933 3 14.8888 3.33706C14.6705 3.48298 14.483 3.67048 14.337 3.88886C14 4.39331 14 5.09554 14 6.5C14 7.90446 14 8.60669 14.337 9.11114C14.483 9.32952 14.6705 9.51702 14.8888 9.66294Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5" />\n  <path d="M3.88884 20.6629C4.39329 21 5.09552 21 6.49998 21C7.90445 21 8.60668 21 9.11113 20.6629C9.32951 20.517 9.51701 20.3295 9.66292 20.1111C9.99998 19.6067 9.99998 18.9045 9.99998 17.5C9.99998 16.0955 9.99998 15.3933 9.66292 14.8889C9.51701 14.6705 9.32951 14.483 9.11113 14.3371C8.60668 14 7.90445 14 6.49998 14C5.09552 14 4.39329 14 3.88884 14.3371C3.67046 14.483 3.48296 14.6705 3.33705 14.8889C2.99998 15.3933 2.99998 16.0955 2.99998 17.5C2.99998 18.9045 2.99998 19.6067 3.33705 20.1111C3.48296 20.3295 3.67046 20.517 3.88884 20.6629Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5" />\n  <path d="M14.8888 20.6629C15.3933 21 16.0955 21 17.5 21C18.9044 21 19.6067 21 20.1111 20.6629C20.3295 20.517 20.517 20.3295 20.6629 20.1111C21 19.6067 21 18.9045 21 17.5C21 16.0955 21 15.3933 20.6629 14.8889C20.517 14.6705 20.3295 14.483 20.1111 14.3371C19.6067 14 18.9044 14 17.5 14C16.0955 14 15.3933 14 14.8888 14.3371C14.6705 14.483 14.483 14.6705 14.337 14.8889C14 15.3933 14 16.0955 14 17.5C14 18.9045 14 19.6067 14.337 20.1111C14.483 20.3295 14.6705 20.517 14.8888 20.6629Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5" />\n</svg>\n',
+        appearance:
+          '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C12.8417 22 14 22.1163 14 21C14 20.391 13.6832 19.9212 13.3686 19.4544C12.9082 18.7715 12.4523 18.0953 13 17C13.6667 15.6667 14.7778 15.6667 16.4815 15.6667C17.3334 15.6667 18.3334 15.6667 19.5 15.5C21.601 15.1999 22 13.9084 22 12Z" stroke="currentColor" stroke-width="1.5" />\n  <circle cx="9.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5" />\n  <circle cx="16.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.5" />\n  <path d="M7.125 15H7M7.25 15C7.25 15.1381 7.13807 15.25 7 15.25C6.86193 15.25 6.75 15.1381 6.75 15C6.75 14.8619 6.86193 14.75 7 14.75C7.13807 14.75 7.25 14.8619 7.25 15Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n</svg>\n',
+        desktop:
+          '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M14 21H16M14 21C13.1716 21 12.5 20.3284 12.5 19.5V17L12 17M14 21H10M10 21H8M10 21C10.8284 21 11.5 20.3284 11.5 19.5V17L12 17M12 17V21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n  <path d="M16 3H8C5.17157 3 3.75736 3 2.87868 3.87868C2 4.75736 2 6.17157 2 9V11C2 13.8284 2 15.2426 2.87868 16.1213C3.75736 17 5.17157 17 8 17H16C18.8284 17 20.2426 17 21.1213 16.1213C22 15.2426 22 13.8284 22 11V9C22 6.17157 22 4.75736 21.1213 3.87868C20.2426 3 18.8284 3 16 3Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n</svg>\n',
+        arrow:
+          '<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">\n  <path d="M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />\n</svg>\n',
+      };
+      const root = document.getElementById("luna-settings-design");
+      const content = document.getElementById("page-content");
+      const search = document.getElementById("search");
+      const back = document.getElementById("back");
+      const titles = {
+        home: "Home",
+        appearance: "Appearance",
+        desktop: "Desktop",
+        login: "Login screen",
+        lock: "Lock screen",
+      };
+      // Edits are held in memory so this design never changes Luna configuration.
+      const defaults = {
+        appearance: {
+          theme: "Tokyo Night",
+          mode: "dark",
+          font: "Outfit",
+          scale: "100%",
+          animations: true,
+        },
+        login: {
+          background: "Night",
+          user: "Last signed-in user",
+          session: "Hyprland",
+          layout: "English (US)",
+          showUsers: true,
+        },
+        lock: {
+          background: "Night",
+          idle: "10 minutes",
+          dpms: "30 seconds",
+          clock: true,
+          format: "24-hour",
+        },
+        desktop: {
+          background: "Night",
+          layout: "Tiling",
+          inner: 5,
+          outer: 5,
+          rounding: 0,
+          blur: true,
+          bar: true,
+        },
+      };
+      let saved = structuredClone(defaults);
+      let draft = structuredClone(defaults);
+      let currentPage = "appearance";
+      const icon = (name) => icons[name];
+      const parent = (page) => (page === "login" || page === "lock" ? "appearance" : page);
+      function group(title, rows) {
+        return `<section>${title ? `<h2>${title}</h2>` : ""}<div class="settings-group">${rows}</div></section>`;
+      }
+      function row(key, label, control) {
+        return `<div class="setting" id="setting-${key}"><label for="control-${key}">${label}</label>${control}</div>`;
+      }
+      function select(key, label, options) {
+        return row(
+          key,
+          label,
+          `<select id="control-${key}" data-setting="${key}">${options.map((value) => `<option${draft[currentPage][key] === value ? " selected" : ""}>${value}</option>`).join("")}</select>`,
+        );
+      }
+      function toggle(key, label) {
+        return row(
+          key,
+          label,
+          `<input class="toggle" id="control-${key}" type="checkbox" role="switch" data-setting="${key}"${draft[currentPage][key] ? " checked" : ""} />`,
+        );
+      }
+      function slider(key, label, max) {
+        return row(
+          key,
+          label,
+          `<div class="slider-control"><input id="control-${key}" type="range" min="0" max="${max}" value="${draft[currentPage][key]}" data-setting="${key}" /><output for="control-${key}">${draft[currentPage][key]} px</output></div>`,
+        );
+      }
+      function link(page, symbol = "") {
+        return `<button class="setting link-row" data-page="${page}"><span class="row-name">${symbol ? icon(symbol) : ""}${titles[page]}</span>${icon("arrow")}</button>`;
+      }
+      function resetButton() {
+        return `<button class="reset-defaults" id="reset-defaults">Reset to defaults</button>`;
+      }
+      function homePage() {
+        return group("", link("appearance", "appearance") + link("desktop", "desktop"));
+      }
+      function appearancePage() {
+        return (
+          group(
+            "Style",
+            select("theme", "Theme", ["Tokyo Night", "Moonlight", "Daylight"]) +
+              `<div class="setting" id="setting-mode"><span class="setting-label" id="mode-label">Color mode</span><div class="segmented" role="group" aria-labelledby="mode-label">${[
+                ["light", "sun"],
+                ["dark", "moon"],
+                ["system", "desktop"],
+              ]
+                .map(
+                  ([value, symbol]) =>
+                    `<button data-choice="mode" data-value="${value}" aria-pressed="${draft.appearance.mode === value}">${icon(symbol)}${value[0].toUpperCase() + value.slice(1)}</button>`,
+                )
+                .join("")}</div></div>` +
+              toggle("animations", "Animations"),
+          ) +
+          group(
+            "Text",
+            select("font", "Font", ["Outfit", "Inter", "System default"]) +
+              select("scale", "Size", ["90%", "100%", "110%", "125%"]),
+          ) +
+          group("Screens", link("login") + link("lock")) +
+          resetButton()
+        );
+      }
+      function loginPage() {
+        return (
+          group("", select("background", "Background", ["Night", "Dusk", "Forest"])) +
+          group(
+            "Sign-in",
+            select("user", "Selected user", ["Last signed-in user", "Tilak"]) +
+              select("session", "Default session", ["Hyprland", "Last used session"]) +
+              select("layout", "Keyboard layout", ["English (US)", "English (UK)"]) +
+              toggle("showUsers", "Show user list"),
+          ) +
+          resetButton()
+        );
+      }
+      function lockPage() {
+        return (
+          group("", select("background", "Background", ["Night", "Dusk", "Forest"])) +
+          group(
+            "Privacy",
+            select("idle", "Lock after inactivity", [
+              "Never",
+              "1 minute",
+              "5 minutes",
+              "10 minutes",
+              "15 minutes",
+              "30 minutes",
+            ]) +
+              select("dpms", "Turn off displays when locked", [
+                "Never",
+                "15 seconds",
+                "30 seconds",
+                "1 minute",
+                "5 minutes",
+              ]),
+          ) +
+          group(
+            "Clock",
+            toggle("clock", "Show clock") + select("format", "Time format", ["24-hour", "12-hour"]),
+          ) +
+          resetButton()
+        );
+      }
+      function desktopPage() {
+        return (
+          group("", select("background", "Wallpaper", ["Night", "Dusk", "Forest"])) +
+          group(
+            "Windows",
+            select("layout", "Default layout", ["Tiling", "Floating"]) +
+              slider("inner", "Space between windows", 30) +
+              slider("outer", "Space around windows", 40) +
+              slider("rounding", "Corner radius", 24) +
+              toggle("blur", "Background blur"),
+          ) +
+          group("Luna Bar", toggle("bar", "Show bar")) +
+          resetButton()
+        );
+      }
+      function updateChangeBar() {
+        document.getElementById("change-bar").hidden =
+          JSON.stringify(saved) === JSON.stringify(draft);
+      }
+      function renderPage() {
+        document.getElementById("page-title").textContent = titles[currentPage];
+        back.hidden = parent(currentPage) === currentPage;
+        root.querySelectorAll("nav [data-page]").forEach((button) => {
+          if (button.dataset.page === parent(currentPage))
+            button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        content.innerHTML = {
+          home: homePage,
+          appearance: appearancePage,
+          desktop: desktopPage,
+          login: loginPage,
+          lock: lockPage,
+        }[currentPage]();
+        updateChangeBar();
+      }
+      function navigate(page, focus = true) {
+        currentPage = page;
+        search.value = "";
+        renderPage();
+        content.scrollTop = 0;
+        if (focus) document.getElementById("main").focus({ preventScroll: true });
+      }
+      function goBack() {
+        const previous = currentPage;
+        navigate("appearance", false);
+        content.querySelector(`[data-page="${previous}"]`)?.focus({ preventScroll: true });
+      }
+      root.addEventListener("click", (event) => {
+        const pageButton = event.target.closest("[data-page]");
+        if (pageButton) {
+          navigate(pageButton.dataset.page);
+          return;
+        }
+        const choice = event.target.closest("[data-choice]");
+        if (choice) {
+          draft[currentPage][choice.dataset.choice] = choice.dataset.value;
+          content
+            .querySelectorAll(`[data-choice="${choice.dataset.choice}"]`)
+            .forEach((button) => button.setAttribute("aria-pressed", String(button === choice)));
+          updateChangeBar();
+        }
+        if (event.target.closest("#reset-defaults")) {
+          draft[currentPage] = structuredClone(defaults[currentPage]);
+          renderPage();
+          document.getElementById("reset-defaults").focus({ preventScroll: true });
+        }
+      });
+      content.addEventListener("input", (event) => {
+        const input = event.target;
+        if (!input.dataset.setting) return;
+        draft[currentPage][input.dataset.setting] =
+          input.type === "checkbox"
+            ? input.checked
+            : input.type === "range"
+              ? Number(input.value)
+              : input.value;
+        if (input.type === "range") input.nextElementSibling.textContent = `${input.value} px`;
+        updateChangeBar();
+      });
+      back.addEventListener("click", goBack);
+      document.getElementById("apply").addEventListener("click", () => {
+        saved = structuredClone(draft);
+        updateChangeBar();
+        document.getElementById("status").textContent = "Changes applied";
+        document.getElementById("main").focus({ preventScroll: true });
+      });
+      document.getElementById("discard").addEventListener("click", () => {
+        draft = structuredClone(saved);
+        renderPage();
+        document.getElementById("main").focus({ preventScroll: true });
+      });
+      const searchIndex = [
+        ["appearance", "theme", "Theme", "Colors and theme presets"],
+        ["appearance", "mode", "Color mode", "Light dark system"],
+        ["appearance", "font", "Font", "Typography"],
+        ["appearance", "scale", "Text size", "Scaling"],
+        ["appearance", "animations", "Animations", "Motion transitions"],
+        ["login", "background", "Login background", "Wallpaper"],
+        ["login", "user", "Selected user", "Default login account"],
+        ["login", "session", "Default session", "Hyprland sign-in"],
+        ["login", "layout", "Keyboard layout", "Language"],
+        ["login", "showUsers", "Show user list", "Accounts"],
+        ["lock", "background", "Lock screen background", "Wallpaper"],
+        ["lock", "idle", "Lock after inactivity", "Automatic lock timeout"],
+        ["lock", "dpms", "Turn off displays when locked", "Screen power saving"],
+        ["lock", "clock", "Show clock", "Time"],
+        ["lock", "format", "Time format", "12-hour 24-hour"],
+        ["desktop", "background", "Wallpaper", "Background"],
+        ["desktop", "layout", "Default layout", "Tiling floating windows"],
+        ["desktop", "inner", "Space between windows", "Inner gaps"],
+        ["desktop", "outer", "Space around windows", "Outer gaps"],
+        ["desktop", "rounding", "Corner radius", "Window rounding"],
+        ["desktop", "blur", "Background blur", "Windows"],
+        ["desktop", "bar", "Show bar", "Luna Bar"],
+      ];
+      const settingPath = (page) =>
+        parent(page) === page ? titles[page] : `Appearance / ${titles[page]}`;
+      search.addEventListener("input", () => {
+        const query = search.value.trim().toLowerCase();
+        if (!query) {
+          renderPage();
+          return;
+        }
+        const matches = searchIndex.filter((entry) =>
+          `${entry.join(" ")} ${settingPath(entry[0])}`.toLowerCase().includes(query),
+        );
+        back.hidden = true;
+        document.getElementById("page-title").textContent = "Search";
+        content.scrollTop = 0;
+        content.innerHTML = matches.length
+          ? `<div class="search-results">${matches.map(([page, key, label]) => `<button class="search-result" data-result-page="${page}" data-result-key="${key}"><span>${label}<small>${settingPath(page)}</small></span>${icon("arrow")}</button>`).join("")}</div>`
+          : `<p class="empty-state">No settings found.</p>`;
+      });
+      content.addEventListener("click", (event) => {
+        const result = event.target.closest("[data-result-page]");
+        if (!result) return;
+        const { resultPage, resultKey } = result.dataset;
+        navigate(resultPage, false);
+        const target =
+          document.getElementById(`control-${resultKey}`) ||
+          content.querySelector(`[data-choice="${resultKey}"]`);
+        target?.focus({ preventScroll: true });
+        target?.scrollIntoView({ block: "nearest" });
+        (target?.closest(".setting") || target)?.classList.add("found-setting");
+      });
+      document.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          search.focus();
+          search.select();
+        }
+        if (event.key === "Escape" && search.value) {
+          search.value = "";
+          renderPage();
+          search.focus();
+        } else if (
+          (event.key === "Escape" || (event.altKey && event.key === "ArrowLeft")) &&
+          parent(currentPage) !== currentPage
+        ) {
+          event.preventDefault();
+          goBack();
+        }
+        if (event.key === "ArrowDown" && document.activeElement === search && search.value) {
+          event.preventDefault();
+          content.querySelector(".search-result")?.focus();
+        }
+      });
+      root.querySelectorAll("[data-icon]").forEach((element) => {
+        element.innerHTML = icon(element.dataset.icon);
+      });
+      renderPage();
+    </script>
+  </body>
+</html>

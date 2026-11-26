@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "bun src/main.ts",
+    "check": "tsc --noEmit",
     "test": "bun test tests"
   },
   "dependencies": {
