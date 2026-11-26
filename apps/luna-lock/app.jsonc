@@ -9,6 +9,9 @@
       "source": "pacman",
       "purpose": "Render Luna's session lock and authenticate with PAM",
     },
+    { "name": "qt6-svg", "source": "pacman", "purpose": "Render the screen's icons" },
+    { "name": "qt6-imageformats", "source": "pacman", "purpose": "Load background images" },
+    { "name": "file", "source": "pacman", "purpose": "Detect theme background images" },
   ],
   "hooks": {
     "before_uninstall": ["scripts/stop.ts"],

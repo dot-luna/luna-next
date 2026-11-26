@@ -9,8 +9,11 @@ WlSessionLockSurface {
     required property var theme
     required property date dateTime
     required property var authentication
+    required property var actions
+    property string username: ""
+    property url userIcon
     property bool keyboardActive: false
-    signal activity()
+    signal activity
     signal activated(string screenName)
 
     color: theme.colors.background
@@ -20,6 +23,9 @@ WlSessionLockSurface {
         objectName: "lock-view"
         anchors.fill: parent
         theme: surface.theme
+        actions: surface.actions
+        username: surface.username
+        userIcon: surface.userIcon
         dateTime: surface.dateTime
         prompt: surface.authentication.message.trim() || "Password"
         statusText: surface.authentication.statusText
@@ -38,6 +44,8 @@ WlSessionLockSurface {
 
     Connections {
         target: surface.authentication
-        function onClearInput() { view.clearInput(); }
+        function onClearInput() {
+            view.clearInput();
+        }
     }
 }

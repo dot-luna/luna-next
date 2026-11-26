@@ -25,6 +25,24 @@ export function addLockCommands(program: Command, output: Output) {
   group.action(() => run("lock"));
   group.command("lock-idle", { hidden: true }).action(() => run("lockIdle"));
   group.command("open").action(() => run("lock"));
+  group
+    .command("preview")
+    .description("Preview the screen in a window without locking or authenticating")
+    .action(async () =>
+      output.response(await Luna.lock.preview(options()), () => "Preview closed."),
+    );
+  group
+    .command("configure <json>")
+    .description("Merge saved settings and reload a running lock")
+    .action(async (source: string) => {
+      let patch: unknown;
+      try {
+        patch = JSON.parse(source);
+      } catch {
+        throw new InvalidArgumentError("Expected a JSON settings object");
+      }
+      output.response(await Luna.lock.configure(patch, options()), () => "Lock updated.");
+    });
   for (const action of ["start", "lock", "stop", "restart", "reload", "status"] as const)
     group.command(action).action(() => run(action));
   group

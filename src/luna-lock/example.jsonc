@@ -3,4 +3,9 @@
   "idle_seconds": 600,
   // Seconds of inactivity while securely locked. Zero keeps displays on.
   "dpms_seconds": 30,
+  // Optional screen folder (contains Screen.qml) and image, relative to this config.
+  // Omit these to use the default screen and the current Luna theme background.
+  "screen": { "path": "./lock/screens/default" },
+  "background": {},
+  "actions": { "shutdown_delay": 3 },
 }

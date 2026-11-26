@@ -66,6 +66,10 @@ if(args[0]==='ipc') {
     const destination = join(configRoot, "lock");
     const config = join(configRoot, "lock.jsonc");
     expect(readFileSync(join(destination, "shell.qml"), "utf8")).toContain("LUNA_LOCK_SETTINGS");
+    expect(readFileSync(join(destination, "screens/default/Screen.qml"), "utf8")).toContain(
+      "LockForm",
+    );
+    expect(readFileSync(join(destination, "preview.qml"), "utf8")).toContain("Luna Lock Preview");
     const defaults = readFileSync(join(app, "config/lock.jsonc"), "utf8");
     expect(readFileSync(config, "utf8")).toBe(defaults);
     expect(readFileSync(qsLog, "utf8")).not.toContain("--daemonize");
@@ -94,6 +98,7 @@ if(args[0]==='ipc') {
     expect(JSON.parse(readFileSync(snapshot, "utf8"))).toEqual({
       idle_seconds: 600,
       dpms_seconds: 30,
+      actions: { shutdown_delay: 3 },
     });
 
     f.write(configRoot, "lock/custom.qml", "preserve while locked");
