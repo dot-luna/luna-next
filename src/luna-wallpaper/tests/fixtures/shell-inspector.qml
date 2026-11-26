@@ -27,7 +27,7 @@
             }
             visit(surface);
             return JSON.stringify({settings: shell.wallpaperSettings, settingsStatus: shell.settingsStatus,
-                renderSettings: surface.settings, status: surface.mediaStatus, kind: surface.kind,
+                renderSettings: surface.settings, status: surface.mediaStatus, kind: surface.kind, fading: surface.imageFading,
                 screen: surface.modelData.name,
                 images: images, videos: videos, visible: surface.visible,
                 fillModes: {fill: Image.PreserveAspectCrop, fit: Image.PreserveAspectFit,

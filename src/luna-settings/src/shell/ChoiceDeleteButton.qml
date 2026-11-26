@@ -1,11 +1,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Luna.UI 1.0 as UI
 import QtQuick.Controls.Basic
 
-Button {
+UI.Button {
+    variant: UI.Button.Ghost
     id: button
-    required property SettingsTheme theme
     required property bool applied
     required property bool cardHovered
     required property bool cardFocused
@@ -13,6 +14,8 @@ Button {
     width: 28
     height: 28
     padding: 6
+    horizontalPadding: 6
+    verticalPadding: 6
     visible: !applied
     // Keep the action in the tab order; keyboard focus reveals it like pointer hover.
     opacity: cardHovered || cardFocused || hovered || visualFocus ? 1 : 0
@@ -21,8 +24,6 @@ Button {
     ToolTip.visible: opacity > 0 && (hovered || visualFocus)
     ToolTip.text: text
     ToolTip.delay: 400
-    Keys.onReturnPressed: clicked()
-    Keys.onEnterPressed: clicked()
     background: Rectangle {
         color: button.hovered ? button.theme.raised : button.theme.surface
         radius: button.theme.rounding

@@ -18,6 +18,8 @@ PanelWindow {
     // Keep the visible slot until its replacement has decoded.
     property var currentImage: null
     property var pendingImage: null
+    property var retiringImage: null
+    readonly property bool imageFading: imageFade.running
     // Deferred failures belong to one request, even when its Loader slot is reused.
     property int generation: 0
 
@@ -56,7 +58,18 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     WlrLayershell.namespace: "luna-wallpaper"
 
+    // A new request cancels the visual effect immediately and retains the decoded selection.
+    function settleImages() {
+        imageFade.stop();
+        if (retiringImage) {
+            retiringImage.active = false;
+            retiringImage = null;
+        }
+        if (currentImage) currentImage.opacity = 1;
+    }
+
     function fail(message) {
+        settleImages();
         deadline.stop();
         probe.active = false;
         if (pendingImage) {
@@ -74,6 +87,7 @@ PanelWindow {
         // Fit, color, and playback settings update through their existing bindings.
         if (!force && nextSource === requestedSource && mediaStatus !== "error")
             return;
+        settleImages();
         generation++;
         probe.active = false;
         requestedSource = nextSource;
@@ -157,9 +171,13 @@ PanelWindow {
             pendingImage = null;
             video.active = false;
             image.visible = true;
+            // Readiness describes decoded media; the fade never blocks API completion.
             mediaStatus = "ready";
-            if (previous)
-                previous.active = false;
+            if (previous) {
+                retiringImage = previous;
+                image.opacity = 0;
+                imageFade.start();
+            } else image.opacity = 1;
         }
     }
 
@@ -171,6 +189,25 @@ PanelWindow {
             currentImage.active = false;
             currentImage = null;
         }
+    }
+
+    SequentialAnimation {
+        id: imageFade
+        NumberAnimation {
+            target: surface.retiringImage
+            property: "opacity"
+            to: 0
+            duration: 120
+            easing.type: Easing.InQuad
+        }
+        NumberAnimation {
+            target: surface.currentImage
+            property: "opacity"
+            to: 1
+            duration: 180
+            easing.type: Easing.OutQuad
+        }
+        onFinished: surface.settleImages()
     }
 
     onSettingsChanged: if (completed)

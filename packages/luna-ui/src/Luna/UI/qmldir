@@ -1,0 +1,8 @@
+module Luna.UI
+Theme 1.0 Theme.qml
+Title 1.0 Title.qml
+Subtitle 1.0 Subtitle.qml
+Text 1.0 Text.qml
+Button 1.0 Button.qml
+Badge 1.0 Badge.qml
+InputDialog 1.0 InputDialog.qml

@@ -1,13 +1,14 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Luna.UI 1.0 as UI
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
-Button {
+UI.Button {
+    variant: UI.Button.Ghost
     id: choice
     required property var entry
-    required property SettingsTheme theme
     required property bool selected
     required property bool applied
     signal chosen()
@@ -21,8 +22,6 @@ Button {
     Accessible.description: "Palette: " + entry.palette.join(", ")
     onClicked: chosen()
     onActiveFocusChanged: if (activeFocus) reveal(choice)
-    Keys.onReturnPressed: clicked()
-    Keys.onEnterPressed: clicked()
 
     background: Rectangle {
         color: choice.hovered ? choice.theme.raised : "transparent"
@@ -127,14 +126,12 @@ Button {
             Layout.fillWidth: true
             Layout.leftMargin: 3
             Layout.rightMargin: 3
-            Label {
+            UI.Text {
+                theme: choice.theme
                 Layout.fillWidth: true
                 text: choice.entry.name
-                color: choice.theme.text
-                font.family: choice.theme.font
                 font.pixelSize: 12
                 elide: Text.ElideRight
-                textFormat: Text.PlainText
             }
             SettingsIcon {
                 objectName: "theme-mode-" + choice.entry.name

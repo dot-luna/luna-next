@@ -5,7 +5,8 @@ Requires Bun, a Wayland compositor with layer-shell support, Quickshell, FFmpeg
 
 `src/shell/` renders one wallpaper surface per monitor. Qt handles images and
 GIF/WebP animations; mpvpaper handles video and animated PNGs. Each monitor plays
-independently. Fullscreen windows pause playback on their visible workspace;
+independently. Image replacements fade out and in after decoding, without delaying
+readiness or subsequent requests. Video replacements use the player directly. Fullscreen windows pause playback on their visible workspace;
 sleeping-output detection requires Hyprland.
 
 The renderer receives validated JSON snapshots through `LUNA_WALLPAPER_SETTINGS`,

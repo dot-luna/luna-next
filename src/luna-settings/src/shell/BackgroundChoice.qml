@@ -1,72 +1,104 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Basic
+import QtQuick.Effects
+import Luna.UI 1.0 as UI
 
-Button {
+UI.Button {
     id: choice
     required property var entry
-    required property SettingsTheme theme
-    required property bool selected
-    required property bool applied
+    readonly property bool applied: entry.current
     signal chosen()
     signal removed()
     signal reveal(Item target)
+    variant: UI.Button.Ghost
     objectName: "background-" + entry.name
     implicitHeight: width * 0.64
-    padding: 6
-    hoverEnabled: true
+    padding: 0
+    horizontalPadding: 0
+    verticalPadding: 0
     Accessible.name: entry.name + (applied ? ", applied" : "")
-    ToolTip.visible: hovered || visualFocus
-    ToolTip.text: entry.name
-    ToolTip.delay: 400
     onClicked: chosen()
     onActiveFocusChanged: if (activeFocus) reveal(choice)
-    Keys.onReturnPressed: clicked()
-    Keys.onEnterPressed: clicked()
     background: Rectangle {
         radius: choice.theme.rounding
         color: choice.theme.raised
-        border.width: choice.selected || choice.visualFocus ? 2 : choice.theme.borderWidth
-        border.color: choice.selected || choice.visualFocus ? choice.theme.accent : choice.theme.line
     }
-    contentItem: Image {
-        source: choice.entry.source
-        sourceSize: Qt.size(480, 300)
-        fillMode: Image.PreserveAspectCrop
-        asynchronous: true
-        clip: true
+    Rectangle {
+        z: 1
+        anchors.fill: parent
+        radius: choice.theme.rounding
+        color: "transparent"
+        border.width: choice.applied || choice.visualFocus ? 2 : choice.theme.borderWidth
+        border.color: choice.applied || choice.visualFocus ? choice.theme.accent : choice.theme.line
     }
-    ChoiceDeleteButton {
+    contentItem: Item {
+        Image {
+            id: preview
+            objectName: "backgroundPreview"
+            anchors.fill: parent
+            source: choice.entry.video ? "" : choice.entry.source
+            sourceSize: Qt.size(480, 300)
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            clip: true
+            layer.enabled: choice.theme.rounding > 0
+            layer.effect: MultiEffect { maskEnabled: true; maskSource: imageMask }
+        }
+        Rectangle {
+            id: imageMask
+            anchors.fill: preview
+            radius: choice.theme.rounding
+            color: "white"
+            layer.enabled: true
+            visible: false
+        }
+        UI.Text {
+            anchors.centerIn: parent
+            width: parent.width - 12
+            theme: choice.theme
+            visible: Boolean(choice.entry.video)
+            text: choice.entry.name
+            elide: Text.ElideMiddle
+            wrapMode: Text.NoWrap
+            horizontalAlignment: Text.AlignHCenter
+        }
+    }
+    UI.Button {
+        id: remove
+        z: 2
         objectName: "delete-background-" + choice.entry.name
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.margins: 12
+        anchors.margins: 10
+        width: 28; height: 28
         theme: choice.theme
-        applied: choice.applied
-        cardHovered: choice.hovered
-        cardFocused: choice.visualFocus
-        text: "Delete " + choice.entry.name
+        variant: UI.Button.Ghost
+        padding: 5
+        horizontalPadding: 5
+        verticalPadding: 5
+        visible: !choice.applied
+        opacity: choice.hovered || choice.visualFocus || hovered || visualFocus ? 1 : 0
+        Accessible.name: "Delete " + choice.entry.name
         onClicked: choice.removed()
         onActiveFocusChanged: if (activeFocus) choice.reveal(choice)
+        contentItem: SettingsIcon { name: "delete-02"; ink: choice.theme.error }
+        background: Rectangle {
+            color: "transparent"
+            radius: choice.theme.rounding
+            border.width: remove.visualFocus ? 1 : 0
+            border.color: choice.theme.error
+        }
     }
-    Rectangle {
+    UI.Badge {
         z: 2
+        objectName: "applied-background-" + choice.entry.name
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 12
         visible: choice.applied
-        width: appliedLabel.implicitWidth + 14
-        height: 24
-        color: choice.theme.surface
-        radius: choice.theme.rounding
-        Label {
-            id: appliedLabel
-            anchors.centerIn: parent
-            text: "Applied"
-            font.family: choice.theme.font
-            font.pixelSize: 11
-            color: choice.theme.text
-        }
+        theme: choice.theme
+        variant: UI.Badge.Secondary
+        text: "Applied"
     }
 }

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Luna.UI 1.0 as UI
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
@@ -8,7 +9,7 @@ FocusScope {
     id: row
     required property var entry
     required property MockState mockState
-    required property SettingsTheme theme
+    required property UI.Theme theme
     required property string page
     property bool separator: false
     property Item focusTarget: null
@@ -37,14 +38,10 @@ FocusScope {
             name: row.entry.icon || "computer"
             ink: row.theme.subtle
         }
-        Label {
+        UI.Text {
+            theme: row.theme
             Layout.fillWidth: true
             text: row.entry.label
-            font.family: row.theme.font
-            font.pixelSize: 13
-            color: row.theme.text
-            wrapMode: Text.WordWrap
-            textFormat: Text.PlainText
         }
         Loader {
             id: editor
@@ -55,7 +52,9 @@ FocusScope {
         }
     }
 
-    Button {
+    UI.Button {
+        theme: row.theme
+        variant: UI.Button.Ghost
         id: route
         anchors.fill: parent
         visible: row.entry.type === "link"
@@ -64,8 +63,6 @@ FocusScope {
         hoverEnabled: true
         Accessible.name: text
         onClicked: row.navigate(row.entry.page)
-        Keys.onReturnPressed: clicked()
-        Keys.onEnterPressed: clicked()
         contentItem: Item {}
         background: Rectangle {
             color: route.hovered || route.visualFocus ? Qt.alpha(row.theme.accent, 0.07) : "transparent"
@@ -106,15 +103,14 @@ FocusScope {
             palette.highlight: row.theme.selected
             palette.highlightedText: row.theme.selectedText
             onActivated: row.mockState.setValue(row.page, row.entry.key, currentText)
-            contentItem: Text {
+            contentItem: UI.Text {
+                theme: row.theme
                 text: combo.displayText
                 font: combo.font
-                color: row.theme.text
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
                 leftPadding: 9
                 rightPadding: 19
-                textFormat: Text.PlainText
             }
             indicator: SettingsIcon {
                 x: combo.width - 19
@@ -200,11 +196,11 @@ FocusScope {
                     border.color: row.theme.text
                 }
             }
-            Label {
+            UI.Text {
+                theme: row.theme
                 Layout.preferredWidth: 36
                 text: row.value + " px"
                 color: row.theme.subtle
-                font.family: row.theme.font
                 font.pixelSize: 12
                 horizontalAlignment: Text.AlignRight
             }

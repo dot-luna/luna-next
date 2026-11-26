@@ -9,6 +9,7 @@
     "test": "bun test tests"
   },
   "dependencies": {
-    "@luna/api": "workspace:*"
+    "@luna/api": "workspace:*",
+    "@luna/ui": "workspace:*"
   }
 }

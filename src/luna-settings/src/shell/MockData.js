@@ -17,16 +17,13 @@ function appearanceLibrary(theme) {
             themeCard(theme),
             { name: "Moonlight", mode: "dark", background: "#222436", foreground: "#c8d3f5", raised: "#2f334d", dark: "#1e2030", accent: "#82aaff", palette: ["#82aaff", "#c099ff", "#c3e88d", "#ffc777", "#ff757f", "#c8d3f5"] },
             { name: "Daylight", mode: "light", background: "#e6e9ef", foreground: "#343b58", raised: "#ffffff", dark: "#d5d9e3", accent: "#6172b0", palette: ["#6172b0", "#9854b5", "#587b42", "#9a6b21", "#bc536c", "#343b58"] }
-        ].filter((entry, index, all) => all.findIndex(other => other.name === entry.name) === index),
-        backgrounds: ["dunes", "mountain", "forest", "coast", "bloom", "aurora"].map((name, index) => ({
-            name: name[0].toUpperCase() + name.slice(1), source: Qt.resolvedUrl("backgrounds/" + name + ".svg").toString(), current: index === 0
-        }))
+        ].filter((entry, index, all) => all.findIndex(other => other.name === entry.name) === index)
     };
 }
 
 function defaults(theme, library) {
     return {
-        appearance: { theme: theme.name, themes: library.themes, backgrounds: library.backgrounds, background: (library.backgrounds.find(entry => entry.current) || {}).source || "", font: theme.fonts.ui, scale: "100%" },
+        appearance: { theme: theme.name, themes: library.themes, font: theme.fonts.ui, scale: "100%" },
         login: { background: "Night", user: "Last signed-in user", session: "Hyprland", layout: "English (US)", showUsers: true },
         lock: { background: "Night", idle: "10 minutes", dpms: "30 seconds", clock: true, format: "24-hour" },
         desktop: { background: "Night", layout: "Tiling", inner: theme.appearance.gaps.inner, outer: theme.appearance.gaps.outer, rounding: theme.appearance.rounding, blur: theme.appearance.blur.enabled, bar: true }

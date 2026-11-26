@@ -1,13 +1,13 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Basic
+import Luna.UI 1.0 as UI
 
 Column {
     id: group
     required property var section
     required property MockState mockState
-    required property SettingsTheme theme
+    required property UI.Theme theme
     signal navigate(string page)
     signal reveal(Item target)
     spacing: 11
@@ -23,14 +23,12 @@ Column {
         return null;
     }
 
-    Label {
+    UI.Subtitle {
+        theme: group.theme
         objectName: "section-" + group.section.title
         visible: group.section.title !== ""
         text: group.section.title
         color: group.theme.text
-        font.family: group.theme.font
-        font.pixelSize: 15
-        font.weight: Font.Medium
     }
     Rectangle {
         width: parent.width

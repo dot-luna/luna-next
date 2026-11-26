@@ -26,6 +26,7 @@ export interface SurfaceState {
   settings: WallpaperSettings | null;
   settingsStatus: string;
   status: string;
+  fading: boolean;
   kind: string;
   screen: string;
   images: ImageState[];
@@ -139,7 +140,9 @@ export class WallpaperFixture extends ShellHarness {
     return this.ipc("reload", [snapshot ?? (await this.snapshot())], "wallpaper");
   }
   async ready() {
-    await this.until(async () => (await this.status()) === "ready");
+    await this.until(
+      async () => (await this.status()) === "ready" && !(await this.surface()).fading,
+    );
   }
 
   fakeProbe(mode: "video" | "extension" | "hold" = "video") {

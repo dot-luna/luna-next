@@ -303,7 +303,7 @@ describe.skipIf(!quickshell || !Bun.which("ffprobe"))("wallpaper shell", () => {
     expect(await f.status()).toBe("ready");
   });
 
-  test("a replacement keeps the current image until decoded, then appears at full opacity", async () => {
+  test("a replacement keeps the current image while decoding, then fades out and in without delaying readiness", async () => {
     const replacement = join(f.root, "replacement.png");
     f.png(replacement);
     f.fakeProbe("hold");
@@ -319,12 +319,42 @@ describe.skipIf(!quickshell || !Bun.which("ffprobe"))("wallpaper shell", () => {
     expect(pending.images[0]!.source).toBe(first.images[0]!.source);
     expect(pending.images[0]!.opacity).toBe(1);
     f.write(replacement + ".release", "");
+    await f.until(async () => (await f.surface()).fading);
+    const fading = await f.surface();
+    expect(fading.status).toBe("ready");
+    expect(fading.images).toHaveLength(2);
+    expect(fading.images.find((image) => image.source.endsWith("replacement.png"))!.opacity).toBe(
+      0,
+    );
+    await f.until(async () => {
+      const state = await f.surface();
+      const next = state.images.find((image) => image.source.endsWith("replacement.png"));
+      return state.fading && !!next && next.opacity > 0 && next.opacity < 1;
+    });
     await f.ready();
     const latest = await f.surface();
     expect(latest.images).toHaveLength(1);
     expect(latest.images[0]!.source).toContain("replacement.png");
     expect(latest.images[0]!.id).not.toBe(first.images[0]!.id);
     expect(latest.images[0]!.opacity).toBe(1);
+  });
+
+  test("a newer request cancels an unfinished fade and leaves the latest image fully visible", async () => {
+    f.fakeProbe("extension");
+    f.writeConfig();
+    const first = await f.start();
+    const replacement = join(f.root, "replacement.png");
+    f.png(replacement);
+    f.writeConfig({ source: replacement });
+    await f.reload();
+    await f.until(async () => (await f.surface()).fading);
+    f.writeConfig();
+    await f.reload();
+    await f.ready();
+    const state = await f.surface();
+    expect(state.images).toHaveLength(1);
+    expect(state.images[0]!.source).toBe(first.images[0]!.source);
+    expect(state.images[0]!.opacity).toBe(1);
   });
 
   test("a failed replacement preserves the current image and can recover", async () => {
@@ -403,7 +433,7 @@ describe.skipIf(!quickshell || !Bun.which("ffprobe"))("wallpaper shell", () => {
     expect(state.videos).toEqual([]);
   });
 
-  test("old transition fields remain source data and do not animate the wallpaper", async () => {
+  test("old transition fields remain source data and do not control the built-in fade", async () => {
     const settings = {
       wallpaper: { source: f.image },
       transition: { type: "fade", duration_ms: 2000 },

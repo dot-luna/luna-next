@@ -1,0 +1,13 @@
+{
+  "name": "@luna/ui",
+  "version": "0.0.1",
+  "private": true,
+  "files": [
+    "src/Luna"
+  ],
+  "type": "module",
+  "scripts": {
+    "check": "/usr/lib/qt6/bin/qmllint -I src src/Luna/UI/*.qml",
+    "test": "bun test tests"
+  }
+}

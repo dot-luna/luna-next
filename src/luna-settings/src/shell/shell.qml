@@ -9,6 +9,11 @@ ShellRoot {
     id: shell
     property var theme: null
 
+    BackgroundController {
+        id: backgroundService
+        bridgeCommand: JSON.parse(Quickshell.env("LUNA_SETTINGS_BACKGROUND_COMMAND"))
+    }
+
     Loader {
         active: shell.theme !== null
         sourceComponent: FloatingWindow {
@@ -26,6 +31,7 @@ ShellRoot {
             SettingsView {
                 id: view
                 anchors.fill: parent
+                backgrounds: backgroundService
                 themeSnapshot: shell.theme
                 surfaceOpacity: window.fullscreen ? shell.theme.appearance.opacity.fullscreen
                     : window.contentItem.Window.active ? shell.theme.appearance.opacity.active : shell.theme.appearance.opacity.inactive

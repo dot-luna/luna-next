@@ -12,7 +12,7 @@
     },
     "packages/luna-api": {
       "name": "@luna/api",
-      "version": "0.0.12",
+      "version": "0.0.16",
       "dependencies": {
         "pathe": "^2.0.3",
         "zod": "^4.6.7",
@@ -25,9 +25,13 @@
         "@types/chrome": "^0.1.0",
       },
     },
+    "packages/luna-ui": {
+      "name": "@luna/ui",
+      "version": "0.0.1",
+    },
     "src/luna-cli": {
       "name": "@luna/cli",
-      "version": "0.0.12",
+      "version": "0.0.16",
       "bin": {
         "luna": "./src/index.ts",
       },
@@ -43,6 +47,7 @@
       "version": "0.0.8",
       "dependencies": {
         "@luna/api": "workspace:*",
+        "@luna/ui": "workspace:*",
       },
     },
   },
@@ -54,6 +59,8 @@
     "@luna/cli": ["@luna/cli@workspace:src/luna-cli"],
 
     "@luna/settings": ["@luna/settings@workspace:src/luna-settings"],
+
+    "@luna/ui": ["@luna/ui@workspace:packages/luna-ui"],
 
     "@oxfmt/binding-android-arm-eabi": ["@oxfmt/binding-android-arm-eabi@0.75.0", "", { "os": "android", "cpu": "arm" }, "sha512-zHJ7LcTN46/5mtoLxsUu14pdF9ixFwDURtmxZ0CeNwqom5qB5NRVqU6o2GRZ7QPdNBW8G6j9UTJzQ+EDevMH0w=="],
 

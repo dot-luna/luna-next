@@ -8,7 +8,6 @@ QtObject {
     property string query: ""
     property var saved: Data.defaults(theme, library)
     property var draft: Data.defaults(theme, library)
-    readonly property bool dirty: JSON.stringify(saved) !== JSON.stringify(draft)
     readonly property string parentPage: Data.parentPage(page)
     readonly property var groups: Data.groups(page, theme)
     readonly property var results: Data.search(query)
@@ -43,21 +42,4 @@ QtObject {
         if (draft.appearance.theme === name) setValue("appearance", "theme", saved.appearance.theme);
     }
 
-    function addBackground(source) {
-        if (!draft.appearance.backgrounds.some(entry => entry.source === source)) {
-            const name = decodeURIComponent(source.split("/").pop());
-            setValue("appearance", "backgrounds", draft.appearance.backgrounds.concat([{ name: name, source: source, current: false }]));
-        }
-        setValue("appearance", "background", source);
-    }
-
-    function removeBackground(source) {
-        if (source === saved.appearance.background) return;
-        setValue("appearance", "backgrounds", draft.appearance.backgrounds.filter(entry => entry.source !== source));
-        if (draft.appearance.background === source) setValue("appearance", "background", saved.appearance.background);
-    }
-
-    // Apply and Discard affect only this window's sample state, never files or APIs.
-    function apply() { saved = JSON.parse(JSON.stringify(draft)); }
-    function discard() { draft = JSON.parse(JSON.stringify(saved)); }
 }

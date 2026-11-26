@@ -1,15 +1,17 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Luna.UI 1.0 as UI
 import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import QtQuick.Layouts
 
 Column {
     id: page
+    required property var backgrounds
     required property MockState mockState
-    required property SettingsTheme theme
-    readonly property bool dialogOpen: repositoryDialog.visible || pictureDialog.visible
+    required property UI.Theme theme
+    readonly property bool dialogOpen: repositoryDialog.visible || pictureDialog.visible || downloadDialog.visible
     signal reveal(Item target)
     spacing: 24
 
@@ -19,9 +21,12 @@ Column {
             themeChoices.itemAt(index).forceActiveFocus();
             return true;
         }
-        if (key === "background" && backgroundChoices.count) {
-            const index = Math.max(0, mockState.draft.appearance.backgrounds.findIndex(entry => entry.source === mockState.draft.appearance.background));
-            backgroundChoices.itemAt(index).forceActiveFocus();
+        if (key === "background") {
+            if (!backgroundChoices.count) { importTile.focusImport(); reveal(importTile); return true; }
+            const index = Math.max(0, backgrounds.entries.findIndex(entry => entry.current));
+            const item = backgroundChoices.itemAt(index);
+            item.forceActiveFocus();
+            reveal(item);
             return true;
         }
         return false;
@@ -29,8 +34,8 @@ Column {
 
     RowLayout {
         width: parent.width
-        Label { objectName: "styleTitle"; Layout.fillWidth: true; text: "Style"; font.family: page.theme.font; font.pixelSize: 15; font.weight: Font.Medium; color: page.theme.text }
-        SettingsButton { objectName: "addThemeButton"; theme: page.theme; text: "Add Theme"; flat: true; onClicked: repositoryDialog.open() }
+        UI.Subtitle { theme: page.theme; objectName: "styleTitle"; Layout.fillWidth: true; text: "Style"; color: page.theme.text }
+        UI.Button { objectName: "addThemeButton"; theme: page.theme; text: "Add Theme"; variant: UI.Button.Ghost; onClicked: repositoryDialog.open() }
     }
     GridLayout {
         id: themeGrid
@@ -67,8 +72,22 @@ Column {
         spacing: 12
         RowLayout {
             width: parent.width
-            Label { objectName: "backgroundTitle"; Layout.fillWidth: true; text: "Background"; font.family: page.theme.font; font.pixelSize: 15; font.weight: Font.Medium; color: page.theme.text }
-            SettingsButton { objectName: "addBackgroundButton"; theme: page.theme; text: "Add Picture…"; flat: true; onClicked: pictureDialog.open() }
+            UI.Subtitle { theme: page.theme; objectName: "backgroundTitle"; Layout.fillWidth: true; text: "Background"; color: page.theme.text }
+            UI.Button {
+                objectName: "randomBackground"
+                theme: page.theme
+                variant: UI.Button.Ghost
+                implicitWidth: 36
+                implicitHeight: 36
+                padding: 8
+                horizontalPadding: 8
+                verticalPadding: 8
+                enabled: page.backgrounds.entries.length > 0 && !page.backgrounds.busy
+                Accessible.name: "Random wallpaper"
+                onClicked: page.backgrounds.run("random")
+                onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                contentItem: SettingsIcon { name: "shuffle"; ink: page.theme.text }
+            }
         }
         GridLayout {
             id: backgroundGrid
@@ -76,9 +95,23 @@ Column {
             columns: Math.max(1, Math.min(3, Math.floor((width + 12) / 150)))
             columnSpacing: 12
             rowSpacing: 12
+            BackgroundImport {
+                id: importTile
+                objectName: "backgroundImportTile"
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: (backgroundGrid.width - (backgroundGrid.columns - 1) * 12) / backgroundGrid.columns
+                theme: page.theme
+                busy: page.backgrounds.busy
+                onChooseFile: pictureDialog.open()
+                onChooseUrl: downloadDialog.open()
+                onReveal: target => page.reveal(target)
+                Keys.onRightPressed: if (backgroundChoices.count) backgroundChoices.itemAt(0).forceActiveFocus()
+                Keys.onDownPressed: if (backgroundChoices.count >= backgroundGrid.columns) backgroundChoices.itemAt(backgroundGrid.columns - 1).forceActiveFocus()
+            }
             Repeater {
                 id: backgroundChoices
-                model: page.mockState.draft.appearance.backgrounds
+                model: page.backgrounds.entries
                 BackgroundChoice {
                     required property var modelData
                     required property int index
@@ -87,17 +120,48 @@ Column {
                     Layout.preferredWidth: (backgroundGrid.width - (backgroundGrid.columns - 1) * 12) / backgroundGrid.columns
                     theme: page.theme
                     entry: modelData
-                    selected: page.mockState.draft.appearance.background === modelData.source
-                    applied: page.mockState.saved.appearance.background === modelData.source
-                    onChosen: page.mockState.setValue("appearance", "background", modelData.source)
-                    onRemoved: { page.mockState.removeBackground(modelData.source); page.focusSetting("background"); }
+                    enabled: !page.backgrounds.busy
+                    onChosen: page.backgrounds.run("select", modelData.name)
+                    onRemoved: page.backgrounds.run("remove", modelData.name)
                     onReveal: target => page.reveal(target)
                     Keys.onRightPressed: if (index + 1 < backgroundChoices.count) backgroundChoices.itemAt(index + 1).forceActiveFocus()
-                    Keys.onLeftPressed: if (index > 0) backgroundChoices.itemAt(index - 1).forceActiveFocus()
+                    Keys.onLeftPressed: { if (index > 0) backgroundChoices.itemAt(index - 1).forceActiveFocus(); else importTile.focusImport(); }
                     Keys.onDownPressed: if (index + backgroundGrid.columns < backgroundChoices.count) backgroundChoices.itemAt(index + backgroundGrid.columns).forceActiveFocus()
-                    Keys.onUpPressed: if (index >= backgroundGrid.columns) backgroundChoices.itemAt(index - backgroundGrid.columns).forceActiveFocus()
+                    Keys.onUpPressed: { if (index >= backgroundGrid.columns) backgroundChoices.itemAt(index - backgroundGrid.columns).forceActiveFocus(); else if (index + 1 === backgroundGrid.columns) importTile.focusImport(); }
                 }
             }
+        }
+    }
+    UI.Text {
+        objectName: "backgroundError"
+        theme: page.theme
+        width: parent.width
+        visible: page.backgrounds.errorMessage !== ""
+        text: page.backgrounds.errorMessage
+        color: page.theme.error
+    }
+    UI.InputDialog {
+        id: downloadDialog
+        objectName: "backgroundDownloadDialog"
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        theme: page.theme
+        title: "Download Wallpaper"
+        fieldLabel: "Image URL"
+        placeholderText: "https://example.com/wallpaper.jpg"
+        actionText: "Download"
+        busy: page.backgrounds.busy
+        onSubmitted: value => page.backgrounds.run("install", value)
+    }
+    Connections {
+        target: page.backgrounds
+        function onFinished(action, success) {
+            if (downloadDialog.visible && action === "install") {
+                if (success) downloadDialog.close();
+                else downloadDialog.errorMessage = page.backgrounds.errorMessage;
+            }
+            if (success && (action === "remove" || action === "select" || action === "random"))
+                Qt.callLater(() => page.focusSetting("background"));
         }
     }
     ThemeRepositoryDialog {
@@ -110,8 +174,8 @@ Column {
     FileDialog {
         id: pictureDialog
         objectName: "backgroundFileDialog"
-        title: "Add Background"
+        title: "Install Wallpaper"
         nameFilters: ["Images (*.png *.jpg *.jpeg *.webp *.avif *.gif *.bmp *.svg)"]
-        onAccepted: page.mockState.addBackground(selectedFile.toString())
+        onAccepted: page.backgrounds.run("install", selectedFile.toString())
     }
 }

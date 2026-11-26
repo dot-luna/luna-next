@@ -1,7 +1,8 @@
+import { delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Luna } from "@luna/api";
 
-/** Resolve one theme snapshot before starting the mock; settings controls remain local. */
+/** Supply the shared theme and the wallpaper API bridge to Quickshell. */
 async function run() {
   const theme = await Luna.theme.get();
   if (!theme.succes) throw new Error(theme.errMessage);
@@ -9,7 +10,22 @@ async function run() {
   if (!executable) throw new Error("Install Quickshell to open Luna Settings");
 
   const child = Bun.spawn([executable, "-p", fileURLToPath(new URL("./shell", import.meta.url))], {
-    env: { ...Bun.env, LUNA_SETTINGS_THEME: JSON.stringify(theme.data) },
+    env: {
+      ...Bun.env,
+      LUNA_SETTINGS_THEME: JSON.stringify(theme.data),
+      // Let the desktop portal choose the system file picker rather than Qt Quick's fallback.
+      QT_QPA_PLATFORMTHEME: "xdgdesktopportal",
+      LUNA_SETTINGS_BACKGROUND_COMMAND: JSON.stringify([
+        process.execPath,
+        fileURLToPath(new URL("./backgrounds.ts", import.meta.url)),
+      ]),
+      QML_IMPORT_PATH: [
+        fileURLToPath(new URL("../../../packages/luna-ui/src", import.meta.url)),
+        Bun.env.QML_IMPORT_PATH,
+      ]
+        .filter(Boolean)
+        .join(delimiter),
+    },
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",

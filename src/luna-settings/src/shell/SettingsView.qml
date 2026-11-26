@@ -1,12 +1,14 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Luna.UI 1.0 as UI
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import "MockData.js" as Data
 
 Rectangle {
     id: view
+    required property var backgrounds
     required property var themeSnapshot
     property var appearanceSnapshot: Data.appearanceLibrary(themeSnapshot)
     property real surfaceOpacity: 1
@@ -18,7 +20,7 @@ Rectangle {
     color: "transparent"
     focus: true
 
-    SettingsTheme { id: colors; snapshot: view.themeSnapshot }
+    UI.Theme { id: colors; snapshot: view.themeSnapshot }
     MockState { id: mock; theme: view.themeSnapshot; library: view.appearanceSnapshot }
 
     function revealItem(item) {
@@ -144,7 +146,9 @@ Rectangle {
                             { page: "home", label: "Home", icon: "grid-view" },
                             { page: "appearance", label: "Appearance", icon: "paint-board" }
                         ]
-                        Button {
+                        UI.Button {
+                            theme: colors
+                            variant: UI.Button.Ghost
                             id: nav
                             required property var modelData
                             objectName: "nav-" + modelData.page
@@ -156,8 +160,6 @@ Rectangle {
                             hoverEnabled: true
                             Accessible.name: modelData.label
                             onClicked: view.showPage(modelData.page)
-                            Keys.onReturnPressed: clicked()
-                            Keys.onEnterPressed: clicked()
                             background: Rectangle {
                                 radius: colors.rounding
                                 color: nav.checked ? colors.selected : nav.hovered ? colors.raised : "transparent"
@@ -168,12 +170,11 @@ Rectangle {
                             contentItem: RowLayout {
                                 spacing: 11
                                 SettingsIcon { name: nav.modelData.icon; ink: nav.checked ? colors.selectedText : colors.subtle }
-                                Label {
+                                UI.Text {
+                                    theme: colors
                                     Layout.fillWidth: true
                                     text: nav.modelData.label
                                     color: nav.checked ? colors.selectedText : colors.subtle
-                                    font.family: colors.font
-                                    font.pixelSize: 13
                                 }
                             }
                         }
@@ -199,7 +200,9 @@ Rectangle {
                 width: Math.min(760, parent.width - 64)
                 spacing: 0
 
-                Button {
+                UI.Button {
+                    theme: colors
+                    variant: UI.Button.Ghost
                     id: backButton
                     objectName: "backButton"
                     visible: mock.parentPage !== mock.page && !view.searching
@@ -208,25 +211,30 @@ Rectangle {
                     padding: 0
                     Accessible.name: "Back to Appearance"
                     onClicked: view.back()
-                    Keys.onReturnPressed: clicked()
-                    Keys.onEnterPressed: clicked()
                     background: Rectangle { color: "transparent"; border.width: backButton.visualFocus ? Math.max(1, colors.borderWidth) : 0; border.color: colors.accent; radius: colors.rounding }
                     contentItem: RowLayout {
                         spacing: 5
                         SettingsIcon { name: "arrow-right-01"; ink: colors.subtle; rotation: 180; width: 14; height: 14 }
-                        Label { text: "Appearance"; color: colors.subtle; font.family: colors.font; font.pixelSize: 12 }
+                        UI.Text { theme: colors; text: "Appearance"; color: colors.subtle; font.pixelSize: 12 }
                     }
                 }
 
-                Label {
+                UI.Title {
+                    theme: colors
                     objectName: "pageTitle"
-                    visible: mock.page !== "home" && mock.page !== "appearance" || view.searching
-                    Layout.bottomMargin: visible ? 25 : 0
+                    visible: mock.page !== "home" || view.searching
+                    Layout.bottomMargin: visible ? 18 : 0
                     text: view.searching ? "Search" : Data.titles[mock.page]
                     color: colors.text
-                    font.family: colors.font
-                    font.pixelSize: 24
-                    font.weight: Font.Medium
+                }
+
+                Rectangle {
+                    objectName: "headerDivider"
+                    visible: mock.page !== "home" || view.searching
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.bottomMargin: visible ? 22 : 0
+                    color: colors.line
                 }
 
                 StackLayout {
@@ -254,6 +262,7 @@ Rectangle {
                                 id: appearance
                                 visible: mock.page === "appearance"
                                 width: pageColumn.width
+                                backgrounds: view.backgrounds
                                 mockState: mock
                                 theme: colors
                                 onReveal: target => view.revealItem(target)
@@ -283,7 +292,9 @@ Rectangle {
                         spacing: 1
                         boundsBehavior: Flickable.StopAtBounds
                         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                        delegate: Button {
+                        delegate: UI.Button {
+                            theme: colors
+                            variant: UI.Button.Ghost
                             id: result
                             required property var modelData
                             required property int index
@@ -294,8 +305,6 @@ Rectangle {
                             hoverEnabled: true
                             Accessible.name: modelData.label + ", " + modelData.path
                             onClicked: view.showPage(modelData.page, modelData.key)
-                            Keys.onReturnPressed: clicked()
-                            Keys.onEnterPressed: clicked()
                             Keys.onDownPressed: {
                                 results.currentIndex = Math.min(results.count - 1, index + 1);
                                 results.currentItem.forceActiveFocus();
@@ -315,46 +324,17 @@ Rectangle {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 5
-                                    Label { text: result.modelData.label; font.family: colors.font; font.pixelSize: 13; color: colors.text; textFormat: Text.PlainText }
-                                    Label { text: result.modelData.path; font.family: colors.font; font.pixelSize: 12; color: colors.subtle; textFormat: Text.PlainText }
+                                    UI.Text { theme: colors; text: result.modelData.label }
+                                    UI.Text { theme: colors; text: result.modelData.path; font.pixelSize: 12; color: colors.subtle }
                                 }
                                 SettingsIcon { name: "arrow-right-01"; ink: colors.subtle; width: 14; height: 14 }
                             }
                         }
-                        Label {
+                        UI.Text {
+                            theme: colors
                             visible: results.count === 0
                             text: "No settings found."
                             color: colors.subtle
-                            font.family: colors.font
-                            font.pixelSize: 13
-                        }
-                    }
-                }
-
-                ColumnLayout {
-                    objectName: "changeBar"
-                    visible: mock.dirty && mock.page !== "home"
-                    Layout.fillWidth: true
-                    Layout.topMargin: 17
-                    spacing: 15
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: colors.line }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Label { text: "Unsaved changes"; color: colors.subtle; font.family: colors.font; font.pixelSize: 12 }
-                        Item { Layout.fillWidth: true }
-                        SettingsButton {
-                            objectName: "discardButton"
-                            theme: colors
-                            text: "Discard"
-                            onClicked: { mock.discard(); view.forceActiveFocus(); }
-                        }
-                        SettingsButton {
-                            objectName: "applyButton"
-                            theme: colors
-                            primary: true
-                            text: "Apply"
-                            onClicked: { mock.apply(); view.forceActiveFocus(); }
                         }
                     }
                 }
