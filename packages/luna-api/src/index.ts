@@ -10,6 +10,7 @@ import { bar } from "./modules/bar/index.ts";
 import { defaults } from "./modules/defaults/index.ts";
 import { wallpaper } from "./modules/wallpaper/index.ts";
 import { lock } from "./modules/lock/index.ts";
+import { login } from "./modules/login/index.ts";
 import { screensaver } from "./modules/screensaver/index.ts";
 import { screenshot } from "./modules/screenshot/index.ts";
 import { clipboard } from "./modules/clipboard/index.ts";
@@ -20,7 +21,25 @@ export type { EmojiEntry } from "./modules/emoji/schema.ts";
 export type { BarOptions, BarState } from "./modules/bar/context.ts";
 export type { BarSettings } from "./modules/bar/schema.ts";
 
-export const Luna = {
+export const Luna: {
+  polkit: typeof polkit;
+  bar: typeof bar;
+  info: typeof info;
+  self: typeof self;
+  theme: typeof theme;
+  apps: typeof apps;
+  webapp: typeof webapp;
+  menu: typeof menu;
+  notify: typeof notify;
+  defaults: typeof defaults;
+  wallpaper: typeof wallpaper;
+  screensaver: typeof screensaver;
+  lock: typeof lock;
+  login: typeof login;
+  screenshot: typeof screenshot;
+  clipboard: typeof clipboard;
+  emoji: typeof emoji;
+} = {
   polkit,
   bar,
   info,
@@ -34,6 +53,7 @@ export const Luna = {
   wallpaper,
   screensaver,
   lock,
+  login,
   screenshot,
   clipboard,
   emoji,
@@ -52,6 +72,8 @@ export type {
 
 export type { LockOptions, LockState } from "./modules/lock/context.ts";
 export type { LockSettings } from "./modules/lock/schema.ts";
+export type { LoginOptions, LoginState } from "./modules/login/context.ts";
+export type { LoginSettings } from "./modules/login/schema.ts";
 
 export type { ScreensaverOptions, ScreensaverState } from "./modules/screensaver/context.ts";
 export type { ScreensaverSettings } from "./modules/screensaver/schema.ts";
@@ -60,6 +82,7 @@ export type {
   WallpaperOptions,
   WallpaperState,
   WallpaperInstallOptions,
+  WallpaperSetOptions,
   WallpaperEntry,
 } from "./modules/wallpaper/context.ts";
 export type { WallpaperSettings } from "./modules/wallpaper/schema.ts";

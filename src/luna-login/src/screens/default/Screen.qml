@@ -1,155 +1,183 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Effects
-import ".." as Luna
+import QtQuick.Controls.Basic
 
-// Layout, background effects, and the welcome stage belong to this screen;
-// replacing the screen does not change the shared SDDM controller.
 Item {
     id: screen
     required property var settings
     required property var login
-    property bool loginVisible: false
-    property date now: new Date()
+    property bool appeared: false
+    readonly property bool compact: height < 700
+    readonly property bool resting: !form.passwordVisible && !shutdown.active
     focus: true
+    opacity: appeared && !login.authenticated ? 1 : 0
+    enabled: !login.authenticated
 
-    function revealLogin() {
-        loginVisible = true;
-        Qt.callLater(form.focusInput);
+    // SDDM owns session startup; fading never postpones authentication or handoff.
+    Behavior on opacity {
+        NumberAnimation {
+            duration: 240
+            easing.type: Easing.InOutQuad
+        }
     }
 
-    function showWelcome() {
-        if (login.busy)
-            return;
-        form.clearPassword();
-        login.clearError();
-        loginVisible = false;
-        forceActiveFocus(Qt.OtherFocusReason);
+    function focusInput() {
+        if (form.passwordVisible)
+            form.revealPassword("");
+        else
+            forceActiveFocus(Qt.OtherFocusReason);
     }
 
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape) {
-            showWelcome();
+            if (shutdown.active)
+                shutdown.cancel();
+            else
+                form.dismiss();
             event.accepted = true;
-        } else if (!loginVisible) {
-            // The opening keystroke reveals the form without entering a hidden
-            // password or accidentally starting authentication.
-            revealLogin();
-            event.accepted = true;
-        } else {
-            event.accepted = false;
-        }
-    }
-
-    Luna.Background {
-        id: wallpaper
-        objectName: "screenBackground"
-        anchors.fill: parent
-        wallpaper: screen.settings.wallpaper
-        layer.enabled: screen.settings.appearance.blur.enabled
-        layer.effect: MultiEffect {
-            objectName: "backgroundBlur"
-            blurEnabled: true
-            blur: 1
-            blurMax: Math.max(2, Math.min(64, screen.settings.appearance.blur.size))
-            // Scale Qt's blur radius from the theme's configured pass count.
-            blurMultiplier: Math.max(0, screen.settings.appearance.blur.passes - 1)
-            autoPaddingEnabled: false
-        }
-    }
-
-    Rectangle {
-        objectName: "backgroundShade"
-        anchors.fill: parent
-        color: screen.settings.colors.darker_background
-        opacity: 1 - (screen.loginVisible
-            ? screen.settings.appearance.opacity.inactive : screen.settings.appearance.opacity.active)
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 180
+        } else if (shutdown.active) {
+            event.accepted = event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab;
+        } else if (!form.passwordVisible && !screen.login.busy) {
+            if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+                form.moveUser(event.key === Qt.Key_Left ? -1 : 1);
+                event.accepted = true;
+            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                form.revealPassword("");
+                event.accepted = true;
+            } else if (event.text && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && event.text.charCodeAt(0) >= 32) {
+                form.revealPassword(event.text);
+                event.accepted = true;
             }
         }
     }
 
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: screen.now = new Date()
+    ScreenBackground {
+        anchors.fill: parent
+        settings: screen.settings
     }
 
-    Column {
-        anchors {
-            top: parent.top
-            horizontalCenter: parent.horizontalCenter
-            topMargin: Math.max(48, parent.height * 0.12)
-        }
-        spacing: 4
-        opacity: screen.loginVisible ? 0 : 1
-        visible: opacity > 0
+    ScreenClock {
+        id: clock
+        objectName: "screenClock"
+        opacity: screen.resting ? 1 : 0
+        visible: screen.resting || opacity > 0
+        enabled: screen.resting
         Behavior on opacity {
             NumberAnimation {
-                duration: 180
+                duration: 160
+                easing.type: Easing.OutQuad
             }
         }
-        Text {
-            objectName: "clockText"
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: Qt.formatDateTime(screen.now, "hh:mm")
-            color: screen.settings.colors.bright_foreground
-            font.family: screen.settings.fonts.ui
-            font.pixelSize: Math.min(76, Math.max(42, screen.height * 0.08))
-            font.weight: Font.Light
-        }
-        Text {
-            objectName: "dateText"
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: Qt.formatDate(screen.now, "dddd, MMMM d")
-            color: screen.settings.colors.foreground
-            font.family: screen.settings.fonts.ui
-            font.pixelSize: 16
-        }
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(28, Math.round(screen.height * 0.08))
+        theme: screen.settings.theme
+        compact: screen.compact
     }
 
     LoginForm {
         id: form
         objectName: "loginForm"
-        anchors.centerIn: parent
-        width: Math.min(300, parent.width - 48)
-        settings: screen.settings
-        login: screen.login
-        opacity: screen.loginVisible ? 1 : 0
-        visible: opacity > 0
-        enabled: screen.loginVisible
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.round((screen.height - implicitHeight) / 2)
+        width: Math.min(320, screen.width - 48)
+        opacity: shutdown.active ? 0 : 1
+        visible: !shutdown.active || opacity > 0
+        enabled: !shutdown.active
         Behavior on opacity {
             NumberAnimation {
-                duration: 180
+                duration: 160
+                easing.type: Easing.OutQuad
+            }
+        }
+        settings: screen.settings
+        login: screen.login
+        compact: screen.compact
+        onRestRequested: screen.forceActiveFocus(Qt.OtherFocusReason)
+    }
+
+    LoginFooter {
+        objectName: "loginActions"
+        opacity: screen.resting ? 1 : 0
+        visible: screen.resting || opacity > 0
+        enabled: screen.resting
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 160
+                easing.type: Easing.OutQuad
+            }
+        }
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Math.max(28, Math.round(screen.height * 0.05))
+        settings: screen.settings
+        login: screen.login
+        onActionRequested: action => {
+            if (action === "powerOff") {
+                form.dismiss();
+                if (shutdown.start())
+                    screen.forceActiveFocus(Qt.OtherFocusReason);
+            } else {
+                screen.login.requestAction(action);
             }
         }
     }
 
-    Text {
-        objectName: "welcomePrompt"
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            bottom: parent.bottom
-            bottomMargin: 104
+    ComboBox {
+        id: layoutSelector
+        objectName: "layoutSelector"
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 32
+        anchors.bottomMargin: 32
+        implicitWidth: 90
+        implicitHeight: 36
+        opacity: screen.resting && count > 1 ? 1 : 0
+        visible: (screen.resting && count > 1) || opacity > 0
+        enabled: screen.resting && !screen.login.busy
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 160
+                easing.type: Easing.OutQuad
+            }
         }
-        visible: !screen.loginVisible
-        text: qsTr("Press any key to sign in")
-        color: screen.settings.colors.foreground
-        font.family: screen.settings.fonts.ui
-        font.pixelSize: 13
+        model: screen.login.keyboardLayouts
+        textRole: "shortName"
+        currentIndex: screen.login.currentLayout
+        Accessible.name: qsTr("Keyboard layout")
+        font.family: screen.settings.theme.fonts.ui
+        font.pixelSize: 12
+        palette.text: screen.settings.theme.colors.foreground
+        palette.buttonText: screen.settings.theme.colors.foreground
+        palette.window: screen.settings.theme.colors.background
+        palette.base: screen.settings.theme.colors.background
+        palette.highlight: screen.settings.theme.colors.selection
+        palette.highlightedText: screen.settings.theme.colors.selection_foreground
+        onActivated: screen.login.selectLayout(currentIndex)
+        background: Rectangle {
+            radius: screen.settings.theme.appearance.rounding
+            color: layoutSelector.hovered || layoutSelector.visualFocus ? Qt.alpha(screen.settings.theme.colors.selection, 0.6) : "transparent"
+            border.width: layoutSelector.visualFocus ? 1 : 0
+            border.color: screen.settings.theme.colors.accent
+            Behavior on color {
+                ColorAnimation {
+                    duration: 120
+                }
+            }
+        }
     }
 
-    LoginFooter {
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            margins: 28
-        }
-        settings: screen.settings
+    ShutdownView {
+        id: shutdown
+        objectName: "shutdownView"
+        anchors.fill: parent
+        theme: screen.settings.theme
         login: screen.login
+        delaySeconds: screen.settings.actions.shutdown_delay
+        onCancelled: screen.forceActiveFocus(Qt.OtherFocusReason)
+    }
+
+    Component.onCompleted: {
+        appeared = true;
+        forceActiveFocus(Qt.OtherFocusReason);
     }
 }

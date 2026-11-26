@@ -4,11 +4,13 @@ import {
   wallpaperContext,
   type WallpaperOptions,
   type WallpaperInstallOptions,
+  type WallpaperSetOptions,
   type WallpaperState,
 } from "./context.ts";
 import { wallpaperRenderer, type RendererContext } from "./runtime.ts";
 import { wallpaperSettings } from "./settings.ts";
 import { wallpaperStore } from "./store.ts";
+import { login } from "@/modules/login/index.ts";
 
 /**
  * One-shot JSONC settings and explicit renderer control; nothing watches the file.
@@ -79,7 +81,14 @@ class Wallpaper {
   }
 
   /** Select an installed name, an absolute path, or "" to clear the source. */
-  set(source: string, options: WallpaperOptions = {}) {
+  set(source: string, options: WallpaperSetOptions = {}) {
+    if (options.login)
+      return login.setWallpaper(source, {
+        configFile: options.loginConfigFile,
+        repository: options.repository,
+        systemRoot: options.systemRoot,
+        env: options.env,
+      });
     return respond(() =>
       wallpaperStore.select({ context: wallpaperContext.resolve(options), source }),
     );

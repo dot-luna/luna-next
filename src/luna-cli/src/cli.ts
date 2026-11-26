@@ -9,6 +9,7 @@ import { addClipboardCommands } from "@/modules/clipboard/commands.ts";
 import { addDefaultsCommands } from "@/modules/defaults/commands.ts";
 import { addEmojiCommands } from "@/modules/emoji/commands.ts";
 import { addLockCommands } from "@/modules/lock/commands.ts";
+import { addLoginCommands } from "@/modules/login/commands.ts";
 import { addMenuCommands } from "@/modules/menu/commands.ts";
 import { addPolkitCommands } from "@/modules/polkit/commands.ts";
 import { addNotifyCommands } from "@/modules/notify/commands.ts";
@@ -41,6 +42,7 @@ const registrations = [
   addWallpaperCommands,
   addScreensaverCommands,
   addLockCommands,
+  addLoginCommands,
   addScreenshotCommands,
 ];
 
