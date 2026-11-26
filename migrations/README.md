@@ -129,7 +129,6 @@ a running bar restarts, and a stopped bar stays stopped. Repeating it is safe.
 Installs Luna Polkit for systems with Luna's Hyprland or an installed Luna Polkit,
 including JSONC settings and the native authentication prompt. Refreshes installed
 Hyprland's login startup to use Luna instead of KDE's agent and removes the obsolete
-Luna polkit user service when present. Removes the replaced `polkit-kde-agent`
-package after successful setup, without removing its dependencies. An explicitly disabled Polkit manifest skips
+Luna polkit user service when present. KDE package removal remains a manual step. An explicitly disabled Polkit manifest skips
 this migration's changes. Log out and back in to switch agents; an existing KDE
 agent is left running until then. Repeating the migration is safe.

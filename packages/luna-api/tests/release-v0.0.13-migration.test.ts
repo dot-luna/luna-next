@@ -40,25 +40,14 @@ test("v0.0.13 upgrades Hyprland or Polkit installations, respects disabled apps 
       `#!${process.execPath}\nimport {appendFileSync} from 'node:fs';\nappendFileSync(Bun.env.FIXTURE_LOG,JSON.stringify({name:'systemctl',args:Bun.argv.slice(2)})+'\\n');\nprocess.exit(Bun.env.FIXTURE_FAIL==='systemctl'?1:0);\n`,
     );
     await chmod(systemctl, 0o755);
-    await Bun.write(
-      join(root, "bin/pacman"),
-      `#!${process.execPath}\nif(Bun.env.FIXTURE_FAIL==='packages')process.exit(1);\nif(Bun.env.FIXTURE_KDE==='1')console.log('polkit-kde-agent');\n`,
-    );
-    await Bun.write(
-      join(root, "bin/sudo"),
-      `#!${process.execPath}\nimport {appendFileSync} from 'node:fs';\nappendFileSync(Bun.env.FIXTURE_LOG,JSON.stringify({name:'sudo',args:Bun.argv.slice(2)})+'\\n');\nprocess.exit(Bun.env.FIXTURE_FAIL==='remove'?1:0);\n`,
-    );
-    await chmod(join(root, "bin/pacman"), 0o755);
-    await chmod(join(root, "bin/sudo"), 0o755);
     const unit = join(root, ".config/systemd/user/luna-next-polkit.service");
-    async function run(installed: string[], failure = "", disabled = false, kde = false) {
+    async function run(installed: string[], failure = "", disabled = false) {
       await Bun.write(log, "");
       const child = Bun.spawnSync([process.execPath, script], {
         env: {
           HOME: root,
           PATH: join(root, "bin") + ":/usr/bin",
           FIXTURE_LOG: log,
-          FIXTURE_KDE: kde ? "1" : "0",
           FIXTURE_INSTALLED: JSON.stringify(installed),
           FIXTURE_FAIL: failure,
           FIXTURE_DISABLED: disabled ? "1" : "0",
@@ -77,15 +66,6 @@ test("v0.0.13 upgrades Hyprland or Polkit installations, respects disabled apps 
     const installed = { name: "install", ids: ["luna-polkit"], options: { closeApps: false } };
     expect(await run(["hypr"], "", true)).toEqual({ code: 0, calls: [installed] });
     expect(await run(["luna-polkit"])).toEqual({ code: 0, calls: [installed] });
-    expect((await run(["hypr"], "packages")).code).toBe(1);
-    expect((await run(["hypr"], "remove", false, true)).code).toBe(1);
-    const removal = await run(["hypr"], "", false, true);
-    expect(removal.code).toBe(0);
-    expect(removal.calls.at(-1)).toEqual({
-      name: "sudo",
-      args: ["pacman", "-R", "--noconfirm", "--", "polkit-kde-agent"],
-    });
-    expect(await run(["hypr"], "", true, true)).toEqual({ code: 0, calls: [installed] });
     await Bun.write(unit, "obsolete service");
     expect((await run(["hypr"], "systemctl")).code).toBe(1);
     expect(await Bun.file(unit).exists()).toBe(true);

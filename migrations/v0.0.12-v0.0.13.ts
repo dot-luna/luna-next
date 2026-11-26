@@ -34,18 +34,6 @@ if (installed.data.length) {
       const configured = await Luna.apps.configure(["hypr"], { closeApps: false });
       if (!configured.succes) throw new Error(configured.errMessage);
     }
-    const packages = Bun.spawn(["pacman", "-Qq"], { stdout: "pipe", stderr: "inherit" });
-    const names = (await new Response(packages.stdout).text()).trim().split(/\s+/u);
-    if ((await packages.exited) !== 0) throw new Error("Could not query installed packages");
-    if (names.includes("polkit-kde-agent")) {
-      // Remove only the replaced agent; Pacman still enforces dependency constraints.
-      const remove = Bun.spawn(["sudo", "pacman", "-R", "--noconfirm", "--", "polkit-kde-agent"], {
-        stdin: "inherit",
-        stdout: "inherit",
-        stderr: "inherit",
-      });
-      if ((await remove.exited) !== 0) throw new Error("Could not remove polkit-kde-agent");
-    }
     // Keep an in-flight authentication conversation intact. The new agent takes over at login.
     console.log("Luna Polkit installed. Log out and back in to use the new authentication agent.");
   }

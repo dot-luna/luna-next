@@ -7,8 +7,7 @@ installs the declared packages, QML, and [default settings](../../apps/luna-polk
 Luna's Hyprland configuration runs `luna polkit start` at login. Other compositors
 can run that command from their session startup. Stop any other authentication
 agent first; Luna does not terminate competing agents. After upgrading from KDE's
-agent, log out and back in. The v0.0.13 migration removes `polkit-kde-agent` after
-successful setup. There is no separate systemd service.
+agent, log out and back in. Remove `polkit-kde-agent` manually once Luna is working. There is no separate systemd service.
 
 | Command                       | Behavior                                                                             |
 | ----------------------------- | ------------------------------------------------------------------------------------ |
