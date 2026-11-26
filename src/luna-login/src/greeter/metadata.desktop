@@ -4,6 +4,6 @@ Description=Prepared Luna login screen
 Type=sddm-theme
 Version=0.1
 MainScript=Main.qml
-Theme-Id=luna-next
+Theme-Id=luna
 Theme-API=2.0
 QtVersion=6

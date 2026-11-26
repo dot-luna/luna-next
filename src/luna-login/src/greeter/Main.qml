@@ -1,13 +1,18 @@
 import QtQuick
 import "Settings.js" as Settings
 
-// The builder supplies a complete settings snapshot and local assets. The greeter
-// never reads the user's configuration or invokes the Luna CLI.
 Item {
     id: root
 
-    property var settings: Settings.values
-    // SDDM supplies these context properties; test hosts inject explicit models.
+    // Resolve bundle-relative assets here so screens receive usable file URLs.
+    readonly property var settings: ({
+        screen: { path: Qt.resolvedUrl(Settings.values.screen.path + "/").toString() },
+        theme: Settings.values.theme,
+        background: { path: Settings.values.background.path ? Qt.resolvedUrl(Settings.values.background.path).toString() : "" },
+        actions: Settings.values.actions,
+        login: Settings.values.login
+    })
+    // SDDM injects these models and the proxy; isolated hosts can supply fakes.
     // qmllint disable unqualified
     property var backend: typeof sddm !== "undefined" ? sddm : null
     property var usersModel: typeof userModel !== "undefined" ? userModel : null
@@ -26,6 +31,7 @@ Item {
         users: root.usersModel
         sessions: root.sessionsModel
         keyboardState: root.keyboardState
+        preferredUser: root.settings.login.user
     }
 
     Loader {
@@ -33,7 +39,7 @@ Item {
         objectName: "screenLoader"
         anchors.fill: parent
         focus: true
-        Component.onCompleted: setSource(Qt.resolvedUrl("screen/Screen.qml"), {
+        Component.onCompleted: setSource(root.settings.screen.path + "Screen.qml", {
             settings: root.settings,
             login: controller
         })
@@ -42,9 +48,11 @@ Item {
     Text {
         anchors.centerIn: parent
         visible: screenLoader.status === Loader.Error
-        text: qsTr("The login screen could not be loaded.")
-        color: root.settings.colors.error
-        font.family: root.settings.fonts.ui
+        text: qsTr("The login screen could not be loaded. Press %1 for console login.").arg(controller.consoleShortcut)
+        width: Math.min(440, parent.width - 48)
+        wrapMode: Text.Wrap
+        color: root.settings.theme.colors.error
+        font.family: root.settings.theme.fonts.ui
         textFormat: Text.PlainText
     }
 }
