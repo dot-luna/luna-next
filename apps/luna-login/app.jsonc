@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "name": "luna-login",
+  "source": "local",
+  "deps": [
+    {
+      "name": "sddm",
+      "source": "pacman",
+      "purpose": "Authenticate users and start the desktop session",
+    },
+    { "name": "qt6-declarative", "source": "pacman", "purpose": "Render Luna's QML login screen" },
+    { "name": "qt6-svg", "source": "pacman", "purpose": "Render the login screen's icons" },
+    {
+      "name": "qt6-imageformats",
+      "source": "pacman",
+      "purpose": "Read additional background image formats",
+    },
+    { "name": "file", "source": "pacman", "purpose": "Validate login background images" },
+  ],
+  "hooks": {
+    "before_configure": ["scripts/configure.ts"],
+    "after_configure": ["scripts/install.ts"],
+    "before_uninstall": ["scripts/uninstall.ts"],
+  },
+  "exports": [
+    { "source": "generated/source/", "target": "login/" },
+    { "source": "generated/login.jsonc", "target": "login.jsonc" },
+  ],
+  "cleanup": {
+    "uninstall": [["$LUNA_CONFIG_HOME_DIR/login"]],
+    "purge": [
+      ["$LUNA_LOGIN_CONFIG", "$LUNA_CONFIG_HOME_DIR/login.jsonc"],
+      ["$LUNA_DATA_HOME_DIR/login"],
+    ],
+  },
+}

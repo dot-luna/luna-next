@@ -32,6 +32,7 @@
     "luna-wallpaper/app.jsonc",
     "luna-screensaver/app.jsonc",
     "luna-lock/app.jsonc",
+    "luna-login/app.jsonc",
     "luna-screenshot/app.jsonc",
 
     // Configure shell integrations after their apps and desktop defaults.

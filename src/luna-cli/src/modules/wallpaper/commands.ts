@@ -98,8 +98,30 @@ export function addWallpaperCommands(program: Command, output: Output) {
   group
     .command("set <name-or-path>")
     .description('Select an installed name or absolute media path; use "" to clear it')
-    .action(async (source: string) =>
-      output.response(await Luna.wallpaper.set(source, options()), () => "Wallpaper updated."),
+    .option("--login", "Set only the Login background using a local image")
+    .option("--login-config <path>", "Login JSONC file when using --login")
+    .option("--system-root <path>", "SDDM filesystem root when using --login")
+    .action(
+      async (
+        source: string,
+        flags: { login?: boolean; loginConfig?: string; systemRoot?: string },
+      ) => {
+        if (flags.login) {
+          output.response(
+            await Luna.wallpaper.set(source, {
+              ...options(),
+              login: true,
+              loginConfigFile: flags.loginConfig,
+              systemRoot: flags.systemRoot,
+            }),
+            () => "Login wallpaper updated.",
+          );
+        } else {
+          if (flags.loginConfig || flags.systemRoot)
+            throw new InvalidArgumentError("--login-config and --system-root require --login");
+          output.response(await Luna.wallpaper.set(source, options()), () => "Wallpaper updated.");
+        }
+      },
     );
   group
     .command("fit <mode>")

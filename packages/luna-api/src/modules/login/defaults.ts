@@ -1,5 +1,6 @@
 /** Standalone defaults; the greeter never needs the user's desktop theme. */
 export const loginDefaults = {
+  login: { user: "jrtilak" },
   actions: { shutdown_delay: 3 },
   theme: {
     colors: {

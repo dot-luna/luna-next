@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildLogin } from "../../../packages/luna-api/src/modules/login/build.ts";
+import { loginBuilder } from "../../../packages/luna-api/src/modules/login/build.ts";
 
 test("login screen keyboard, pointer, animation, and shutdown behavior", async () => {
   const runner = Bun.which("qmltestrunner-qt6") ?? "/usr/lib/qt6/bin/qmltestrunner";
@@ -14,14 +14,14 @@ test("login screen keyboard, pointer, animation, and shutdown behavior", async (
     const sourceDirectory = new URL("../src", import.meta.url).pathname;
     const configFile = join(root, "config.jsonc");
     await Bun.write(configFile, "{}");
-    await buildLogin({ configFile, sourceDirectory, output: join(root, "theme") });
+    await loginBuilder.build({ configFile, sourceDirectory, output: join(root, "theme") });
     await Bun.write(
       configFile,
       JSON.stringify({
         theme: { fonts: { ui: "serif" }, appearance: { rounding: 18, blur: { enabled: false } } },
       }),
     );
-    await buildLogin({ configFile, sourceDirectory, output: join(root, "rounded-theme") });
+    await loginBuilder.build({ configFile, sourceDirectory, output: join(root, "rounded-theme") });
     const checks = join(root, "checks");
     await mkdir(checks);
     await copyFile(

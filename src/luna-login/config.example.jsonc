@@ -37,6 +37,6 @@
   },
   "login": {
     // null preselects the first available user; otherwise set a username.
-    "user": null,
+    "user": "jrtilak",
   },
 }

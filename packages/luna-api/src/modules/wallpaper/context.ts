@@ -20,6 +20,13 @@ export interface WallpaperInstallOptions extends WallpaperOptions {
   recursive?: boolean;
 }
 
+export interface WallpaperSetOptions extends WallpaperOptions {
+  /** Target only SDDM's Login background; the desktop selection stays unchanged. */
+  login?: boolean;
+  loginConfigFile?: string;
+  systemRoot?: string;
+}
+
 export interface WallpaperEntry {
   name: string;
   path: string;

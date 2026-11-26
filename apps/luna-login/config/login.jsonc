@@ -1,0 +1,8 @@
+{
+  "screen": { "path": "./login/screens/default" },
+  // Omitted theme tokens come from the selected Luna theme during configuration.
+  "theme": {},
+  "background": {},
+  "actions": { "shutdown_delay": 3 },
+  "login": { "user": "jrtilak" },
+}
