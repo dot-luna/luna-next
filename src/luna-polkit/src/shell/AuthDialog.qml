@@ -10,6 +10,7 @@ PanelWindow {
     required property var theme
     property var settings: ({ width: 420, dim_opacity: 0.5 })
     property var flow: null
+    property var retention: null
     visible: flow !== null && !flow.isCompleted
     color: "transparent"
     anchors { top: true; bottom: true; left: true; right: true }
@@ -38,6 +39,7 @@ PanelWindow {
             theme: panel.theme
             settings: panel.settings
             flow: panel.flow
+            retention: panel.retention
             onFocusMoved: control => {
                 // Tab navigation must keep the focused control visible on short displays.
                 Qt.callLater(() => {
