@@ -379,7 +379,7 @@ TestCase {
             const bar = control(view, "pageScrollBar");
             verify(pages.contentHeight > pages.height);
             verify(bar.visible && bar.size < 1);
-            compare(bar.mapToItem(view, 0, 0).x, 191);
+            compare(bar.mapToItem(view, bar.width, 0).x, view.width);
             compare(bar.mapToItem(view, 0, 0).y, pages.mapToItem(view, 0, 0).y);
             compare(bar.height, pages.height);
             mouseClick(bar, bar.width / 2, bar.height - 2);
@@ -390,7 +390,7 @@ TestCase {
             const searchBar = control(view, "searchScrollBar");
             verify(!bar.visible);
             verify(searchBar.visible && searchBar.size < 1);
-            compare(searchBar.mapToItem(view, 0, 0).x, 191);
+            compare(searchBar.mapToItem(view, searchBar.width, 0).x, view.width);
             compare(searchBar.height, results.height);
             mouseClick(searchBar, searchBar.width / 2, searchBar.height - 2);
             tryVerify(() => results.contentY > 0);

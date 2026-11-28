@@ -2,7 +2,7 @@
 
 Home, Hyprland, Apps, and About are blank. Appearance contains Theme, Background, and More.
 Login screen and Lock screen are under More. Content stays centered at a maximum width of 760 px.
-Scrollbars sit at the left edge of the page area beside the sidebar.
+Scrollbars sit at the far right edge of the page area.
 
 Background shows installed wallpapers. The first tile opens the file picker or a URL
 download dialog, using the system desktop portal for file selection. Imports are copied into the library. Click a wallpaper to apply it.

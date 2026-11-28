@@ -259,7 +259,7 @@ Rectangle {
                         ScrollBar.vertical: ScrollBar {
                             objectName: "pageScrollBar"
                             parent: contentArea
-                            anchors.left: parent.left
+                            anchors.right: parent.right
                             y: settingsContent.y + pageStack.y
                             height: pages.height
                             visible: pages.visible
@@ -309,7 +309,7 @@ Rectangle {
                         ScrollBar.vertical: ScrollBar {
                             objectName: "searchScrollBar"
                             parent: contentArea
-                            anchors.left: parent.left
+                            anchors.right: parent.right
                             y: settingsContent.y + pageStack.y
                             height: results.height
                             visible: results.visible
