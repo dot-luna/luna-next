@@ -8,7 +8,7 @@ QtObject {
     property var saved: Data.defaults(theme)
     property var draft: Data.defaults(theme)
     readonly property string parentPage: Data.parentPage(page)
-    readonly property var groups: Data.groups(page, theme)
+    readonly property var groups: Data.groups(page)
     readonly property var results: Data.search(query)
 
     function navigate(destination) {

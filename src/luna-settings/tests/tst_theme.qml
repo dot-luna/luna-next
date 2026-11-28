@@ -132,7 +132,9 @@ TestCase {
         const randomPoint = random.mapToItem(view, 0, 0);
         const titlePoint = control(view, "backgroundTitle").mapToItem(view, 0, 0);
         verify(randomPoint.x > titlePoint.x && Math.abs(randomPoint.y - titlePoint.y) < 20);
-        verify(control(view, "section-Text").font.pixelSize > 13);
+        compare(findChild(view, "section-Text"), null);
+        compare(findChild(view, "control-font"), null);
+        compare(findChild(view, "control-scale"), null);
         verify(control(view, "section-More").font.pixelSize > 13);
         compare(control(view, "randomTheme").variant, UI.Button.Ghost);
         verify(control(view, "themeImportTile").visible);
@@ -142,11 +144,6 @@ TestCase {
         compare(control(view, "pageTitle").text, "Appearance");
         compare(control(view, "nav-appearance").background.radius, data.rounding);
         compare(control(view, "nav-appearance").background.color, "#ffddbb");
-        const font = control(view, "control-font");
-        compare(font.font.family, "serif");
-        compare(font.currentText, "serif");
-        compare(font.background.radius, data.rounding);
-        compare(font.background.border.width, data.borderWidth);
         const surface = control(view, "settingsSurface");
         verify(Math.abs(surface.color.a - 0.7) < 0.01);
         compare(findChild(view, "control-theme"), null);
@@ -342,13 +339,62 @@ TestCase {
         keyClick(Qt.Key_Return);
         compare(view.mockState.page, "appearance");
         verify(control(view, "background-Dunes").activeFocus);
-        view.mockState.setValue("appearance", "scale", "110%");
         click(control(view, "nav-home"));
         compare(view.mockState.page, "home");
         compare(findChild(view, "changeBar"), null);
         compare(control(view, "pageTitle").visible, false);
         compare(view.mockState.groups.length, 0);
         verify(!control(view, "themeImportTile").visible);
+    }
+    function test_empty_pages_navigation_and_removed_text_search() {
+        const view = createView();
+        for (const page of ["hyprland", "apps", "about"]) {
+            const nav = control(view, "nav-" + page);
+            nav.forceActiveFocus();
+            keyClick(Qt.Key_Return);
+            compare(view.mockState.page, page);
+            compare(nav.checked, true);
+            compare(control(view, "nav-appearance").checked, false);
+            compare(control(view, "pageTitle").text, nav.Accessible.name);
+            compare(control(view, "backButton").visible, false);
+            compare(view.mockState.groups.length, 0);
+            verify(!control(view, "themeImportTile").visible);
+            click(control(view, "nav-appearance"));
+            click(nav);
+            compare(view.mockState.page, page);
+        }
+        for (const query of ["font", "typography", "text scaling"]) {
+            view.mockState.query = query;
+            compare(view.mockState.results.length, 0);
+        }
+    }
+    function test_scrollbars_stay_at_page_edge() {
+        const view = createView();
+        view.height = 560;
+        for (const width of [740, 1600]) {
+            view.width = width;
+            view.mockState.query = "";
+            verify(waitForPolish(view));
+            const pages = control(view, "settingsPages");
+            const bar = control(view, "pageScrollBar");
+            verify(pages.contentHeight > pages.height);
+            verify(bar.visible && bar.size < 1);
+            compare(bar.mapToItem(view, 0, 0).x, 191);
+            compare(bar.mapToItem(view, 0, 0).y, pages.mapToItem(view, 0, 0).y);
+            compare(bar.height, pages.height);
+            mouseClick(bar, bar.width / 2, bar.height - 2);
+            tryVerify(() => pages.contentY > 0);
+            view.mockState.query = "a";
+            verify(waitForPolish(view));
+            const results = control(view, "searchResults");
+            const searchBar = control(view, "searchScrollBar");
+            verify(!bar.visible);
+            verify(searchBar.visible && searchBar.size < 1);
+            compare(searchBar.mapToItem(view, 0, 0).x, 191);
+            compare(searchBar.height, results.height);
+            mouseClick(searchBar, searchBar.width / 2, searchBar.height - 2);
+            tryVerify(() => results.contentY > 0);
+        }
     }
     function test_import_tile_and_download_dialog() {
         const view = createView();

@@ -1,11 +1,10 @@
 .pragma library
 
 // Sample controls for the UI mock, independent of Luna's configuration contracts.
-var titles = { home: "Home", appearance: "Appearance", login: "Login screen", lock: "Lock screen", desktop: "Desktop" };
+var titles = { home: "Home", appearance: "Appearance", hyprland: "Hyprland", apps: "Apps", about: "About", login: "Login screen", lock: "Lock screen", desktop: "Desktop" };
 
 function defaults(theme) {
     return {
-        appearance: { font: theme.fonts.ui, scale: "100%" },
         login: { background: "Night", user: "Last signed-in user", session: "Hyprland", layout: "English (US)", showUsers: true },
         lock: { background: "Night", idle: "10 minutes", dpms: "30 seconds", clock: true, format: "24-hour" },
         desktop: { background: "Night", layout: "Tiling", inner: theme.appearance.gaps.inner, outer: theme.appearance.gaps.outer, rounding: theme.appearance.rounding, blur: theme.appearance.blur.enabled, bar: true }
@@ -14,11 +13,10 @@ function defaults(theme) {
 
 var sections = {
     home: [],
+    hyprland: [],
+    apps: [],
+    about: [],
     appearance: [
-        { title: "Text", rows: [
-            { key: "font", label: "Font", type: "select", options: ["Outfit", "Inter", "System default"], keywords: "typography" },
-            { key: "scale", label: "Size", type: "select", options: ["90%", "100%", "110%", "125%"], keywords: "text scaling" }
-        ] },
         { title: "More", rows: [
             { type: "link", page: "login", label: "Login screen" },
             { type: "link", page: "lock", label: "Lock screen" }
@@ -59,14 +57,11 @@ var sections = {
 
 function parentPage(page) { return page === "login" || page === "lock" ? "appearance" : page; }
 function path(page) { return parentPage(page) === page ? titles[page] : "Appearance / " + titles[page]; }
-function groups(page, theme) {
+function groups(page) {
     return sections[page].map(section => ({
         page: page,
         title: section.title,
-        rows: section.rows.map(row => {
-            if (page !== "appearance" || row.key !== "font") return row;
-            return Object.assign({}, row, { options: [theme.fonts.ui].concat(row.options.filter(option => option !== theme.fonts.ui)) });
-        })
+        rows: section.rows
     }));
 }
 

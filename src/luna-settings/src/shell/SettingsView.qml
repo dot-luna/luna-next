@@ -144,7 +144,10 @@ Rectangle {
                         id: navigation
                         model: [
                             { page: "home", label: "Home", icon: "grid-view" },
-                            { page: "appearance", label: "Appearance", icon: "paint-board" }
+                            { page: "appearance", label: "Appearance", icon: "paint-board" },
+                            { page: "hyprland", label: "Hyprland", icon: "computer" },
+                            { page: "apps", label: "Apps", icon: "grid-view" },
+                            { page: "about", label: "About", icon: "information-circle" }
                         ]
                         UI.Button {
                             theme: colors
@@ -187,10 +190,12 @@ Rectangle {
         Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: colors.borderWidth > 0 ? colors.line : "transparent" }
 
         Item {
+            id: contentArea
             Layout.fillWidth: true
             Layout.fillHeight: true
 
             ColumnLayout {
+                id: settingsContent
                 objectName: "settingsContent"
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
@@ -238,6 +243,7 @@ Rectangle {
                 }
 
                 StackLayout {
+                    id: pageStack
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     currentIndex: view.searching ? 1 : 0
@@ -249,7 +255,16 @@ Rectangle {
                         contentWidth: width
                         contentHeight: pageColumn.implicitHeight + 6
                         boundsBehavior: Flickable.StopAtBounds
-                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                        // Keep the scrollbar at the page edge, outside the centered content.
+                        ScrollBar.vertical: ScrollBar {
+                            objectName: "pageScrollBar"
+                            parent: contentArea
+                            anchors.left: parent.left
+                            y: settingsContent.y + pageStack.y
+                            height: pages.height
+                            visible: pages.visible
+                            policy: ScrollBar.AsNeeded
+                        }
 
                         Column {
                             id: pageColumn
@@ -291,7 +306,15 @@ Rectangle {
                         model: mock.results
                         spacing: 1
                         boundsBehavior: Flickable.StopAtBounds
-                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                        ScrollBar.vertical: ScrollBar {
+                            objectName: "searchScrollBar"
+                            parent: contentArea
+                            anchors.left: parent.left
+                            y: settingsContent.y + pageStack.y
+                            height: results.height
+                            visible: results.visible
+                            policy: ScrollBar.AsNeeded
+                        }
                         delegate: UI.Button {
                             theme: colors
                             variant: UI.Button.Ghost
